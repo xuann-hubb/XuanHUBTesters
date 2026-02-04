@@ -1876,13 +1876,13 @@ UpgBase:Button({
 -- ================= EVENT TAB =================
 local RadioactiveSection = EventTab:Section({
     Title = "Radioactive Event",
-    Opened = false,
+    Opened = true,
 })
 
 -- Auto Collect Radioactive
 RadioactiveSection:Toggle({
     Title = "Auto Collect Radioactive Coins",
-    Desc = "(Patched, it will still collect but not many)",
+    Desc = "Atumatically Collect Radioactive Coins",
     Value = savedSettings.autoCollectRadioactive,
     Callback = function(state)
         active = state
@@ -1923,7 +1923,7 @@ RadioactiveSection:Space()
 -- Auto Obby
 RadioactiveSection:Toggle({
     Title = "Auto Complete Radioactive Obby",
-    Desc = "Auto complete obby 3x then wait 15min",
+    Desc = "Auto complete Radioactive obby",
     Value = savedSettings.autoObby,
     Callback = function(state)
         autoObby = state
