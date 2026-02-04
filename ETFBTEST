@@ -33,7 +33,6 @@ WindUI:AddTheme({
     }, {
         Rotation = 45,
     }),
-    Background = Color3.fromRGB(16, 16, 20), -- Very dark background
     Outline = Color3.fromHex("#1ABC9C"), -- Holographic teal outline
     Text = Color3.fromHex("#FFFFFF"), -- Pure white text
     Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
