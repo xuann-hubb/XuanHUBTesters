@@ -33,10 +33,11 @@ WindUI:AddTheme({
     }, {
         Rotation = 45,
     }),
+    Background = Color3.fromRGB(16, 16, 20), -- Very dark background
     Outline = Color3.fromHex("#1ABC9C"), -- Holographic teal outline
     Text = Color3.fromHex("#FFFFFF"), -- Pure white text
     Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
-    Button = Color3.fromHex("#16A085"), -- Darker holographic teal
+    Button = Color3.fromHex("FFE70AD5"), -- Darker holographic teal
     Icon = Color3.fromHex("#3DFFDC"), -- Light holographic cyan
 })
 
@@ -130,7 +131,9 @@ local Window = WindUI:CreateWindow({
         Enabled = true,
         Anonymous = false,
     },
+    
 })
+
 
 
 Window:EditOpenButton({
@@ -675,8 +678,8 @@ task.spawn(function()
                 WindUI:Notify({ Title = "Radioactive Obby", Content = "Radioactive Event found! Starting...", Icon =
                 "check", Duration = 2 })
 
-                -- Run the obby completion sequence 3 times
-                for cycleCount = 1, 3 do
+                -- Run the obby completion sequence 2 times
+                for cycleCount = 1, 2 do
                     if not autoObby then break end
 
                     local completed = false
@@ -685,17 +688,29 @@ task.spawn(function()
                         if not rootPart then return end
 
                         -- Re-check radioactiveMap exists
-                        local obbyRoot = findRadioactiveRoot()
-                        if not obbyRoot then return end
+                        local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+                        if not rms then return end
 
-                        -- Complete Obby
-                        local obbyEnd = obbyRoot:FindFirstChild("ObbyEnd")
-                        if obbyEnd and obbyEnd:FindFirstChild("TouchInterest") then
+                        -- Step 1: Touch Mud TouchInterest
+                        local mud = rms:FindFirstChild("Mud")
+                        if mud and mud:FindFirstChild("TouchInterest") then
                             pcall(function()
-                                firetouchinterest(rootPart, obbyEnd, 0)
+                                firetouchinterest(rootPart, mud, 0)
                                 task.wait(0.1)
-                                firetouchinterest(rootPart, obbyEnd, 1)
+                                firetouchinterest(rootPart, mud, 1)
                             end)
+                            task.wait(0.5)
+                        end
+
+                        -- Step 2: Teleport to ObbyEnd
+                        local obbyEnd = rms:FindFirstChild("ObbyEnd")
+                        if obbyEnd then
+                            local targetPos = obbyEnd:IsA("BasePart") and obbyEnd.Position or 
+                                             (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
+                            if targetPos then
+                                rootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+                                task.wait(0.3)
+                            end
                         end
 
                         completed = true
@@ -703,17 +718,17 @@ task.spawn(function()
 
                     -- Notify after each cycle
                     if completed then
-                        WindUI:Notify({ Title = "Radioactive Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon =
+                        WindUI:Notify({ Title = "Radioactive Obby", Content = "Cycle " .. cycleCount .. "/2 completed", Icon =
                         "check", Duration = 2 })
                     end
 
-                    if cycleCount < 3 then
+                    if cycleCount < 2 then
                         task.wait(2) -- Small delay between cycles
                     end
                 end
 
-                -- All 3 cycles complete, wait 15 minutes
-                WindUI:Notify({ Title = "Radioactive Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
+                -- All 2 cycles complete, wait 15 minutes
+                WindUI:Notify({ Title = "Radioactive Obby", Content = "2 cycles done", Icon = "clock", Duration = 3 })
                 task.wait(900) -- 15 minutes = 900 seconds
             end
         else
@@ -1876,13 +1891,13 @@ UpgBase:Button({
 -- ================= EVENT TAB =================
 local RadioactiveSection = EventTab:Section({
     Title = "Radioactive Event",
-    Opened = true,
+    Opened = false,
 })
 
 -- Auto Collect Radioactive
 RadioactiveSection:Toggle({
     Title = "Auto Collect Radioactive Coins",
-    Desc = "Atumatically Collect Radioactive Coins",
+    Desc = "(Patched, it will still collect but not many)",
     Value = savedSettings.autoCollectRadioactive,
     Callback = function(state)
         active = state
@@ -1923,7 +1938,7 @@ RadioactiveSection:Space()
 -- Auto Obby
 RadioactiveSection:Toggle({
     Title = "Auto Complete Radioactive Obby",
-    Desc = "Auto complete Radioactive obby",
+    Desc = "Auto complete obby 3x then wait 15min",
     Value = savedSettings.autoObby,
     Callback = function(state)
         autoObby = state
