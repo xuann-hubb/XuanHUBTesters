@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 -- ================= LOAD WINDUI =================
 local WindUI = loadstring(game:HttpGet(
@@ -20,6 +21,18 @@ local WindUI = loadstring(game:HttpGet(
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
+
+-- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
+    
+    Accent = Color3.fromHex("#1ABC9C"), -- Discord holographic teal
+    Outline = Color3.fromHex("#1ABC9C"), -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"), -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#16A085"), -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"), -- Light holographic cyan
+})
 
 -- ================= SETTINGS PERSISTENCE =================
 local settingsFileName = "XuanHubSettings.json"
@@ -100,7 +113,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Midnight",
+    Theme = "Holographic", -- Use custom holographic theme
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -127,13 +140,42 @@ Window:EditOpenButton({
     Draggable = true,
 })
 
--- Add version tag
-Window:Tag({
-    Title = "Server: " .. tostring(game.PlaceVersion),
+-- Add version tag with FPS and Ping counter
+local version = game.PlaceVersion -- Server version
+local fps = 0
+local ping = 0
+local Stats = game:GetService("Stats")
+
+local VersionTag = Window:Tag({
+    Title = string.format("v%d | Ping: 0 | FPS: 0", version),
     Icon = "solar:server-bold",
-    Color = Color3.fromRGB(255, 105, 180),
+    Color = Color3.fromRGB(255, 105, 180), -- Pink color
     Border = true,
 })
+
+local frames = 0
+local last = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    frames = frames + 1
+    local now = os.clock()
+    if now - last >= 1 then
+        fps = frames
+        frames = 0
+        last = now
+        
+        -- Get ping
+        pcall(function()
+            local item = Stats.Network.ServerStatsItem:FindFirstChild("Data Ping")
+            if item then
+                ping = math.floor(item:GetValue())
+            end
+        end)
+        
+        -- Update tag
+        VersionTag:SetTitle(string.format("v%d | Ping: %d | FPS: %d", version, ping, fps))
+    end
+end)
 
 -- ================= TABS =================
 
