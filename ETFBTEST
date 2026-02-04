@@ -26,7 +26,14 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
     
-    Accent = Color3.fromHex("#1ABC9C"), -- Discord holographic teal
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 }, -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 }, -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Background = Color3.fromRGB(16, 16, 20), -- Very dark background
     Outline = Color3.fromHex("#1ABC9C"), -- Holographic teal outline
     Text = Color3.fromHex("#FFFFFF"), -- Pure white text
     Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
