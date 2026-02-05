@@ -2204,7 +2204,7 @@ local UISection = MiscTab:Section({
 UISection:Toggle({
     Title = "Profile Icon",
     Desc = "Toggle profile visibility",
-    Value = false,
+    Value = true,
     Callback = function(state)
         local stateinfo = state
         if stateinfo then
@@ -2232,7 +2232,7 @@ UISection:Toggle({
 UISection:Toggle({
     Title = "UI Transparency",
     Desc = "Toggle window transparency",
-    Value = false,
+    Value = true,
     Callback = function(state)
         local stateinfo = state
         if stateinfo then
