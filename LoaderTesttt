@@ -81,8 +81,8 @@ end
 --[[ Right before obfuscating, paste this code above/before your source code, and your script will not be able to be env logged ]]
 
 -- ================= ANTI DUMPER LAYER 2 =================
--- apt-mega0.2b-NANO verification system
-local _verifySystem = (function()
+-- apt-mega0.2b-NANO [apt-mega0.2b is like 20x bigger than this lol]
+local _antiDumpPass = (function()
     if not game:IsLoaded() then game.Loaded:Wait() end
     repeat task.wait() until game:IsLoaded()
     
@@ -112,19 +112,13 @@ local _verifySystem = (function()
         return _vL == false
     end
     
-    -- run verification 3 times
-    for _i = 1, 3 do 
-        if not _c1() then 
-            _dtc() 
-            return false
-        end 
-    end
+    -- btw it runs the check 3 times bcus i want it to
+    for _i = 1, 3 do if not _c1() then _dtc() return false end end
     
     return true
 end)()
 
-if not _verifySystem then
-    warn("Verification Failed")
+if not _antiDumpPass then
     return
 end
 
