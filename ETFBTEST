@@ -2203,7 +2203,11 @@ UISection:Toggle({
     Desc = "Toggle profile visibility",
     Value = true,
     Callback = function(state)
-        Window.User:SetEnabled(state)
+        if state then
+            Window.Icon:Enable()
+        else
+            Window.Icon:Disable()
+        end
     end
 })
 
@@ -2212,7 +2216,7 @@ UISection:Toggle({
     Desc = "Hide your profile information",
     Value = false,
     Callback = function(state)
-        Window.User:SetAnonymous(state)
+        Window.Icon:SetAnonymous(state)
     end
 })
 
@@ -2221,7 +2225,7 @@ UISection:Toggle({
     Desc = "Toggle window transparency off",
     Value = true,
     Callback = function(state)
-        Window:SetTransparency(state)
+        Window:ToggleTransparency(not state)
     end
 })
 
