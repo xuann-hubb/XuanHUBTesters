@@ -2004,7 +2004,7 @@ MoneySection:Toggle({
 
 MoneySection:Toggle({
     Title = "Auto Complete Money Obbies",
-    Desc = "Auto complete obbies 3x then wait 15min",
+    Desc = "Automatically complete 3 Money obbies",
     Value = savedSettings.autoCompleteMoneyObby,
     Callback = function(state)
         autoCompleteMoneyObby = state
