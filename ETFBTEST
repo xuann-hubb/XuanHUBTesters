@@ -42,7 +42,7 @@ WindUI:AddTheme({
 })
 
 -- ================= SETTINGS PERSISTENCE =================
-local settingsFileName = "XuanHubSettings.json"
+local settingsFileName = "XuanHubConfig_ETFB.json"
 local defaultSettings = {
     autoCollectMoney = false,
     autoCollectRadioactive = false,
