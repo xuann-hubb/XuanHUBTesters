@@ -131,7 +131,8 @@ local Window = WindUI:CreateWindow({
     
 })
 
-
+Window.Icon:Enable() -- Profile icon on by default
+Window:ToggleTransparency(true) 
 
 Window:EditOpenButton({
     OnlyMobile = false,
@@ -2405,9 +2406,7 @@ task.spawn(function()
         startWiderHitbox()
     end
     
-    -- Initialize UI Settings
-    Window.Icon:Enable() -- Profile icon on by default
-    Window:ToggleTransparency(true) -- Transparency on by default
+ 
 end)
 
 -- ================= FINALIZE =================
