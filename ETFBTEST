@@ -2404,6 +2404,10 @@ task.spawn(function()
         widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
         startWiderHitbox()
     end
+    
+    -- Initialize UI Settings
+    Window.Icon:Enable() -- Profile icon on by default
+    Window:ToggleTransparency(true) -- Transparency on by default
 end)
 
 -- ================= FINALIZE =================
