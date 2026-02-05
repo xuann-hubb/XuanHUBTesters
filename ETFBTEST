@@ -125,7 +125,6 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
     OutlineThickness = 3,
     Resizable = true,
-    
 })
 
 
@@ -2203,15 +2202,11 @@ UISection:Toggle({
     Desc = "Toggle profile visibility",
     Value = true,
     Callback = function(state)
-        local success, err = pcall(function()
-            if state then
-                Window.Icon:Enable()
-            else
-                Window.Icon:Disable()
-            end
-        end)
-        if not success then
-            warn("Profile Icon Error:", err)
+        local stateinfo = state
+        if stateinfo then
+            Window.User:Enable()
+        else
+            Window.User:Disable()
         end
     end
 })
@@ -2221,11 +2216,11 @@ UISection:Toggle({
     Desc = "Hide your profile information",
     Value = false,
     Callback = function(state)
-        local success, err = pcall(function()
-            Window.Icon:SetAnonymous(state)
-        end)
-        if not success then
-            warn("Anonymous Error:", err)
+        local stateinfo = state
+        if stateinfo then
+            Window.User:SetAnonymous(true)
+        else
+            Window.User:SetAnonymous(false)
         end
     end
 })
@@ -2235,7 +2230,12 @@ UISection:Toggle({
     Desc = "Toggle window transparency",
     Value = true,
     Callback = function(state)
-        Window:ToggleTransparency()
+        local stateinfo = state
+        if stateinfo then
+            Window:ToggleTransparency(true)
+        else
+            Window:ToggleTransparency(false)
+        end
     end
 })
 
@@ -2414,13 +2414,6 @@ task.spawn(function()
         startWiderHitbox()
     end
     
-    -- Initialize UI Settings
-    task.wait(0.2)
-    Window.Icon:Enable() -- Profile icon on by default
-    -- Call transparency twice to ensure it starts in transparent state
-    Window:ToggleTransparency()
-    task.wait(0.1)
-    Window:ToggleTransparency()
 end)
 
 -- ================= FINALIZE =================
