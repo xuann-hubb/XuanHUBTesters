@@ -125,7 +125,6 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
     OutlineThickness = 3,
     Resizable = true,
-    Transparent = true,
     User = {
         Enabled = true,
         Anonymous = false,
@@ -2199,42 +2198,33 @@ AutoSection:Toggle({
 
 -- ================= MISC TAB =================
 local UISection = MiscTab:Section({
-    Title = "User Profile",
+    Title = "UI Settings",
     Opened = true,
 })
 
 UISection:Toggle({
     Title = "Profile Icon",
-    Desc = "Your profile on your left down",
-    Value = false,
+    Desc = "Toggle profile visibility",
+    Value = true,
     Callback = function(state)
         if state then
-            Window.Icon:Enable()
+            Window:SetUserEnabled(true)
         else
-            Window.Icon:Disable()
+            Window:SetUserEnabled(false)
         end
     end
 })
 
 UISection:Toggle({
     Title = "Set Profile Anonymous",
-    Desc = "Your profile on your left down",
+    Desc = "Hide your profile information",
     Value = false,
     Callback = function(state)
-        if state then
-            Window.Icon:SetAnonymous(true)
-        else
-            Window.Icon:SetAnonymous(false)
-        end
+        Window:SetUserAnonymous(state)
     end
 })
 
-local WindowSection = MiscTab:Section({
-    Title = "Window",
-    Opened = true,
-})
-
-WindowSection:Slider({
+UISection:Slider({
     Title = "Transparency",
     Desc = "Adjust window background transparency",
     Step = 0.1,
