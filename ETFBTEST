@@ -2238,12 +2238,7 @@ UISection:Toggle({
     Desc = "Toggle window transparency",
     Value = true,
     Callback = function(state)
-        local stateinfo = state
-        if stateinfo then
-            Window:ToggleTransparency(true)
-        else
-            Window:ToggleTransparency(false)
-        end
+        Window:ToggleTransparency()
     end
 })
 
@@ -2289,7 +2284,7 @@ ServerGroup:Button({
         Window:ServerHop()
     end
 
-    
+
 })
 
 ServerGroup:Space()
@@ -2422,7 +2417,13 @@ task.spawn(function()
         startWiderHitbox()
     end
     
- 
+    -- Initialize UI Settings
+    task.wait(0.2)
+    Window.Icon:Enable() -- Profile icon on by default
+    -- Call transparency twice to ensure it starts in transparent state
+    Window:ToggleTransparency()
+    task.wait(0.1)
+    Window:ToggleTransparency()
 end)
 
 -- ================= FINALIZE =================
