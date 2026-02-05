@@ -1,0 +1,153 @@
+-- Made by getgold.cc, get a free (beta) obfuscator @ wYnFuscate.com (obfuscator made by THE wYn)
+
+-- no object method checks (change name of InvalidMethod to avoid predefine)
+-- confirmed detected: crypta 1, 25ms
+-- confirmed undetected: unveilr v2 (threaded), unix
+local Success = pcall(function()
+	Instance.new("Part"):InvalidMethod("a")
+end)
+
+while Success do
+	warn("Dump Detected")
+	task.spawn() -- invalid argument #1 to 'spawn' (function or thread expected)
+end
+
+-- function exploration (change method from GetChildren to avoid predefine)
+-- confirmed detected: 25ms, unveilr v2 (threaded)
+-- confirmed undetected: unix, crypta l1
+game:GetChildren(function()
+	while true do
+		({})[nil] = true -- table index is nil
+	end
+end)
+
+-- wrong amount of services as children
+-- confirmed detected: crypta 1, unveilr v2 (threaded)
+-- confirmed undetected: 25ms, unix
+while #game:GetChildren() <= 4 do
+	buffer.writei8(buffer.fromstring("a"), 1, 2) -- buffer access out of bounds
+end
+
+-- jsondecode doesn't decode (change values in json table to avoid predefine)
+-- confirmed detected: unix? (may patch), crypta l1, 25ms
+-- confirmed undetected: unveilr v2 (threaded)
+local Success, Result = pcall(function()
+	return game:GetService("HttpService"):JSONDecode('[68, "getgold.cc", true, 123, false, [321, null, "goldtm"], null, ["a"]]')
+end)
+
+while not Success do
+	warn("Dump Detected")
+	task() -- attempt to call a table value
+end
+
+while Result[6][2] ~= nil do
+	warn("Dump Detected")
+	(true)() -- attempt to call a boolean value
+end
+
+-- services don't exist as indexable children in the game (change service name to avoid predefine)
+-- confirmed detected: unix? (may patch)
+local Success = pcall(function()
+	return game.HttpService
+end)
+
+while not Success do
+	warn("Dump Detected")
+	local _ = (nil).Parent -- attempt to index nil with 'Parent'
+end
+
+-- modifying _G also modifies the function environment (change _G var name and value to avoid predefine)
+-- confirmed detected: unix? (may patch), 25ms
+_G.xuanhubcheck = "xhloader"
+
+while getfenv().xuanhubcheck ~= nil do
+	warn("Dump Detected")
+	game() -- attempt to call a Instance value
+end
+
+_G.xuanhubcheck = nil
+
+-- game object is a table/non-existent, instead of an Instance
+-- confirmed detected: unix? (may patch)
+local _, Message = pcall(function()
+	game()
+end)
+
+while not Message:find("attempt to call a Instance value") do
+	warn("Dump Detected")
+	table.create(9e9) -- invalid argument #1 to 'create' (size out of range)
+end
+
+--[[ Right before obfuscating, paste this code above/before your source code, and your script will not be able to be env logged ]]
+
+-- ================= ANTI DUMPER LAYER 2 =================
+-- apt-mega0.2b-NANO verification system
+local _verifySystem = (function()
+    if not game:IsLoaded() then game.Loaded:Wait() end
+    repeat task.wait() until game:IsLoaded()
+    
+    local _fT = string.char(102,117,110,99,116,105,111,110)
+    local _gS = function(_n) return game:GetService(_n) end
+    local _pL = _gS("Players").LocalPlayer
+    
+    local _dtc = function()
+        while true do
+            local _t = {}
+            for _i = 1, math.random(10000, 100000) do _t = {_t} end
+        end
+    end
+    
+    -- verified badge check
+    local _c1 = function()
+        local _b64e = base64_encode or base64encode
+        local _b64d = base64_decode or base64decode
+        if type(_b64e) ~= _fT or type(_b64d) ~= _fT then return false end
+        local _hVb = string.char(72,97,115,86,101,114,105,102,105,101,100,66,97,100,103,101)
+        local _tC = _b64e(_hVb)
+        local _dC = _b64d(_tC)
+        if _dC ~= _hVb then return false end
+        local _oK, _vL = pcall(function() return _pL[_hVb] end)
+        if not _oK then return false end
+        if _vL == true or _vL == nil then return false end
+        return _vL == false
+    end
+    
+    -- run verification 3 times
+    for _i = 1, 3 do 
+        if not _c1() then 
+            _dtc() 
+            return false
+        end 
+    end
+    
+    return true
+end)()
+
+if not _verifySystem then
+    warn("Verification Failed")
+    return
+end
+
+-- ================= XUAN LOADER =================
+
+local WindUI = loadstring(game:HttpGet(
+	"https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
+
+local Var = {
+	[7436755782] = "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/XuannGrowAGarden",
+	[9363735110] = "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/XuanEscapeTsunamiForBrainrot",
+}
+
+local URL = Var[game.GameId]
+if URL then
+	loadstring(game:HttpGet(URL))()
+else
+	local msg = string.format("Xuan Loader: unsupported game", tostring(game.PlaceId), tostring(game.GameId))
+	pcall(function()
+		if type(WindUI) == "table" and WindUI.Notify then
+			WindUI:Notify({ Title = "Xuan Loader", Content = msg, Icon = "info", Duration = 6 })
+			return
+		end
+	end)
+end
