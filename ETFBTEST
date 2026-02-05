@@ -206,7 +206,7 @@ local TsunamiTab = Window:Tab({
 })
 
 local MiscTab = Window:Tab({
-    Title = "Misc",
+    Title = "Settings",
     Icon = "settings",
     Locked = false,
 })
@@ -2198,6 +2198,52 @@ AutoSection:Toggle({
 })
 
 -- ================= MISC TAB =================
+local UISection = MiscTab:Section({
+    Title = "User Profile",
+    Opened = true,
+})
+
+UISection:Toggle({
+    Title = "Profile Icon",
+    Desc = "Your profile on your left down",
+    Value = false,
+    Callback = function(state)
+        if state then
+            Window.Icon:Enable()
+        else
+            Window.Icon:Disable()
+        end
+    end
+})
+
+UISection:Toggle({
+    Title = "Set Profile Anonymous",
+    Desc = "Your profile on your left down",
+    Value = false,
+    Callback = function(state)
+        if state then
+            Window.Icon:SetAnonymous(true)
+        else
+            Window.Icon:SetAnonymous(false)
+        end
+    end
+})
+
+local WindowSection = MiscTab:Section({
+    Title = "Window",
+    Opened = true,
+})
+
+WindowSection:Slider({
+    Title = "Transparency",
+    Desc = "Adjust window background transparency",
+    Step = 0.1,
+    Value = { Min = 0, Max = 1, Default = 0.4 },
+    Callback = function(value)
+        Window:SetBackgroundImageTransparency(value)
+    end
+})
+
 local MiscSettings = MiscTab:Section({
     Title = "Game Settings",
     Opened = true,
