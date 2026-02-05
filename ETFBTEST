@@ -1896,7 +1896,7 @@ local RadioactiveSection = EventTab:Section({
 -- Auto Collect Radioactive
 RadioactiveSection:Toggle({
     Title = "Auto Collect Radioactive Coins",
-    Desc = "(Patched, it will still collect but not many)",
+    Desc = "Automatically Collect Radioactive Coins",
     Value = savedSettings.autoCollectRadioactive,
     Callback = function(state)
         active = state
@@ -1937,7 +1937,7 @@ RadioactiveSection:Space()
 -- Auto Obby
 RadioactiveSection:Toggle({
     Title = "Auto Complete Radioactive Obby",
-    Desc = "Auto complete obby 3x then wait 15min",
+    Desc = "Automatically complete the Radioactive obby ",
     Value = savedSettings.autoObby,
     Callback = function(state)
         autoObby = state
