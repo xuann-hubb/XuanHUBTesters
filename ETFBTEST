@@ -688,25 +688,37 @@ task.spawn(function()
                         local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
                         if not rms then return end
 
-                        -- Step 1: Touch Mud TouchInterest
-                        local mud = rms:FindFirstChild("Mud")
-                        if mud and mud:FindFirstChild("TouchInterest") then
-                            pcall(function()
-                                firetouchinterest(rootPart, mud, 0)
-                                task.wait(0.1)
-                                firetouchinterest(rootPart, mud, 1)
-                            end)
-                            task.wait(0.5)
-                        end
-
-                        -- Step 2: Teleport to ObbyEnd
+                        -- Step 1: Touch the ObbyEnd TouchInterest (prevents death if touched before teleport)
                         local obbyEnd = rms:FindFirstChild("ObbyEnd")
                         if obbyEnd then
-                            local targetPos = obbyEnd:IsA("BasePart") and obbyEnd.Position or 
-                                             (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
-                            if targetPos then
-                                rootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
-                                task.wait(0.3)
+                            -- find a BasePart to touch that contains a TouchInterest/TouchTransmitter
+                            local touchPart = nil
+                            if obbyEnd:IsA("BasePart") then
+                                touchPart = obbyEnd
+                            else
+                                for _, d in ipairs(obbyEnd:GetDescendants()) do
+                                    if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d:FindFirstChildOfClass("TouchTransmitter")) then
+                                        touchPart = d
+                                        break
+                                    end
+                                end
+                            end
+
+                            if touchPart then
+                                pcall(function()
+                                    firetouchinterest(rootPart, touchPart, 0)
+                                    task.wait(0.1)
+                                    firetouchinterest(rootPart, touchPart, 1)
+                                end)
+
+                                -- wait 2s before teleporting to reduce chance of dying
+                                task.wait(2)
+
+                                local targetPos = touchPart.Position or (obbyEnd:IsA("BasePart") and obbyEnd.Position) or (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
+                                if targetPos then
+                                    rootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+                                    task.wait(0.3)
+                                end
                             end
                         end
 
@@ -1627,6 +1639,45 @@ VIPWallsSection:Button({
             end
 
             WindUI:Notify({ Title = "VIP Walls", Content = "Mars Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Unlock Radioactive VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Radioactive VIP Walls",
+    Desc = "Disable Shield of Radioactive VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local rmap = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+            if not rmap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = rmap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Radioactive VIP Walls unlocked", Icon = "check", Duration = 3 })
         end)
         if not ok then
             WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
