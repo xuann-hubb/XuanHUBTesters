@@ -2270,26 +2270,8 @@ local ServerGroup = MiscTab:Group()
 ServerGroup:Button({
     Title = "Server Hop",
     Icon = "solar:refresh-bold",
-    Color = Color3.fromRGB(255, 105, 180),
-    Justify = "Center",
     Callback = function()
-        local servers = {}
-        local req = game:HttpGet("https://games.roblox.com/v1/games/" ..
-            game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100")
-        local body = HttpService:JSONDecode(req)
-
-        if body and body.data then
-            for _, v in pairs(body.data) do
-                if v.id ~= game.JobId and v.playing < v.maxPlayers then
-                    table.insert(servers, v)
-                end
-            end
-
-            if #servers > 0 then
-                local randomServer = servers[math.random(1, #servers)]
-                game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, randomServer.id, player)
-            end
-        end
+        Window:ServerHop()
     end
 })
 
@@ -2298,8 +2280,6 @@ ServerGroup:Space()
 ServerGroup:Button({
     Title = "Rejoin",
     Icon = "solar:restart-bold",
-    Color = Color3.fromRGB(255, 105, 180),
-    Justify = "Center",
     Callback = function()
         game:GetService("TeleportService"):Teleport(game.PlaceId, player)
     end
