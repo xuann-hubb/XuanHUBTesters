@@ -125,10 +125,6 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
     OutlineThickness = 3,
     Resizable = true,
-    User = {
-        Enabled = true,
-        Anonymous = false,
-    },
     
 })
 
@@ -2207,11 +2203,7 @@ UISection:Toggle({
     Desc = "Toggle profile visibility",
     Value = true,
     Callback = function(state)
-        if state then
-            Window:SetUserEnabled(true)
-        else
-            Window:SetUserEnabled(false)
-        end
+        Window.User:SetEnabled(state)
     end
 })
 
@@ -2220,17 +2212,16 @@ UISection:Toggle({
     Desc = "Hide your profile information",
     Value = false,
     Callback = function(state)
-        Window:SetUserAnonymous(state)
+        Window.User:SetAnonymous(state)
     end
 })
 
-UISection:Slider({
-    Title = "Transparency",
-    Desc = "Adjust window background transparency",
-    Step = 0.1,
-    Value = { Min = 0, Max = 1, Default = 0.4 },
-    Callback = function(value)
-        Window:SetBackgroundImageTransparency(value)
+UISection:Toggle({
+    Title = "Disable UI Transparency",
+    Desc = "Toggle window transparency off",
+    Value = true,
+    Callback = function(state)
+        Window:SetTransparency(state)
     end
 })
 
