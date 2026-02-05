@@ -2205,12 +2205,16 @@ UISection:Toggle({
     Title = "Profile Icon",
     Desc = "Toggle profile visibility",
     Value = true,
-     Callback = function(state)
-        local stateinfo = state
-        if stateinfo then
-            Window.Icon:Enable()
-        else
-            Window.Icon:Disable()
+    Callback = function(state)
+        local success, err = pcall(function()
+            if state then
+                Window.Icon:Enable()
+            else
+                Window.Icon:Disable()
+            end
+        end)
+        if not success then
+            warn("Profile Icon Error:", err)
         end
     end
 })
@@ -2220,11 +2224,11 @@ UISection:Toggle({
     Desc = "Hide your profile information",
     Value = false,
     Callback = function(state)
-        local stateinfo = state
-        if stateinfo then
-            Window.Icon:SetAnonymous(true)
-        else
-            Window.Icon:SetAnonymous(false)
+        local success, err = pcall(function()
+            Window.Icon:SetAnonymous(state)
+        end)
+        if not success then
+            warn("Anonymous Error:", err)
         end
     end
 })
@@ -2284,6 +2288,8 @@ ServerGroup:Button({
     Callback = function()
         Window:ServerHop()
     end
+
+    
 })
 
 ServerGroup:Space()
