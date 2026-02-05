@@ -1860,7 +1860,13 @@ UpgBase:Button({
     Locked = false,
     Callback = function()
         local ok, err = pcall(function()
-            local walls = workspace:FindFirstChild("VIPWalls")
+            local defaultMap = workspace:FindFirstChild("DefaultMap_SharedInstances")
+            if not defaultMap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "DefaultMap_SharedInstances not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+            
+            local walls = defaultMap:FindFirstChild("VIPWalls")
             if not walls then
                 WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
                 return
@@ -1874,7 +1880,7 @@ UpgBase:Button({
 
             for _, v in pairs(walls:GetDescendants()) do
                 if v:IsA("TouchTransmitter") then
-                    pcall(function() v:Destroy() end)
+                    v:Destroy()
                 end
             end
 
