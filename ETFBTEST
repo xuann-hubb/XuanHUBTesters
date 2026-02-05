@@ -75,9 +75,6 @@ local defaultSettings = {
 	-- Auto Sell by Rarity
 	autoSellByRarity = false,
 	sellRarities = {},
-	-- UI Settings
-	profileIcon = true,
-	uiTransparency = true,
 }
 
     local function loadSettings()
@@ -2203,15 +2200,14 @@ local UISection = MiscTab:Section({
 UISection:Toggle({
     Title = "Profile Icon",
     Desc = "Toggle profile visibility",
-    Value = savedSettings.profileIcon,
+    Value = true,
     Callback = function(state)
-        if state then
-            Window.Icon:Enable()
+        local stateinfo = state
+        if stateinfo then
+            Window.User:Enable()
         else
-            Window.Icon:Disable()
+            Window.User:Disable()
         end
-        savedSettings.profileIcon = state
-        saveSettings(savedSettings)
     end
 })
 
@@ -2232,11 +2228,14 @@ UISection:Toggle({
 UISection:Toggle({
     Title = "UI Transparency",
     Desc = "Toggle window transparency",
-    Value = savedSettings.uiTransparency,
+    Value = true,
     Callback = function(state)
-        Window:ToggleTransparency()
-        savedSettings.uiTransparency = state
-        saveSettings(savedSettings)
+        local stateinfo = state
+        if stateinfo then
+            Window:ToggleTransparency(true)
+        else
+            Window:ToggleTransparency(false)
+        end
     end
 })
 
@@ -2415,16 +2414,16 @@ task.spawn(function()
         startWiderHitbox()
     end
     
-    -- Apply UI Transparency
-    if savedSettings.uiTransparency then
-        Window:ToggleTransparency()
-    end
-    
-    -- Apply Profile Icon
+    -- Apply UI Settings
+    task.wait(0.2)
     if savedSettings.profileIcon then
         Window.Icon:Enable()
     else
         Window.Icon:Disable()
+    end
+    
+    if savedSettings.uiTransparency then
+        Window:ToggleTransparency()
     end
 end)
 
