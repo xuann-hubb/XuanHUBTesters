@@ -131,8 +131,7 @@ local Window = WindUI:CreateWindow({
     
 })
 
-Window.Icon:Enable() -- Profile icon on by default
-Window:ToggleTransparency(true) 
+
 
 Window:EditOpenButton({
     OnlyMobile = false,
@@ -2206,8 +2205,9 @@ UISection:Toggle({
     Title = "Profile Icon",
     Desc = "Toggle profile visibility",
     Value = true,
-    Callback = function(state)
-        if state then
+     Callback = function(state)
+        local stateinfo = state
+        if stateinfo then
             Window.Icon:Enable()
         else
             Window.Icon:Disable()
@@ -2220,7 +2220,12 @@ UISection:Toggle({
     Desc = "Hide your profile information",
     Value = false,
     Callback = function(state)
-        Window.Icon:SetAnonymous(state)
+        local stateinfo = state
+        if stateinfo then
+            Window.Icon:SetAnonymous(true)
+        else
+            Window.Icon:SetAnonymous(false)
+        end
     end
 })
 
@@ -2229,7 +2234,12 @@ UISection:Toggle({
     Desc = "Toggle window transparency",
     Value = true,
     Callback = function(state)
-        Window:ToggleTransparency(state)
+        local stateinfo = state
+        if stateinfo then
+            Window:ToggleTransparency(true)
+        else
+            Window:ToggleTransparency(false)
+        end
     end
 })
 
