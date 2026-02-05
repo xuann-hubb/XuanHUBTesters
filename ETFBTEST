@@ -827,7 +827,7 @@ task.spawn(function()
                 end
 
                 -- All 3 cycles complete, wait 15 minutes
-                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done, waiting 15 min", Icon = "clock", Duration = 3 })
+                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done", Icon = "clock", Duration = 3 })
                 task.wait(900) -- 15 minutes = 900 seconds
             end
         else
