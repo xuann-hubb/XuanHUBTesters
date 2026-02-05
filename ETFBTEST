@@ -37,7 +37,7 @@ WindUI:AddTheme({
     Outline = Color3.fromHex("#1ABC9C"), -- Holographic teal outline
     Text = Color3.fromHex("#FFFFFF"), -- Pure white text
     Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
-    Button = Color3.fromHex("FFE70AD5"), -- Darker holographic teal
+    Button = Color3.fromHex("#E70AD5"), -- Darker holographic teal
     Icon = Color3.fromHex("#3DFFDC"), -- Light holographic cyan
 })
 
