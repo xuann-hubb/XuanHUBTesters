@@ -125,6 +125,9 @@ local Window = WindUI:CreateWindow({
     HasOutline = true,
     OutlineThickness = 3,
     Resizable = true,
+     User = {
+        Enabled = true,
+    },
     
 })
 
@@ -2223,7 +2226,7 @@ UISection:Toggle({
 UISection:Toggle({
     Title = "Disable UI Transparency",
     Desc = "Toggle window transparency off",
-    Value = true,
+    Value = false,
     Callback = function(state)
         Window:ToggleTransparency(not state)
     end
