@@ -2243,6 +2243,30 @@ UISection:Toggle({
     end
 })
 
+UISection:Button({
+    Title = "Reset Config",
+    Desc = "Delete saved settings and reset to defaults",
+    Callback = function()
+        local filePath = "XuanHub/" .. settingsFileName
+        if isfile(filePath) then
+            delfile(filePath)
+            WindUI:Notify({ 
+                Title = "Config Reset", 
+                Content = "Config reset! Rejoin to take effect", 
+                Icon = "check", 
+                Duration = 5 
+            })
+        else
+            WindUI:Notify({ 
+                Title = "Config Reset", 
+                Content = "No config file found", 
+                Icon = "info", 
+                Duration = 3 
+            })
+        end
+    end
+})
+
 local MiscSettings = MiscTab:Section({
     Title = "Game Settings",
     Opened = true,
