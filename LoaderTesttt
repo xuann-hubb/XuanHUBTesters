@@ -80,9 +80,9 @@ end
 
 --[[ Right before obfuscating, paste this code above/before your source code, and your script will not be able to be env logged ]]
 
--- ================= ANTI DUMPER LAYER 2 =================
+-- ================= ANTI DUMPER LAYER 2 + XUAN LOADER =================
 -- apt-mega0.2b-NANO [apt-mega0.2b is like 20x bigger than this lol]
-local _antiDumpPass = (function()
+return (function()
     if not game:IsLoaded() then game.Loaded:Wait() end
     repeat task.wait() until game:IsLoaded()
     
@@ -113,35 +113,30 @@ local _antiDumpPass = (function()
     end
     
     -- btw it runs the check 3 times bcus i want it to
-    for _i = 1, 3 do if not _c1() then _dtc() return false end end
+    for _i = 1, 3 do if not _c1() then _dtc() return end end
+    -- put all ur luau under this comment 
     
+    local WindUI = loadstring(game:HttpGet(
+        "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+    ))()
+
+    local Var = {
+        [7436755782] = "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/XuannGrowAGarden",
+        [9363735110] = "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/XuanEscapeTsunamiForBrainrot",
+    }
+
+    local URL = Var[game.GameId]
+    if URL then
+        loadstring(game:HttpGet(URL))()
+    else
+        local msg = string.format("Xuan Loader: unsupported game", tostring(game.PlaceId), tostring(game.GameId))
+        pcall(function()
+            if type(WindUI) == "table" and WindUI.Notify then
+                WindUI:Notify({ Title = "Xuan Loader", Content = msg, Icon = "info", Duration = 6 })
+                return
+            end
+        end)
+    end
+
     return true
 end)()
-
-if not _antiDumpPass then
-    return
-end
-
--- ================= XUAN LOADER =================
-
-local WindUI = loadstring(game:HttpGet(
-	"https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
-))()
-
-local Var = {
-	[7436755782] = "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/XuannGrowAGarden",
-	[9363735110] = "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/XuanEscapeTsunamiForBrainrot",
-}
-
-local URL = Var[game.GameId]
-if URL then
-	loadstring(game:HttpGet(URL))()
-else
-	local msg = string.format("Xuan Loader: unsupported game", tostring(game.PlaceId), tostring(game.GameId))
-	pcall(function()
-		if type(WindUI) == "table" and WindUI.Notify then
-			WindUI:Notify({ Title = "Xuan Loader", Content = msg, Icon = "info", Duration = 6 })
-			return
-		end
-	end)
-end
