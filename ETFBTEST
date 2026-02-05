@@ -1555,6 +1555,87 @@ TsunamiSection:Button({
 -- ================= BASE TAB =================
 local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })
 
+-- VIP Walls section
+local VIPWallsSection = BaseTab:Section({ Title = "VIP Walls", Opened = true, })
+
+-- Unlock Default Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock VIP Walls",
+    Desc = "Disable Shield of VIP Walls (Default Map)",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local defaultMap = workspace:FindFirstChild("DefaultMap_SharedInstances")
+            if not defaultMap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+            
+            local walls = defaultMap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Default Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Unlock Mars Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Mars Map VIP Wall",
+    Desc = "Disable Shield of Mars Map VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local marsMap = workspace:FindFirstChild("MarsMap_SharedInstances")
+            if not marsMap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+            
+            local walls = marsMap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found in Mars Map", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Mars Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
 -- Utilities section (visible)
 local UtilitiesSection = BaseTab:Section({ Title = "Utilities", Opened = true, })
 
@@ -1850,45 +1931,6 @@ local SellHeldBtn = UpgBase:Button({
             Icon = "check",
             Duration = 3,
         })
-    end
-})
-
--- Unlock VIP Walls (one-shot button)
-UpgBase:Button({
-    Title = "Unlock VIP Walls",
-    Desc = "Disable Shield of VIP Walls",
-    Locked = false,
-    Callback = function()
-        local ok, err = pcall(function()
-            local defaultMap = workspace:FindFirstChild("DefaultMap_SharedInstances")
-            if not defaultMap then
-                WindUI:Notify({ Title = "VIP Walls", Content = "DefaultMap_SharedInstances not found", Icon = "alert-triangle", Duration = 3 })
-                return
-            end
-            
-            local walls = defaultMap:FindFirstChild("VIPWalls")
-            if not walls then
-                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
-                return
-            end
-
-            for _, v in pairs(walls:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
-            end
-
-            for _, v in pairs(walls:GetDescendants()) do
-                if v:IsA("TouchTransmitter") then
-                    v:Destroy()
-                end
-            end
-
-            WindUI:Notify({ Title = "VIP Walls", Content = "VIP Walls unlocked", Icon = "check", Duration = 3 })
-        end)
-        if not ok then
-            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
-        end
     end
 })
 
