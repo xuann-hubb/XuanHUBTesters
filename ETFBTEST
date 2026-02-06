@@ -69,17 +69,6 @@ local defaultSettings = {
     godMode = false,
     -- Tsunami tracker
     autoTsunamiTracker = false,
-    -- Auto collect dropped / rendered Brainrots (Tsunami)
-    autoCollectBrainrot = false,
-    -- If true prefer the Fares-style collector (RenderedBrainrot + ProximityPrompt)
-    brainrotUseFaresCollector = true,
-    -- Rarities to collect (empty = all)
-    brainrotSelectedRarities = {},
-    -- Per-cycle limits (matches Fares behaviour)
-    brainrotMaxPerCycle = 10,
-    brainrotMaxCelestial = 4,
-    -- Detection range for rendered brainrots (studs)
-    brainrotDetectionRange = 120,
     -- Wider hitbox (tool reach)
     hitboxEnabled = false,
     hitboxWidth = 70,
@@ -239,8 +228,6 @@ local autoObby = false
 local collectingMoney = false
 local autoCollectUFO = false
 local autoCollectGoldBar = false
-local -- auto collect dropped brainrots (Tsunami tab)
-autoCollectBrainrot = false
 local autoSpinUFO = false
 local autoSpinMoneyWheel = false
 local autoUpgradeBase = false
@@ -1354,39 +1341,6 @@ TsunamiSection:Button({
     Locked = false,
     Callback = function()
         teleportToBaseSmooth()
-    end
-})
-
--- Auto Collect Brainrot (UI)
-TsunamiSection:Toggle({
-    Title = "Auto Collect Brainrot",
-    Desc = "Automatically collect nearby brainrots",
-    Value = savedSettings.autoCollectBrainrot,
-    Callback = function(state)
-        autoCollectBrainrot = state
-        savedSettings.autoCollectBrainrot = state
-        saveSettings(savedSettings)
-        if state then
-            WindUI:Notify({ Title = "Brainrot", Content = "Auto Collect enabled", Icon = "check", Duration = 2 })
-        else
-            WindUI:Notify({ Title = "Brainrot", Content = "Auto Collect disabled", Icon = "info", Duration = 2 })
-        end
-    end
-})
-
-TsunamiSection:Dropdown({
-    Title = "Collect Rarities",
-    Desc = "Choose which rarities to collect (empty = all)",
-    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial", "Divine" },
-    Value = savedSettings.brainrotSelectedRarities or {},
-    Multi = true,
-    AllowNone = true,
-    Callback = function(selected)
-        brainrotSelectedRarities = selected
-        savedSettings.brainrotSelectedRarities = selected
-        saveSettings(savedSettings)
-        local list = (#selected > 0) and table.concat(selected, ", ") or "All rarities"
-        WindUI:Notify({ Title = "Brainrot", Content = "Rarities: " .. list, Icon = "check", Duration = 2 })
     end
 })
 
@@ -2632,18 +2586,6 @@ task.spawn(function()
         enableTsunamiTracker()
     end
 
-    -- Apply Auto Collect Brainrot (Tsunami tab)
-    if savedSettings.autoCollectBrainrot then
-        autoCollectBrainrot = true
-    end
-
-    -- Apply Fares-style brainrot options
-    brainrotUseFaresCollector = (savedSettings.brainrotUseFaresCollector == nil) and true or savedSettings.brainrotUseFaresCollector
-    brainrotSelectedRarities = savedSettings.brainrotSelectedRarities or {}
-    brainrotMaxPerCycle = tonumber(savedSettings.brainrotMaxPerCycle) or brainrotMaxPerCycle
-    brainrotMaxCelestial = tonumber(savedSettings.brainrotMaxCelestial) or brainrotMaxCelestial
-    brainrotDetectionRange = tonumber(savedSettings.brainrotDetectionRange) or brainrotDetectionRange
-
     -- Apply Wider Hitbox
     if savedSettings.hitboxEnabled then
         widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
@@ -2662,168 +2604,6 @@ task.spawn(function()
         Window:ToggleTransparency()
     end
 end)
-
--- ================= Fares-style Auto Collect Brainrot (RenderedBrainrot + ProximityPrompt) =================
--- Keep the dropped-Tool collector as a fallback (`_collectDroppedBrainrots` above).
-
--- Find a RenderedBrainrot model for a given rarity (returns model with PrimaryPart)
-local function findRenderedBrainrotForRarity(rarity)
-    if not workspace:FindFirstChild("ActiveBrainrots") then return nil end
-    local folder = workspace.ActiveBrainrots:FindFirstChild(rarity)
-    if not folder then return nil end
-    -- prefer RenderedBrainrot child with PrimaryPart
-    for _, child in ipairs(folder:GetChildren()) do
-        if child.Name:find("RenderedBrainrot") and child.PrimaryPart then
-            return child
-        end
-    end
-    -- fallback: any model with a PrimaryPart
-    for _, child in ipairs(folder:GetChildren()) do
-        if child:IsA("Model") and child.PrimaryPart then return child end
-    end
-    return nil
-end
-
--- Collect a RenderedBrainrot model by firing its ProximityPrompt (safe, server-driven)
-local function collectRenderedBrainrot(model)
-    if not model or not model.Parent then return false end
-    local prompt = nil
-    for _, p in ipairs(model:GetDescendants()) do
-        if p:IsA("ProximityPrompt") then prompt = p; break end
-    end
-    if not prompt then
-        -- sometimes prompt is parented elsewhere; attempt to find one in model.PrimaryPart
-        if model.PrimaryPart then
-            for _, p in ipairs(model.PrimaryPart:GetDescendants()) do
-                if p:IsA("ProximityPrompt") then prompt = p; break end
-            end
-        end
-    end
-    if not prompt then return false end
-
-    local ok = false
-    pcall(function()
-        fireproximityprompt(prompt)
-        ok = true
-    end)
-    return ok
-end
-
--- Move/tactic helper (use existing SmartMove when safe, otherwise Tween fallback)
-local function tacticalMoveTo(pos)
-    if not pos then return end
-    -- prefer SmartMove when available and path is clear
-    if IsPathClear(pos) then
-        pcall(function() SmartMove(pos, "Brainrot") end)
-    else
-        -- quick tween fallback
-        pcall(function()
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = CFrame.new(pos) end
-        end)
-    end
-end
-
--- Enhanced brainrot collector loop (mirrors Fares behaviour)
-task.spawn(function()
-    while scriptRunning do
-        if autoCollectBrainrot then
-            pcall(function()
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-                if not hrp or (hum and hum.Health <= 0) then return end
-
-                -- reset counters if nil
-                brainrotFireCount = brainrotFireCount or 0
-                brainrotCelestialCount = brainrotCelestialCount or 0
-
-                -- if reached limits -> go home and reset when arrived
-                if brainrotFireCount >= brainrotMaxPerCycle or brainrotCelestialCount >= brainrotMaxCelestial then
-                    if not brainrotHomeTarget then brainrotHomeTarget = SAFE_POINT end
-                    if not isDodging then tacticalMoveTo(brainrotHomeTarget) end
-                    if (hrp.Position - brainrotHomeTarget).Magnitude < 6 then
-                        brainrotFireCount = 0
-                        brainrotCelestialCount = 0
-                        brainrotHomeTarget = nil
-                    end
-                    return
-                end
-
-                -- If tsunami nearby and path unsafe, skip collecting
-                if not IsPathClear(hrp.Position) then return end
-
-                -- Decide rarities to search
-                local rarities = brainrotSelectedRarities
-                if not rarities or #rarities == 0 then
-                    -- default: use full list from BrainrotsByRarity if present, otherwise common set
-                    rarities = {}
-                    for k, _ in pairs(BrainrotsByRarity or {}) do table.insert(rarities, k) end
-                    if #rarities == 0 then rarities = {"Celestial","Secret","Mythical","Legendary","Epic","Rare","Uncommon","Common","Cosmic"} end
-                end
-
-                local foundModel, foundRarity
-                for _, rarity in ipairs(rarities) do
-                    if not autoCollectBrainrot then break end
-                    local model = findRenderedBrainrotForRarity(rarity)
-                    if model and model.PrimaryPart then
-                        local dist = (hrp.Position - model.PrimaryPart.Position).Magnitude
-                        if dist <= (brainrotDetectionRange or 120) then
-                            foundModel = model
-                            foundRarity = rarity
-                            break
-                        end
-                    end
-                end
-
-                if foundModel and foundModel.PrimaryPart then
-                    -- move close and collect
-                    tacticalMoveTo(foundModel.PrimaryPart.Position)
-                    if collectRenderedBrainrot(foundModel) then
-                        brainrotFireCount = brainrotFireCount + 1
-                        if foundRarity == "Celestial" then brainrotCelestialCount = brainrotCelestialCount + 1 end
-                        -- notify throttled
-                        pcall(function()
-                            WindUI:Notify({ Title = "Brainrot", Content = "Collected: " .. tostring(foundRarity), Icon = "check", Duration = 1.6 })
-                        end)
-                        task.wait(0.25)
-                    end
-                else
-                    -- fallback: try dropped-Tool collector once per cycle
-                    if not brainrotUseFaresCollector then
-                        _collectDroppedBrainrots(hrp, { range = brainrotDetectionRange or 80, delayBetween = 0.12 })
-                    end
-                    task.wait(0.5)
-                end
-            end)
-            task.wait(0.12)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
--- Console helpers
-_G.XuanHub_CollectBrainrotOnce = function(range, rarity)
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    if rarity and type(rarity) == "string" then
-        local model = findRenderedBrainrotForRarity(rarity)
-        if model and model.PrimaryPart then
-            tacticalMoveTo(model.PrimaryPart.Position)
-            pcall(function() collectRenderedBrainrot(model) end)
-            return
-        end
-    end
-    -- fallback to dropped-Tool collector
-    pcall(function() _collectDroppedBrainrots(hrp, { range = tonumber(range) or (brainrotDetectionRange or 80), delayBetween = 0.08 }) end)
-end
-
-_G.XuanHub_ToggleBrainrotAuto = function()
-    autoCollectBrainrot = not autoCollectBrainrot
-    savedSettings.autoCollectBrainrot = autoCollectBrainrot
-    saveSettings(savedSettings)
-    return autoCollectBrainrot
-end
 
 -- ================= FINALIZE =================
 WindUI:Notify({
