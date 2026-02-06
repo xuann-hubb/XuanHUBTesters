@@ -1232,6 +1232,34 @@ local function createTsunamiGui()
 
     tsunamiHeartbeatConn = RunService.Heartbeat:Connect(function()
         local dist = getTsunamiDistance()
+
+        -- check nearest gap safety (uses same logic as smart-teleport)
+        local gapFolder = findGapsFolder()
+        local gapIdx, gapPos, gapSafe
+        if gapFolder then
+            local ok, idx = pcall(function() return GetNearestGapIndex() end)
+            gapIdx = (ok and idx) and idx or nil
+            if gapIdx then
+                local gap = gapFolder:FindFirstChild("Gap" .. gapIdx)
+                if gap then
+                    local ok2, mcf = pcall(function() return gap:GetModelCFrame() end)
+                    gapPos = (ok2 and mcf) and (mcf * CFrame.new(0, -2, 0)).Position or nil
+                    if gapPos then
+                        gapSafe = pcall(function() return IsPathClear(gapPos) end) and IsPathClear(gapPos)
+                    end
+                end
+            end
+        end
+
+        -- If nearest gap exists and is blocked, show that prominently
+        if gapPos and gapSafe == false then
+            tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+            tsunamiText.TextColor3 = Color3.new(0, 0, 0)
+            tsunamiText.Text = "⚠️ Nearest gap blocked — Tsunami: " .. (dist == math.huge and ">1500m" or (math.floor(dist) .. "m"))
+            return
+        end
+
+        -- fallback to distance-only display (preserve existing colors)
         if dist < 1500 then
             if dist <= 500 then
                 tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
