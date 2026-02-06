@@ -63,6 +63,8 @@ local defaultSettings = {
     autoCollectGoldBar = false,
     -- Money Obby Auto Complete
     autoCompleteMoneyObby = false,
+    -- When true, rejoin the server automatically after completing the 3 Money Obby cycles
+    autoRejoinAfterMoneyObby = false,
     -- Unlock Zoom
     unlockZoom = false,
     -- God Mode
@@ -863,9 +865,20 @@ task.spawn(function()
                     end
                 end
 
-                -- All 3 cycles complete, wait 15 minutes
+                -- All 3 cycles complete
                 WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done", Icon = "clock", Duration = 3 })
-                task.wait(900) -- 15 minutes = 900 seconds
+
+                -- If user enabled auto-rejoin, rejoin now; otherwise keep the original 15-minute cooldown
+                if autoRejoinAfterMoneyObby then
+                    pcall(function()
+                        WindUI:Notify({ Title = "Money Obby", Content = "Auto-rejoin enabled — rejoining...", Icon = "info", Duration = 2 })
+                        task.wait(0.6)
+                        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+                    end)
+                    return
+                else
+                    task.wait(900) -- 15 minutes = 900 seconds
+                end
             end
         else
             task.wait(1)
@@ -1342,7 +1355,7 @@ local function findGapsFolder()
         (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap.DefaultStudioMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
@@ -2454,6 +2467,19 @@ MoneySection:Toggle({
     end
 })
 
+-- New: Auto-rejoin after completing 3 money obby cycles
+MoneySection:Toggle({
+    Title = "Auto Rejoin After Money Obbies",
+    Desc = "When enabled, rejoin the server automatically after 3 completed obby cycles",
+    Value = savedSettings.autoRejoinAfterMoneyObby,
+    Callback = function(state)
+        autoRejoinAfterMoneyObby = state
+        savedSettings.autoRejoinAfterMoneyObby = state
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Money Obby", Content = (state and "Auto-rejoin enabled" or "Auto-rejoin disabled"), Icon = "info", Duration = 2 })
+    end
+})
+
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
@@ -2798,6 +2824,11 @@ task.spawn(function()
     -- Apply Auto Complete Money Obby
     if savedSettings.autoCompleteMoneyObby then
         autoCompleteMoneyObby = true
+    end
+
+    -- Apply Auto Rejoin after Money Obby
+    if savedSettings.autoRejoinAfterMoneyObby then
+        autoRejoinAfterMoneyObby = true
     end
 
     -- Apply Auto Sell by Rarity
