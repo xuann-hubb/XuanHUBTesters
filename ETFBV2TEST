@@ -2538,7 +2538,7 @@ AutoSection:Dropdown({
 
 AutoSection:Toggle({
     Title = "Auto Open Lucky Block",
-    Desc = "Automatically equip & open matching Lucky Blocks from your Backpack",
+    Desc = "Automatically open your lucky block",
     Value = savedSettings.autoOpenLuckyBlock,
     Callback = function(state)
         autoOpenLuckyBlock = state
@@ -2618,24 +2618,6 @@ local function scanBackpackForLuckyBlock(target)
 
     return out
 end
-
--- UI: Scan Backpack now (reports matches in UI + console)
-AutoSection:Button({
-    Title = "Scan Lucky Block (Backpack)",
-    Desc = "Find tools in Backpack whose Attributes.DisplayName matches the dropdown",
-    Callback = function()
-        local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
-        if not matches or #matches == 0 then
-            WindUI:Notify({ Title = "Auto Open", Content = "No matching Lucky Blocks found", Icon = "info", Duration = 3 })
-            print("[XuanHub] ScanLuckyBlock: no matches for", tostring(autoOpenLuckyBlockTarget))
-            return
-        end
-        WindUI:Notify({ Title = "Auto Open", Content = tostring(#matches) .. " match(es) — check console", Icon = "check", Duration = 4 })
-        for i, m in ipairs(matches) do
-            print(string.format("[XuanHub] Match %d: tool.Name=%s, DisplayName=%s, equipped=%s", i, tostring(m.name), tostring(m.display), tostring(m.equipped)))
-        end
-    end,
-})
 
 -- Console helper: scan Backpack for matching lucky block tools
 _G.XuanHub_ScanLuckyBlockBackpack = function(name)
