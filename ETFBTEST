@@ -2695,55 +2695,77 @@ task.spawn(function()
                     end
 
                     if tool.Parent == player.Character then
-                        -- delay then try to open: prefer VirtualUser, fall back to Tool:Activate()
-                        task.wait(tonumber(autoOpenLuckyBlockDelay) or 0.6)
+                        -- follow the same equip/hold pattern as Auto Sell: equip -> short wait -> try multiple open attempts
+                        task.wait(0.15) -- match Auto Sell's small wait so game registers the equip
 
                         local opened = false
-                        -- prefer existing cached vu; verify method exists
-                        local function try_virtual_click()
-                            local cam = workspace and workspace.CurrentCamera
-                            local virtual = (typeof(vu) ~= "nil") and vu or (pcall(function() return game:GetService("VirtualUser") end) and game:GetService("VirtualUser"))
-                            if virtual and type(virtual.Button1Down) == "function" and type(virtual.Button1Up) == "function" then
-                                virtual:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
-                                task.wait(0.03)
-                                virtual:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
-                                return true
+                        for attempt = 1, 4 do
+                            if not autoOpenLuckyBlock then break end
+
+                            -- 1) try Tool:Activate()
+                            if tool and type(tool.Activate) == "function" then
+                                local okA, aerr = pcall(function() tool:Activate() end)
+                                if okA then
+                                    opened = true
+                                    print("[XuanHub] AutoOpen: Tool:Activate succeeded (attempt)", attempt, tool.Name)
+                                    break
+                                else
+                                    warn("[XuanHub] AutoOpen: Tool:Activate failed:", tostring(aerr))
+                                end
                             end
-                            return false
-                        end
 
-                        local suc, why = pcall(try_virtual_click)
-                        if suc and why then
-                            opened = true
-                        else
-                            if not suc then
-                                warn("[XuanHub] virtual click failed: ", tostring(why))
+                            -- 2) try VirtualUser click
+                            local okV, verr = pcall(function()
+                                local cam = workspace and workspace.CurrentCamera
+                                local virtual = (typeof(vu) ~= "nil") and vu or game:GetService("VirtualUser")
+                                if virtual and type(virtual.Button1Down) == "function" then
+                                    virtual:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
+                                    task.wait(0.04)
+                                    virtual:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
+                                    return true
+                                end
+                                return false
+                            end)
+                            if okV and verr then
+                                opened = true
+                                print("[XuanHub] AutoOpen: VirtualUser click succeeded (attempt)", attempt, tool.Name)
+                                break
+                            elseif not okV then
+                                warn("[XuanHub] AutoOpen: VirtualUser attempt failed:", tostring(verr))
                             end
-                        end
 
-                        -- fallback: call Tool:Activate() if available
-                        if not opened and tool and type(tool.Activate) == "function" then
-                            local ok2, aerr = pcall(function() tool:Activate() end)
-                            if ok2 then opened = true else warn("[XuanHub] tool:Activate failed:", tostring(aerr)) end
-                        end
-
-                        if not opened then
-                            -- final fallback: try firing a touch on the tool's Handle (if present)
-                            pcall(function()
+                            -- 3) try touch on Handle (fallback)
+                            local okT, terr = pcall(function()
                                 local h = tool:FindFirstChild("Handle")
                                 if h and h:IsA("BasePart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                                    pcall(function() firetouchinterest(player.Character.HumanoidRootPart, h, 0) end)
+                                    firetouchinterest(player.Character.HumanoidRootPart, h, 0)
                                     task.wait(0.05)
-                                    pcall(function() firetouchinterest(player.Character.HumanoidRootPart, h, 1) end)
-                                    opened = true
+                                    firetouchinterest(player.Character.HumanoidRootPart, h, 1)
+                                    return true
                                 end
+                                return false
                             end)
+                            if okT and terr then
+                                opened = true
+                                print("[XuanHub] AutoOpen: touch fallback succeeded (attempt)", attempt, tool.Name)
+                                break
+                            elseif not okT then
+                                warn("[XuanHub] AutoOpen: touch fallback error:", tostring(terr))
+                            end
+
+                            task.wait(0.12)
                         end
 
+                        -- keep the item equipped (track & hold like Auto Sell does)
                         recentlyOpened[tool] = tick()
-                        pcall(function()
-                            WindUI:Notify({ Title = "Lucky Block", Content = "Opened (attempted): " .. tostring(m.display), Icon = "check", Duration = 2 })
-                        end)
+
+                        if opened then
+                            WindUI:Notify({ Title = "Lucky Block", Content = "Opened: " .. tostring(m.display), Icon = "check", Duration = 2 })
+                            print("[XuanHub] AutoOpen: opened tool=", tool.Name, "display=", tostring(m.display))
+                        else
+                            WindUI:Notify({ Title = "Lucky Block", Content = "Attempted open (not confirmed): " .. tostring(m.display), Icon = "info", Duration = 3 })
+                            warn("[XuanHub] AutoOpen: attempts exhausted for tool=", tostring(tool and tool.Name))
+                        end
 
                         task.wait(0.25)
                     else
