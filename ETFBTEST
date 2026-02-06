@@ -1338,12 +1338,12 @@ local function findGapsFolder()
     -- return the first existing 'Gaps' folder from known map locations
     -- expanded to include Mars, Money and Radioactive map variants
     local candidates = {
-        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("Misc") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
     for _, f in ipairs(candidates) do
         if f then return f end
@@ -1697,16 +1697,27 @@ TsunamiSection:Button({
     end,
 })
 
--- Button: stop the teleport-by-rarity background loop
+-- Button: stop all teleporting (rarity, smart tours, reverse tours, console-run teleports)
 TsunamiSection:Button({
     Title = "Stop Teleport",
-    Desc = "Stop any running teleport-by-rarity operation",
+    Desc = "Stop any running teleport operation (all modes)",
     Callback = function()
-        autoTeleportByRarity = false
-        savedSettings.autoTeleportByRarity = false
-        saveSettings(savedSettings)
-        TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
-        WindUI:Notify({ Title = "Teleport", Content = "Teleport stopped", Icon = "info", Duration = 2 })
+        -- disable all teleporting flags (short-circuit running loops)
+        local stopped = {}
+        if autoTeleportByRarity then autoTeleportByRarity = false; savedSettings.autoTeleportByRarity = false; table.insert(stopped, "rarity") end
+        if _G.AutoTourActive then _G.AutoTourActive = false; table.insert(stopped, "auto-tour") end
+        if _G.ReverseTourActive then _G.ReverseTourActive = false; table.insert(stopped, "reverse-tour") end
+
+        -- persist and update UI status
+        pcall(function() saveSettings(savedSettings) end)
+        pcall(function() TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common")) end)
+
+        -- best-effort: inform any external console toggles (no-ops if not present)
+        pcall(function() if type(_G.XuanHub_ToggleTeleportByRarity) == "function" then _G.XuanHub_ToggleTeleportByRarity() end end)
+
+        -- unified notification
+        local msg = (#stopped > 0) and ("Stopped: " .. table.concat(stopped, ", ")) or "No teleport operations were active"
+        WindUI:Notify({ Title = "Teleport", Content = msg, Icon = "info", Duration = 3 })
     end,
 })
 
