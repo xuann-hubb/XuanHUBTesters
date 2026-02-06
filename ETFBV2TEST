@@ -2714,19 +2714,28 @@ task.spawn(function()
                                 end
                             end
 
-                            -- 2) try VirtualUser click
+                            -- 2) try VirtualUser click (skip if VirtualUser doesn't exist)
                             local okV, verr = pcall(function()
                                 local cam = workspace and workspace.CurrentCamera
-                                local virtual = (typeof(vu) ~= "nil") and vu or game:GetService("VirtualUser")
-                                if virtual and type(virtual.Button1Down) == "function" then
-                                    virtual:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
-                                    task.wait(0.04)
-                                    virtual:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
-                                    return true
+                                if not cam then return false end
+                                
+                                local virtual = nil
+                                if typeof(vu) ~= "nil" then
+                                    virtual = vu
+                                else
+                                    local svc_ok, svc = pcall(function() return game:GetService("VirtualUser") end)
+                                    if svc_ok and svc then virtual = svc end
                                 end
-                                return false
+                                
+                                if not virtual then return false end
+                                if type(virtual.Button1Down) ~= "function" or type(virtual.Button1Up) ~= "function" then return false end
+                                
+                                virtual:Button1Down(Vector2.new(0, 0), cam.CFrame)
+                                task.wait(0.04)
+                                virtual:Button1Up(Vector2.new(0, 0), cam.CFrame)
+                                return true
                             end)
-                            if okV and verr then
+                            if okV and verr == true then
                                 opened = true
                                 print("[XuanHub] AutoOpen: VirtualUser click succeeded (attempt)", attempt, tool.Name)
                                 break
