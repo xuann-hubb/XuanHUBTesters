@@ -63,6 +63,10 @@ local defaultSettings = {
     autoCollectGoldBar = false,
     -- Money Obby Auto Complete
     autoCompleteMoneyObby = false,
+    -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
+    autoOpenLuckyBlock = false,
+    autoOpenLuckyBlockTarget = "Radioactive Block",
+    autoOpenLuckyBlockDelay = 0.6,
     -- When true, rejoin the server automatically after completing the 3 Money Obby cycles
     autoRejoinAfterMoneyObby = false,
     -- Unlock Zoom
@@ -262,6 +266,10 @@ local godModeConns = {} -- map character -> {conns = {...}, modified = {...} }
 
 -- Auto Complete Money Obby state
 local autoCompleteMoneyObby = false
+-- Auto-open Lucky Block runtime state (choose which lucky block to auto-open from Backpack)
+local autoOpenLuckyBlock = false
+local autoOpenLuckyBlockTarget = "Radioactive Block"
+local autoOpenLuckyBlockDelay = 0.6
 
 -- Auto Sell by Rarity state
 local autoSellByRarity = false
@@ -352,8 +360,9 @@ task.spawn(function()
     while scriptRunning do
         if spinning then
             pcall(function()
+                local args = { "Radioactive", false }
                 game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                    "RF/WheelSpin.Roll"):InvokeServer()
+                    "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
             end)
             -- Get delay from input box with validation
             local delayValue = tonumber(savedSettings.spinDelay) or 0.5
@@ -2506,6 +2515,147 @@ local AutoCollectMoneyToggle = AutoSection:Toggle({
         saveSettings(savedSettings)
     end
 })
+
+-- Auto Open Lucky Block (select & auto-open a lucky block from Backpack)
+AutoSection:Dropdown({
+    Title = "Lucky Block to Open",
+    Desc = "Select which Lucky Block to auto-open from your Backpack",
+    Values = {
+        "Radioactive Block","UFO Block","Money Block","Jackpot Block","Alien Block","Admin Block",
+        "Common Block","Uncommon Block","Rare Block","Epic Block","Legendary Block","Mythical Block",
+        "Cosmic Block","Secret Block","Celestial Block","Divine Block","Infinity Block"
+    },
+    Value = tostring(savedSettings.autoOpenLuckyBlockTarget or "Radioactive Block"),
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        autoOpenLuckyBlockTarget = option
+        savedSettings.autoOpenLuckyBlockTarget = option
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Auto Open", Content = "Target set: " .. tostring(option), Icon = "check", Duration = 2 })
+    end,
+})
+
+AutoSection:Toggle({
+    Title = "Auto Open Lucky Block",
+    Desc = "Automatically equip & open matching Lucky Blocks from your Backpack",
+    Value = savedSettings.autoOpenLuckyBlock,
+    Callback = function(state)
+        autoOpenLuckyBlock = state
+        savedSettings.autoOpenLuckyBlock = state
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Auto Open", Content = (state and "Enabled" or "Disabled"), Icon = "info", Duration = 2 })
+    end
+})
+
+AutoSection:Slider({
+    Title = "Open delay (s)",
+    Desc = "Delay after equipping before attempting to open the block",
+    Step = 0.1,
+    Value = { Min = 0.1, Max = 2, Default = tonumber(savedSettings.autoOpenLuckyBlockDelay) or 0.6 },
+    Callback = function(value)
+        autoOpenLuckyBlockDelay = tonumber(value) or 0.6
+        savedSettings.autoOpenLuckyBlockDelay = autoOpenLuckyBlockDelay
+        saveSettings(savedSettings)
+    end
+})
+
+-- Console helpers for Auto Open Lucky Block
+_G.XuanHub_OpenLuckyBlockNow = function(name)
+    if type(name) ~= "string" then return false end
+    -- trigger one-shot open by temporarily enabling the loop and forcing a quick scan
+    local prev = autoOpenLuckyBlock
+    autoOpenLuckyBlock = true
+    autoOpenLuckyBlockTarget = name
+    task.spawn(function()
+        task.wait(0.1)
+        autoOpenLuckyBlock = prev
+    end)
+    return true
+end
+
+
+-- One-shot scanner + helpers for Lucky Blocks (matches Attributes.DisplayName or tool.Name)
+local function normalizeLuckyName(s)
+    if not s then return "" end
+    s = tostring(s)
+    s = s:gsub("%s*[Bb]lock%s*$", "")
+    s = s:gsub("%s+", " ")
+    s = s:match("^%s*(.-)%s*$") or s
+    return s:lower()
+end
+
+local function scanBackpackForLuckyBlock(target)
+    local out = {}
+    target = normalizeLuckyName(target or autoOpenLuckyBlockTarget or savedSettings.autoOpenLuckyBlockTarget or "")
+    if target == "" then return out end
+    local bp = player and player:FindFirstChild("Backpack")
+    if not bp then return out end
+
+    for _, tool in ipairs(bp:GetChildren()) do
+        if tool and tool:IsA("Tool") then
+            local ok, disp = pcall(function() return tool:GetAttribute("DisplayName") end)
+            local dispName = (ok and disp) or tool.Name
+            if normalizeLuckyName(dispName) == target then
+                table.insert(out, { tool = tool, display = tostring(dispName), name = tool.Name })
+            end
+        end
+    end
+
+    -- also check equipped tool
+    local char = player and player.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool and tool:IsA("Tool") then
+                local ok2, disp2 = pcall(function() return tool:GetAttribute("DisplayName") end)
+                local dispName2 = (ok2 and disp2) or tool.Name
+                if normalizeLuckyName(dispName2) == target then
+                    table.insert(out, { tool = tool, display = tostring(dispName2), name = tool.Name, equipped = true })
+                end
+            end
+        end
+    end
+
+    return out
+end
+
+-- UI: Scan Backpack now (reports matches in UI + console)
+AutoSection:Button({
+    Title = "Scan Lucky Block (Backpack)",
+    Desc = "Find tools in Backpack whose Attributes.DisplayName matches the dropdown",
+    Callback = function()
+        local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
+        if not matches or #matches == 0 then
+            WindUI:Notify({ Title = "Auto Open", Content = "No matching Lucky Blocks found", Icon = "info", Duration = 3 })
+            print("[XuanHub] ScanLuckyBlock: no matches for", tostring(autoOpenLuckyBlockTarget))
+            return
+        end
+        WindUI:Notify({ Title = "Auto Open", Content = tostring(#matches) .. " match(es) — check console", Icon = "check", Duration = 4 })
+        for i, m in ipairs(matches) do
+            print(string.format("[XuanHub] Match %d: tool.Name=%s, DisplayName=%s, equipped=%s", i, tostring(m.name), tostring(m.display), tostring(m.equipped)))
+        end
+    end,
+})
+
+-- Console helper: scan Backpack for matching lucky block tools
+_G.XuanHub_ScanLuckyBlockBackpack = function(name)
+    local ok, res = pcall(function() return scanBackpackForLuckyBlock(name or autoOpenLuckyBlockTarget) end)
+    if not ok then return nil, tostring(res) end
+    return res, (#res .. " match(es)")
+end
+
+-- Keep single Open helper (one-shot)
+_G.XuanHub_OpenLuckyBlockNow = function(name)
+    if type(name) ~= "string" then return false end
+    local prev = autoOpenLuckyBlock
+    autoOpenLuckyBlock = true
+    autoOpenLuckyBlockTarget = name
+    task.spawn(function()
+        task.wait(0.1)
+        autoOpenLuckyBlock = prev
+    end)
+    return true
+end
 
 -- Auto Upgrade Carry
 local AutoUpgradeCarryToggle = AutoSection:Toggle({
