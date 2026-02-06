@@ -1357,6 +1357,39 @@ TsunamiSection:Button({
     end
 })
 
+-- Auto Collect Brainrot (UI)
+TsunamiSection:Toggle({
+    Title = "Auto Collect Brainrot",
+    Desc = "Automatically collect nearby brainrots",
+    Value = savedSettings.autoCollectBrainrot,
+    Callback = function(state)
+        autoCollectBrainrot = state
+        savedSettings.autoCollectBrainrot = state
+        saveSettings(savedSettings)
+        if state then
+            WindUI:Notify({ Title = "Brainrot", Content = "Auto Collect enabled", Icon = "check", Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Brainrot", Content = "Auto Collect disabled", Icon = "info", Duration = 2 })
+        end
+    end
+})
+
+TsunamiSection:Dropdown({
+    Title = "Collect Rarities",
+    Desc = "Choose which rarities to collect (empty = all)",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial", "Divine" },
+    Value = savedSettings.brainrotSelectedRarities or {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        brainrotSelectedRarities = selected
+        savedSettings.brainrotSelectedRarities = selected
+        saveSettings(savedSettings)
+        local list = (#selected > 0) and table.concat(selected, ", ") or "All rarities"
+        WindUI:Notify({ Title = "Brainrot", Content = "Rarities: " .. list, Icon = "check", Duration = 2 })
+    end
+})
+
 -- Smart-tour helpers (used by the Auto Tour toggles)
 local TweenService = game:GetService("TweenService")
 _G.BaseTweenSpeed = 0.15
