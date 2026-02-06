@@ -2662,7 +2662,8 @@ task.spawn(function()
     local recentlyOpened = setmetatable({}, { __mode = "k" }) -- weak keys
     while scriptRunning do
         if autoOpenLuckyBlock then
-            pcall(function()
+            -- robustly run the auto-open sequence and surface any internal error with traceback
+            local ok, err = xpcall(function()
                 if not player or not player.Parent then return end
                 local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
                 if not matches or #matches == 0 then return end
@@ -2677,46 +2678,87 @@ task.spawn(function()
                     local last = recentlyOpened[tool] or 0
                     if tick() - last < 1.5 then goto continue_tool end
 
-                    -- attempt to equip
-                    if humanoid then
-                        pcall(function() humanoid:EquipTool(tool) end)
+                    -- attempt to equip (guarded)
+                    if humanoid and humanoid.IsA and humanoid.IsA(humanoid, "Humanoid") then
+                        local suc, why = pcall(function() humanoid:EquipTool(tool) end)
+                        if not suc then
+                            warn("[XuanHub] EquipTool failed:", tostring(why))
+                        end
                     end
 
-                    -- wait up to 2s for equip
+                    -- wait up to 3s for equip (longer timeout for flaky loads)
                     local startT = tick()
-                    while tick() - startT < 2 do
+                    while tick() - startT < 3 do
                         if not autoOpenLuckyBlock then break end
                         if tool.Parent == player.Character then break end
                         task.wait(0.05)
                     end
 
                     if tool.Parent == player.Character then
-                        -- delay then simulate click to open
+                        -- delay then try to open: prefer VirtualUser, fall back to Tool:Activate()
                         task.wait(tonumber(autoOpenLuckyBlockDelay) or 0.6)
-                        pcall(function()
+
+                        local opened = false
+                        -- prefer existing cached vu; verify method exists
+                        local function try_virtual_click()
                             local cam = workspace and workspace.CurrentCamera
-                            if vu then
-                                vu:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
+                            local virtual = (typeof(vu) ~= "nil") and vu or (pcall(function() return game:GetService("VirtualUser") end) and game:GetService("VirtualUser"))
+                            if virtual and type(virtual.Button1Down) == "function" and type(virtual.Button1Up) == "function" then
+                                virtual:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
                                 task.wait(0.03)
-                                vu:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
-                            else
-                                local v = game:GetService("VirtualUser")
-                                v:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
-                                task.wait(0.03)
-                                v:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
+                                virtual:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
+                                return true
                             end
-                        end)
+                            return false
+                        end
+
+                        local suc, why = pcall(try_virtual_click)
+                        if suc and why then
+                            opened = true
+                        else
+                            if not suc then
+                                warn("[XuanHub] virtual click failed: ", tostring(why))
+                            end
+                        end
+
+                        -- fallback: call Tool:Activate() if available
+                        if not opened and tool and type(tool.Activate) == "function" then
+                            local ok2, aerr = pcall(function() tool:Activate() end)
+                            if ok2 then opened = true else warn("[XuanHub] tool:Activate failed:", tostring(aerr)) end
+                        end
+
+                        if not opened then
+                            -- final fallback: try firing a touch on the tool's Handle (if present)
+                            pcall(function()
+                                local h = tool:FindFirstChild("Handle")
+                                if h and h:IsA("BasePart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    pcall(function() firetouchinterest(player.Character.HumanoidRootPart, h, 0) end)
+                                    task.wait(0.05)
+                                    pcall(function() firetouchinterest(player.Character.HumanoidRootPart, h, 1) end)
+                                    opened = true
+                                end
+                            end)
+                        end
 
                         recentlyOpened[tool] = tick()
                         pcall(function()
-                            WindUI:Notify({ Title = "Lucky Block", Content = "Opened: " .. tostring(m.display), Icon = "check", Duration = 2 })
+                            WindUI:Notify({ Title = "Lucky Block", Content = "Opened (attempted): " .. tostring(m.display), Icon = "check", Duration = 2 })
                         end)
 
                         task.wait(0.25)
+                    else
+                        warn("[XuanHub] equip timeout or equip failed for tool:", tostring(tool and tool.Name))
                     end
                     ::continue_tool::
                 end
-            end)
+            end, function(e) return debug.traceback(e) end)
+
+            if not ok then
+                warn("[XuanHub] AutoOpenLuckyBlock runtime error:\n", err)
+                pcall(function()
+                    WindUI:Notify({ Title = "AutoOpen", Content = "Error — check console (see traceback)", Icon = "alert-triangle", Duration = 4 })
+                end)
+            end
 
             task.wait(0.8)
         else
