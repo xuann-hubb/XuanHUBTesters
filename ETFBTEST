@@ -69,6 +69,9 @@ local defaultSettings = {
     godMode = false,
     -- Tsunami tracker
     autoTsunamiTracker = false,
+    -- Auto-teleport by rarity (Tsunami) — maps rarities to gap indices
+    autoTeleportByRarity = false,
+    autoTeleportByRarityTarget = "Common",
     -- Wider hitbox (tool reach)
     hitboxEnabled = false,
     hitboxWidth = 70,
@@ -228,6 +231,9 @@ local autoObby = false
 local collectingMoney = false
 local autoCollectUFO = false
 local autoCollectGoldBar = false
+-- Teleport-by-rarity (Tsunami)
+local autoTeleportByRarity = false
+local autoTeleportByRarityTarget = "Common"
 local autoSpinUFO = false
 local autoSpinMoneyWheel = false
 local autoUpgradeBase = false
@@ -1339,11 +1345,14 @@ local function findGapsFolder()
     end
 
     -- 3) Legacy / broader fallbacks (preserve original compatibility)
+    -- NOTE: we only *locate* these folders — we never modify/destroy their contents here.
     local legacyCandidates = {
         (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap:FindFirstChild("Gaps")),
+        -- both shared and non-shared DefaultMap variants supported (bugfix: previously referenced wrong path)
+        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
@@ -1646,6 +1655,201 @@ TsunamiSection:Button({
         end)
     end,
 })
+
+-- Teleport-by-Rarity (Tsunami)
+-- Mapping (fixed): Common=Gap1 .. Celestial=Gap9
+local RARITY_TO_GAP = { Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythical=6, Cosmic=7, Secret=8, Celestial=9 }
+
+-- Read-only UI element (shows configured target rarity)
+local TeleportByRarityLabel = TsunamiSection:Tag({
+    Title = "Teleport target",
+    Icon = "map-pin",
+    Color = Color3.fromRGB(120, 120, 255),
+})
+TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+
+-- Dropdown to choose target rarity (persisted)
+TsunamiSection:Dropdown({
+    Title = "Teleport target rarity",
+    Desc = "Which gap to stop at when using teleport-by-rarity",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial" },
+    Value = tostring(savedSettings.autoTeleportByRarityTarget or "Common"),
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        autoTeleportByRarityTarget = option
+        savedSettings.autoTeleportByRarityTarget = option
+        saveSettings(savedSettings)
+        TeleportByRarityLabel:SetTitle("Target: " .. tostring(option))
+    end,
+})
+
+-- Button: start a one-shot smart-teleport to the selected rarity's gap
+TsunamiSection:Button({
+    Title = "Teleport to Selected Rarity",
+    Desc = "Smart-teleport forward until the selected rarity's gap",
+    Callback = function()
+        local r = autoTeleportByRarityTarget or savedSettings.autoTeleportByRarityTarget or "Common"
+        local ok = pcall(function() return _G.XuanHub_TeleportToRarity and _G.XuanHub_TeleportToRarity(r) end)
+        if ok and _G.XuanHub_TeleportToRarity then
+            TeleportByRarityLabel:SetTitle("Target: "..tostring(r).." (running)")
+            WindUI:Notify({ Title = "Teleport", Content = "Starting teleport to "..tostring(r), Icon = "check", Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Teleport", Content = "Failed to start teleport", Icon = "alert-triangle", Duration = 2 })
+        end
+    end,
+})
+
+-- Button: stop the teleport-by-rarity background loop
+TsunamiSection:Button({
+    Title = "Stop Teleport",
+    Desc = "Stop any running teleport-by-rarity operation",
+    Callback = function()
+        autoTeleportByRarity = false
+        savedSettings.autoTeleportByRarity = false
+        saveSettings(savedSettings)
+        TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+        WindUI:Notify({ Title = "Teleport", Content = "Teleport stopped", Icon = "info", Duration = 2 })
+    end,
+})
+
+-- Background loop: behaves like "Smart Teleport to Last Gap" but stops at mapped gap index
+task.spawn(function()
+    while scriptRunning do
+        if autoTeleportByRarity then
+            local ok, err = pcall(function()
+                local gapsFolder = findGapsFolder()
+                if not gapsFolder then
+                    autoTeleportByRarity = false
+                    savedSettings.autoTeleportByRarity = false
+                    saveSettings(savedSettings)
+                    WindUI:Notify({ Title = "Teleport", Content = "No gaps found", Icon = "alert-triangle", Duration = 3 })
+                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+                    return
+                end
+
+                local entries = collectGapEntries(gapsFolder)
+                if #entries == 0 then
+                    autoTeleportByRarity = false
+                    savedSettings.autoTeleportByRarity = false
+                    saveSettings(savedSettings)
+                    WindUI:Notify({ Title = "Teleport", Content = "No gap entries", Icon = "alert-triangle", Duration = 3 })
+                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+                    return
+                end
+
+                local targetRarity = tostring(autoTeleportByRarityTarget or "Common")
+                local targetIdx = RARITY_TO_GAP[targetRarity]
+                if not targetIdx then
+                    WindUI:Notify({ Title = "Teleport", Content = "Invalid target rarity", Icon = "alert-triangle", Duration = 3 })
+                    autoTeleportByRarity = false
+                    return
+                end
+
+                -- clamp target to available range
+                local maxIdx = entries[#entries].idx
+                if targetIdx > maxIdx then
+                    WindUI:Notify({ Title = "Teleport", Content = "Target gap out of range: "..tostring(targetIdx), Icon = "alert-triangle", Duration = 3 })
+                    autoTeleportByRarity = false
+                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+                    return
+                end
+
+                -- perform forward tour until reaching targetIdx
+                while autoTeleportByRarity do
+                    local currentPosIndex = GetNearestGapIndex()
+                    if currentPosIndex >= targetIdx then
+                        WindUI:Notify({ Title = "Teleport", Content = "Reached target gap ("..tostring(targetRarity)..")", Icon = "check", Duration = 2 })
+                        autoTeleportByRarity = false
+                        savedSettings.autoTeleportByRarity = false
+                        saveSettings(savedSettings)
+                        TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or targetRarity))
+                        break
+                    end
+
+                    for _, e in ipairs(entries) do
+                        if not autoTeleportByRarity then break end
+                        if e.idx > currentPosIndex and e.idx <= targetIdx then
+                            local ok2, pos = pcall(function()
+                                if e.inst and e.inst.GetModelCFrame then
+                                    return e.inst:GetModelCFrame().Position
+                                elseif e.part then
+                                    return e.part.Position
+                                end
+                            end)
+                            if ok2 and pos then
+                                local targetPos = (pos + Vector3.new(0, -2, 0))
+
+                                local blockedNotified = false
+                                while not IsPathClear(targetPos) and autoTeleportByRarity do
+                                    if not blockedNotified then
+                                        pcall(function()
+                                            WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " .. tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                        end)
+                                        print("[XuanHub] TeleportByRarity: waiting for gap to clear:", e.name)
+                                        blockedNotified = true
+                                    end
+                                    task.wait(0.12)
+                                end
+
+                                if blockedNotified and autoTeleportByRarity then
+                                    pcall(function()
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " .. tostring(e.name), Icon = "check", Duration = 2 })
+                                    end)
+                                    print("[XuanHub] TeleportByRarity: gap cleared:", e.name)
+                                end
+
+                                SmartMove(targetPos, e.name)
+                                task.wait(1.2)
+                            end
+                        end
+                    end
+
+                    task.wait(1)
+                end
+            end)
+            if not ok then
+                warn("TeleportByRarity error:", err)
+                autoTeleportByRarity = false
+                TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+            end
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Console helpers
+_G.XuanHub_TeleportToRarity = function(rarity)
+    if rarity and type(rarity) == "string" then
+        autoTeleportByRarityTarget = rarity
+        savedSettings.autoTeleportByRarityTarget = rarity
+        saveSettings(savedSettings)
+        autoTeleportByRarity = true
+        savedSettings.autoTeleportByRarity = true
+        saveSettings(savedSettings)
+        return true
+    end
+    return false
+end
+
+_G.XuanHub_ToggleTeleportByRarity = function()
+    autoTeleportByRarity = not autoTeleportByRarity
+    savedSettings.autoTeleportByRarity = autoTeleportByRarity
+    saveSettings(savedSettings)
+    return autoTeleportByRarity
+end
+
+-- Debug helper: reports which Gaps folder would be used and child count (non-destructive)
+_G.XuanHub_FindGapsFolderInfo = function()
+    local f = findGapsFolder()
+    if not f then
+        return nil, "no gaps found"
+    end
+    local parentName = f.Parent and f.Parent.Name or "<unknown>"
+    local count = #f:GetChildren()
+    return f, string.format("found: %s (parent: %s) — children=%d", f:GetFullName(), parentName, count)
+end
 
 -- ================= BASE TAB =================
 local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })
@@ -2609,6 +2813,20 @@ task.spawn(function()
     -- Apply Tsunami Tracker
     if savedSettings.autoTsunamiTracker then
         enableTsunamiTracker()
+    end
+
+    -- Apply Teleport-by-Rarity (Tsunami)
+    if savedSettings.autoTeleportByRarity then
+        autoTeleportByRarity = true
+        autoTeleportByRarityTarget = tostring(savedSettings.autoTeleportByRarityTarget or "Common")
+        -- start loop asynchronously (UI toggle removed — console/config controlled)
+        task.spawn(function()
+            -- reuse same logic as the runtime loop (non-blocking)
+            if autoTeleportByRarity then
+                _G.XuanHub_TeleportToRarity = _G.XuanHub_TeleportToRarity or function(r) end -- ensure exists
+                _G.XuanHub_ToggleTeleportByRarity = _G.XuanHub_ToggleTeleportByRarity or function() end
+            end
+        end)
     end
 
     -- Apply Wider Hitbox
