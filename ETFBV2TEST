@@ -1,0 +1,3195 @@
+-- ================= XUAN HUB GUI (WindUI Version) =================
+-- Disabled PlaceId check for testing
+-- if game.PlaceId ~= 131623223084840 then
+--     game:GetService("Players").LocalPlayer:Kick("Xuan Hub not supported this game!")
+--     return
+-- end
+
+print("--===== XUAN HUB LOADED (WindUI) =====--")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- ================= LOAD WINDUI =================
+local WindUI = loadstring(game:HttpGet(
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
+
+-- ================= SET FONT (IMPORTANT) =================
+-- WindUI text font
+WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
+
+-- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
+
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
+})
+
+-- ================= SETTINGS PERSISTENCE =================
+local settingsFileName = "XuanHubConfig_ETFB.json"
+local defaultSettings = {
+    autoCollectMoney = false,
+    autoCollectRadioactive = false,
+    autoSpin = false,
+    spinDelay = 0.5,
+    autoUpgradeBase = false,
+    autoUpgradeCarry = false,
+    autoUpgradeSpeed = false,
+    upgradeSpeedAmount = 1,
+    autoRebirth = false,
+    autoObby = false,
+    -- UFO Event
+    autoCollectUFO = false,
+    -- UFO Spin
+    autoSpinUFO = false,
+    -- Money wheel spin
+    autoSpinMoneyWheel = false,
+    -- Money Event (Gold Bar)
+    autoCollectGoldBar = false,
+    -- Money Obby Auto Complete
+    autoCompleteMoneyObby = false,
+    -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
+    autoOpenLuckyBlock = false,
+    autoOpenLuckyBlockTarget = "Radioactive Block",
+    autoOpenLuckyBlockDelay = 0.6,
+    -- When true, rejoin the server automatically after completing the 3 Money Obby cycles
+    autoRejoinAfterMoneyObby = false,
+    -- Unlock Zoom
+    unlockZoom = false,
+    -- God Mode
+    godMode = false,
+    -- Tsunami tracker
+    autoTsunamiTracker = false,
+    -- Auto-teleport by rarity (Tsunami) — maps rarities to gap indices
+    autoTeleportByRarity = false,
+    autoTeleportByRarityTarget = "Common",
+    -- Wider hitbox (tool reach)
+    hitboxEnabled = false,
+    hitboxWidth = 70,
+    -- Auto Sell by Rarity
+    autoSellByRarity = false,
+    sellRarities = {},
+}
+
+local function loadSettings()
+    if not isfolder("XuanHub") then
+        makefolder("XuanHub")
+    end
+
+    if isfile("XuanHub/" .. settingsFileName) then
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(readfile("XuanHub/" .. settingsFileName))
+        end)
+        if success and data then
+            return data
+        end
+    end
+
+    -- no settings file or parse failed: return a safe copy of defaults
+    local ok, copy = pcall(function()
+        return HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+    end)
+    if ok and type(copy) == "table" then
+        return copy
+    end
+
+    return defaultSettings
+end
+
+local function saveSettings(settings)
+    pcall(function()
+        if not isfolder("XuanHub") then
+            makefolder("XuanHub")
+        end
+        writefile("XuanHub/" .. settingsFileName, HttpService:JSONEncode(settings))
+    end)
+end
+
+local savedSettings = loadSettings()
+
+-- ================= CREATE WINDUI WINDOW =================
+local Window = WindUI:CreateWindow({
+    Folder = "XuanHub",
+    Title = "XUAN HUB",
+    Author = "by discord.gg/kaydensdens",
+    Icon = "rbxassetid://103326199885496",
+    Theme = "Holographic", -- Use custom holographic theme
+    Size = UDim2.fromOffset(640, 480),
+    Draggable = true,
+    HasOutline = true,
+    OutlineThickness = 3,
+    Resizable = true,
+    Transparent = true,
+    User = {
+        Enabled = true,
+    },
+})
+
+
+
+Window:EditOpenButton({
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
+})
+
+-- Add version tag with FPS and Ping counter
+local version = game.PlaceVersion -- Server version
+local fps = 0
+local ping = 0
+local Stats = game:GetService("Stats")
+
+local VersionTag = Window:Tag({
+    Title = string.format("v%d | Ping: 0 | FPS: 0", version),
+    Icon = "solar:server-bold",
+    Color = Color3.fromRGB(255, 105, 180), -- Pink color
+    Border = true,
+})
+
+local frames = 0
+local last = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    frames = frames + 1
+    local now = os.clock()
+    if now - last >= 1 then
+        fps = frames
+        frames = 0
+        last = now
+
+        -- Get ping
+        pcall(function()
+            local item = Stats.Network.ServerStatsItem:FindFirstChild("Data Ping")
+            if item then
+                ping = math.floor(item:GetValue())
+            end
+        end)
+
+        -- Update tag
+        VersionTag:SetTitle(string.format("v%d | Ping: %d | FPS: %d", version, ping, fps))
+    end
+end)
+
+-- ================= TABS =================
+
+
+local BaseTab = Window:Tab({
+    Title = "Main",
+    Icon = "layers-2",
+    Locked = false,
+})
+
+local EventTab = Window:Tab({
+    Title = "Event",
+    Icon = "star",
+    Locked = false,
+})
+
+local AutoTab = Window:Tab({
+    Title = "Auto",
+    Icon = "refresh-cw",
+    Locked = false,
+})
+
+local TsunamiTab = Window:Tab({
+    Title = "Tsunami",
+    Icon = "cloud-lightning",
+    Locked = false,
+})
+
+local MiscTab = Window:Tab({
+    Title = "Settings",
+    Icon = "settings",
+    Locked = false,
+})
+
+-- Set Base tab as default
+BaseTab:Select()
+
+-- ================= FUNCTIONALITY LOGIC =================
+
+-- Script running flag (to stop all loops when GUI is closed)
+local scriptRunning = true
+
+local character, humanoidRootPart
+local EventFolder = nil
+
+local PullDelay = 0.1
+local HeightOffset = 3
+local active = false
+local spinning = false
+local autoObby = false
+local collectingMoney = false
+local autoCollectUFO = false
+local autoCollectGoldBar = false
+-- Teleport-by-rarity (Tsunami)
+local autoTeleportByRarity = false
+local autoTeleportByRarityTarget = "Common"
+local autoSpinUFO = false
+local autoSpinMoneyWheel = false
+local autoUpgradeBase = false
+local autoUpgradeCarry = false
+local autoUpgradeSpeed = false
+local upgradeSpeedAmount = 1
+local autoRebirth = false
+
+-- Wider-hitbox runtime state
+local widerHitboxEnabled = false
+local widerHitboxWidth = 70 -- studs (default)
+local widerHitboxConn = nil
+local _widerHitbox_tracking = {}
+
+-- Unlock Zoom state
+local unlockZoomEnabled = false
+local prevCameraMin = nil
+local prevCameraMax = nil
+
+-- God Mode state
+local godModeEnabled = false
+local godModeCharConn = nil
+local godModeConns = {} -- map character -> {conns = {...}, modified = {...} }
+
+-- Auto Complete Money Obby state
+local autoCompleteMoneyObby = false
+-- Auto-open Lucky Block runtime state (choose which lucky block to auto-open from Backpack)
+local autoOpenLuckyBlock = false
+local autoOpenLuckyBlockTarget = "Radioactive Block"
+local autoOpenLuckyBlockDelay = 0.6
+
+-- Auto Sell by Rarity state
+local autoSellByRarity = false
+local sellRarities = {}
+
+-- Sell All confirmation
+local lastSellAllClick = 0
+
+-- Character handler (safe)
+local function setupCharacter(char)
+    character = char
+    humanoidRootPart = char:WaitForChild("HumanoidRootPart", 10)
+end
+
+if player.Character then
+    setupCharacter(player.Character)
+end
+player.CharacterAdded:Connect(setupCharacter)
+
+-- Auto-Obby: finder that targets the new `RadioactiveMap_SharedInstances` layout
+local function findRadioactiveRoot()
+    -- primary: find the shared-instances container and locate the obby model inside it
+    local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+    if rms then
+        -- prefer a model that contains ObbyEnd or has 'Obby' in its name
+        for _, d in ipairs(rms:GetDescendants()) do
+            if d:IsA("Model") and (d:FindFirstChild("ObbyEnd") or d.Name:lower():find("obby")) then
+                return d
+            end
+        end
+        -- sometimes the obby is a direct child (e.g. Mud -> Obby); check first-level children
+        for _, c in ipairs(rms:GetChildren()) do
+            if c:IsA("Model") and c:FindFirstChild("ObbyEnd") then
+                return c
+            end
+        end
+    end
+
+    -- fallback: top-level legacy names (kept minimal)
+    local legacy = workspace:FindFirstChild("Radioactive") or workspace:FindFirstChild("RadioactiveMap")
+    if legacy and legacy:IsA("Model") then
+        return legacy
+    end
+
+    return nil
+end
+
+-- Find EventParts WITHOUT BLOCKING GUI
+task.spawn(function()
+    while not EventFolder and scriptRunning do
+        EventFolder = workspace:FindFirstChild("EventParts")
+        task.wait(1)
+    end
+end)
+
+-- Model part
+local function getModelPart(model)
+    if model.PrimaryPart then return model.PrimaryPart end
+    for _, v in ipairs(model:GetDescendants()) do
+        if v:IsA("BasePart") then
+            model.PrimaryPart = v
+            return v
+        end
+    end
+end
+
+-- Loop to pull models
+task.spawn(function()
+    while scriptRunning do
+        if active and humanoidRootPart and EventFolder then
+            for _, model in ipairs(EventFolder:GetChildren()) do
+                if model:IsA("Model") then
+                    local part = getModelPart(model)
+                    if part then
+                        model:SetPrimaryPartCFrame(
+                            CFrame.new(humanoidRootPart.Position + Vector3.new(0, HeightOffset, 0))
+                        )
+                    end
+                end
+            end
+        end
+        task.wait(PullDelay)
+    end
+end)
+
+-- Auto Spin logic
+task.spawn(function()
+    while scriptRunning do
+        if spinning then
+            pcall(function()
+                local args = { "Radioactive", false }
+                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+                    "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+            end)
+            -- Get delay from input box with validation
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Money logic
+local function findMyBase()
+    for _, base in ipairs(workspace:WaitForChild("Bases"):GetChildren()) do
+        if base:IsA("Model") then
+            local holder = base:GetAttribute("Holder")
+            if holder and holder == player.UserId then
+                return base
+            end
+        end
+    end
+    return nil
+end
+
+-- Improved teleport helpers
+local lastTeleportTime = 0
+local TELEPORT_COOLDOWN = 1 -- seconds
+
+local function getHomePart(base)
+    if not base then return nil end
+    local home = base:FindFirstChild("Home")
+    if home and home:IsA("BasePart") then return home end
+    return nil
+end
+
+local function findSafeCFrame(targetCFrame, upOffset)
+    upOffset = upOffset or 6
+    local origin = targetCFrame.Position + Vector3.new(0, 20, 0)
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = { player.Character }
+    params.FilterType = Enum.RaycastFilterType.Blacklist
+    local result = workspace:Raycast(origin, Vector3.new(0, -80, 0), params)
+    if result and result.Position then
+        return CFrame.new(result.Position + Vector3.new(0, upOffset, 0))
+    end
+    return targetCFrame + Vector3.new(0, upOffset, 0)
+end
+
+local function teleportToBaseSmooth()
+    if tick() - lastTeleportTime < TELEPORT_COOLDOWN then
+        WindUI:Notify({ Title = "Teleport", Content = "Teleport cooldown", Icon = "alert-triangle", Duration = 2 })
+        return
+    end
+    lastTeleportTime = tick()
+
+    local base = findMyBase()
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        WindUI:Notify({ Title = "Teleport", Content = "Character not ready", Icon = "alert-triangle", Duration = 3 }); return
+    end
+    if not base then
+        WindUI:Notify({ Title = "Teleport", Content = "No base found", Icon = "alert-triangle", Duration = 3 }); return
+    end
+    local home = getHomePart(base)
+    if not home then
+        WindUI:Notify({ Title = "Teleport", Content = "Base Home not found", Icon = "alert-triangle", Duration = 3 }); return
+    end
+
+    local targetCFrame = findSafeCFrame(home.CFrame, 6)
+    local prevCanCollide = hrp.CanCollide
+    pcall(function() hrp.CanCollide = false end)
+
+    local ok, err = pcall(function()
+        local tween = TweenService:Create(hrp, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+            { CFrame = targetCFrame })
+        tween:Play()
+        tween.Completed:Wait()
+
+        -- briefly disable FallingDown after arriving at base
+        pcall(function()
+            disableFallingForLocalCharacter(2)
+        end)
+    end)
+
+    pcall(function() hrp.CanCollide = prevCanCollide end)
+
+    if ok then
+        WindUI:Notify({ Title = "Teleport", Content = "Teleported to base", Icon = "check", Duration = 3 })
+    else
+        WindUI:Notify({ Title = "Teleport", Content = "Teleport failed: " .. tostring(err), Icon = "alert-triangle", Duration = 3 })
+    end
+end
+
+task.spawn(function()
+    while scriptRunning do
+        if collectingMoney then
+            local myBase = findMyBase()
+            if myBase then
+                for i = 1, 30 do
+                    pcall(function()
+                        local args = {
+                            "Collect Money",
+                            myBase.Name,
+                            tostring(i)
+                        }
+                        local PlotAction = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild(
+                            "Net"):WaitForChild("RF/Plot.PlotAction")
+                        PlotAction:InvokeServer(unpack(args))
+                    end)
+                    task.wait(0.01)
+                end
+            end
+            task.wait(0.1)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Generic coin collector used by multiple events (UFO, Radioactive)
+local function _collectCoinsFromSources(opts)
+    -- opts:
+    --   rootPart (required): humanoid root part to touch with
+    --   folderCandidates: array of workspace child-names to inspect (optional)
+    --   rootModel: an Instance whose descendants should be searched (optional)
+    --   nameMatchers: array of lowercase substrings to match coin names (optional)
+    --   delayBetween = seconds between individual touches (optional)
+    local rootPart = opts.rootPart
+    if not rootPart then return end
+    local nameMatchers = opts.nameMatchers or {}
+    local delayBetween = tonumber(opts.delayBetween) or 0.05
+
+    local function matchesName(n)
+        if not n then return false end
+        local ln = tostring(n):lower()
+        if #nameMatchers == 0 then return true end
+        for _, m in ipairs(nameMatchers) do
+            if ln:find(m, 1, true) then return true end
+        end
+        return false
+    end
+
+    local function tryCollectFromFolder(folder)
+        if not folder then return end
+        for _, coin in ipairs(folder:GetChildren()) do
+            local ok, cname = pcall(function() return coin.Name end)
+            if ok and matchesName(cname) then
+                local hitbox = coin:FindFirstChild("Hitbox") or coin:FindFirstChildWhichIsA("BasePart")
+                if hitbox and hitbox:IsA("BasePart") then
+                    pcall(function() firetouchinterest(rootPart, hitbox, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(rootPart, hitbox, 1) end)
+                    task.wait(delayBetween)
+                end
+            end
+        end
+    end
+
+    -- 1) explicit folder candidates
+    if opts.folderCandidates then
+        for _, fname in ipairs(opts.folderCandidates) do
+            local f = workspace:FindFirstChild(fname)
+            if f then tryCollectFromFolder(f) end
+        end
+    end
+
+    -- 2) explicit root model (search its descendants for parts matching)
+    if opts.rootModel then
+        for _, d in ipairs(opts.rootModel:GetDescendants()) do
+            if d:IsA("BasePart") then
+                local ok, nm = pcall(function() return d.Name end)
+                if ok and (matchesName(nm) or d:FindFirstChild("TouchInterest") or d:FindFirstChildOfClass("TouchTransmitter")) then
+                    pcall(function() firetouchinterest(rootPart, d, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(rootPart, d, 1) end)
+                    task.wait(delayBetween)
+                end
+            end
+        end
+    end
+end
+
+-- Auto Collect UFO (now uses generic collector)
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectUFO then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                _collectCoinsFromSources({
+                    rootPart = hrp,
+                    folderCandidates = { "UFOEventParts", "UFQEventParts" },
+                    nameMatchers = { "ufo coin", "ufo" },
+                    delayBetween = 0.05,
+                })
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Radioactive (reuses the same collector logic)
+task.spawn(function()
+    while scriptRunning do
+        if active then -- `active` is toggled by the Auto Collect Radioactive UI
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                -- prefer the new shared-instances root, then fallback to common folder names
+                local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+                if rms then
+                    -- search the shared root for coin-like parts
+                    _collectCoinsFromSources({ rootPart = hrp, rootModel = rms, nameMatchers = { "radioactive coin", "radioactive", "RadioactiveMap" }, delayBetween = 0.05 })
+                else
+                    -- fallback folder names (keeps compatibility)
+                    _collectCoinsFromSources({ rootPart = hrp, folderCandidates = { "RadioactiveEventParts", "RadioactiveCoins", "MapVariants" }, nameMatchers = { "radioactive" }, delayBetween = 0.05 })
+                end
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Gold Bar (Money Event) — specifically touch GoldBar.Main (or its BasePart)
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectGoldBar then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local folder = workspace:FindFirstChild("MoneyEventParts")
+                if not hrp or not folder then return end
+                for _, gb in ipairs(folder:GetChildren()) do
+                    if gb.Name == "GoldBar" or gb.Name:lower():find("gold") then
+                        -- prefer the 'Main' part (some maps place the collectible under GoldBar.Main)
+                        local mainPart = gb:FindFirstChild("Main")
+                        if mainPart and mainPart:IsA("BasePart") then
+                            pcall(function() firetouchinterest(hrp, mainPart, 0) end)
+                            task.wait()
+                            pcall(function() firetouchinterest(hrp, mainPart, 1) end)
+                            task.wait(0.05)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(gb:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("main") or d.Name:lower():find("gold")) then
+                                    pcall(function() firetouchinterest(hrp, d, 0) end)
+                                    task.wait()
+                                    pcall(function() firetouchinterest(hrp, d, 1) end)
+                                    task.wait(0.05)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Spin Money Wheel Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSpinMoneyWheel then
+            pcall(function()
+                local args = { [1] = "Money", [2] = false }
+                local ok, remote = pcall(function()
+                    return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net")
+                        :FindFirstChild("RF/WheelSpin.Roll")
+                end)
+                if ok and remote then
+                    pcall(function() remote:InvokeServer(unpack(args)) end)
+                end
+            end)
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Spin UFO Wheel Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSpinUFO then
+            pcall(function()
+                local success, args = pcall(function()
+                    return { "UFO", false }
+                end)
+                if success and args then
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+                            "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+                    end)
+                end
+            end)
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Complete Radioactive Obby Loop (fires 3x then waits 15 minutes)
+task.spawn(function()
+    while scriptRunning do
+        if autoObby then
+            -- First, wait until RadioactiveMap_SharedInstances appears
+            local radioactiveMap = nil
+            while autoObby and not radioactiveMap do
+                local root = findRadioactiveRoot()
+                if root then
+                    radioactiveMap = root
+                else
+                    task.wait(2) -- Check every 2 seconds
+                end
+            end
+
+            -- If toggle was disabled while waiting, skip this cycle
+            if not autoObby then
+                task.wait(1)
+            else
+                -- Found the radioactive map
+                WindUI:Notify({
+                    Title = "Radioactive Obby",
+                    Content = "Radioactive Event found! Starting...",
+                    Icon =
+                    "check",
+                    Duration = 2
+                })
+
+                -- Run the obby completion sequence 2 times
+                for cycleCount = 1, 2 do
+                    if not autoObby then break end
+
+                    local completed = false
+                    pcall(function()
+                        local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not rootPart then return end
+
+                        -- Re-check radioactiveMap exists
+                        local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+                        if not rms then return end
+
+                        -- Step 1: Touch the ObbyEnd TouchInterest (prevents death if touched before teleport)
+                        local obbyEnd = rms:FindFirstChild("ObbyEnd")
+                        if obbyEnd then
+                            -- find a BasePart to touch that contains a TouchInterest/TouchTransmitter
+                            local touchPart = nil
+                            if obbyEnd:IsA("BasePart") then
+                                touchPart = obbyEnd
+                            else
+                                for _, d in ipairs(obbyEnd:GetDescendants()) do
+                                    if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d:FindFirstChildOfClass("TouchTransmitter")) then
+                                        touchPart = d
+                                        break
+                                    end
+                                end
+                            end
+
+                            if touchPart then
+                                pcall(function()
+                                    firetouchinterest(rootPart, touchPart, 0)
+                                    task.wait(0.1)
+                                    firetouchinterest(rootPart, touchPart, 1)
+                                end)
+
+                                -- wait 2s before teleporting to reduce chance of dying
+                                task.wait(2)
+
+                                local targetPos = touchPart.Position or (obbyEnd:IsA("BasePart") and obbyEnd.Position) or
+                                (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
+                                if targetPos then
+                                    rootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
+                                    task.wait(0.3)
+                                end
+                            end
+                        end
+
+                        completed = true
+                    end)
+
+                    -- Notify after each cycle
+                    if completed then
+                        WindUI:Notify({
+                            Title = "Radioactive Obby",
+                            Content = "Cycle " .. cycleCount .. "/2 completed",
+                            Icon =
+                            "check",
+                            Duration = 2
+                        })
+                    end
+
+                    if cycleCount < 2 then
+                        task.wait(2) -- Small delay between cycles
+                    end
+                end
+
+                -- All 2 cycles complete, wait 15 minutes
+                WindUI:Notify({ Title = "Radioactive Obby", Content = "2 cycles done", Icon = "clock", Duration = 3 })
+                task.wait(900) -- 15 minutes = 900 seconds
+            end
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Complete Money Obby Loop (fires 3x then waits 15 minutes)
+task.spawn(function()
+    while scriptRunning do
+        if autoCompleteMoneyObby then
+            -- First, wait until MoneyMap_SharedInstances appears
+            local moneyMap = nil
+            while autoCompleteMoneyObby and not moneyMap do
+                moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+                if not moneyMap then
+                    task.wait(2) -- Check every 2 seconds
+                end
+            end
+
+            -- If toggle was disabled while waiting, skip this cycle
+            if not autoCompleteMoneyObby then
+                task.wait(1)
+            else
+                -- Found the money map
+                WindUI:Notify({ Title = "Money Obby", Content = "Money Event found! Starting...", Icon = "check", Duration = 2 })
+
+                -- Run the obby completion sequence 3 times
+                for cycleCount = 1, 3 do
+                    if not autoCompleteMoneyObby then break end
+
+                    local completed = false
+                    pcall(function()
+                        local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if not rootPart then return end
+
+                        -- Re-check moneyMap exists
+                        moneyMap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+                        if not moneyMap then return end
+
+                        -- Complete Obby 1
+                        local obby1End = moneyMap:FindFirstChild("MoneyObby1End")
+                        if obby1End and obby1End:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obby1End, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obby1End, 1)
+                            end)
+                            task.wait(1)
+                        end
+
+                        -- Touch Checkpoint 3
+                        local checkpoint3 = moneyMap:FindFirstChild("MoneyCheckpoint3")
+                        if checkpoint3 and checkpoint3:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, checkpoint3, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, checkpoint3, 1)
+                            end)
+                            task.wait(1)
+                        end
+
+                        -- Complete Obby 2
+                        local obby2End = moneyMap:FindFirstChild("MoneyObby2End")
+                        if obby2End and obby2End:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obby2End, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obby2End, 1)
+                            end)
+                            task.wait(1)
+                        end
+
+                        -- Complete Obby 3
+                        local obby3End = moneyMap:FindFirstChild("MoneyObby3End")
+                        if obby3End and obby3End:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(rootPart, obby3End, 0)
+                                task.wait(0.1)
+                                firetouchinterest(rootPart, obby3End, 1)
+                            end)
+                        end
+
+                        completed = true
+                    end)
+
+                    -- Notify after each cycle
+                    if completed then
+                        WindUI:Notify({
+                            Title = "Money Obby",
+                            Content = "Cycle " .. cycleCount .. "/3 completed",
+                            Icon =
+                            "check",
+                            Duration = 2
+                        })
+                    end
+
+                    if cycleCount < 3 then
+                        task.wait(2) -- Small delay between cycles
+                    end
+                end
+
+                -- All 3 cycles complete
+                WindUI:Notify({ Title = "Money Obby", Content = "3 cycles done", Icon = "clock", Duration = 3 })
+
+                -- If user enabled auto-rejoin, rejoin now; otherwise keep the original 15-minute cooldown
+                if autoRejoinAfterMoneyObby then
+                    pcall(function()
+                        WindUI:Notify({ Title = "Money Obby", Content = "Auto-rejoin enabled — rejoining...", Icon = "info", Duration = 2 })
+                        task.wait(0.6)
+                        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+                    end)
+                    return
+                else
+                    task.wait(900) -- 15 minutes = 900 seconds
+                end
+            end
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Upgrade Base Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoUpgradeBase then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+                    "RE/Plot.UpgradeBase"):FireServer()
+            end)
+            task.wait(0.5)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Upgrade Carry Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoUpgradeCarry then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeCarry")
+                    :InvokeServer()
+            end)
+            task.wait(0.5)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Upgrade Speed Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoUpgradeSpeed then
+            pcall(function()
+                local args = { upgradeSpeedAmount }
+                game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeSpeed")
+                    :InvokeServer(unpack(args))
+            end)
+            task.wait(0.5)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Rebirth Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoRebirth then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("Rebirth")
+                    :InvokeServer()
+            end)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Sell by Rarity Loop
+task.spawn(function()
+    -- Brainrot names by rarity (hardcoded list)
+    local BrainrotsByRarity = {
+        Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
+        Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
+        Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
+        Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
+        Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
+        Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
+        Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh" },
+        Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini" },
+        Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini" },
+        Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero" },
+    }
+
+    while scriptRunning do
+        if autoSellByRarity and #sellRarities > 0 then
+            pcall(function()
+                local backpack = player:FindFirstChild("Backpack")
+                local character = player.Character
+                if not backpack or not character then return end
+
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then return end
+
+                -- Build list of brainrots to sell from selected rarities
+                local brainrotsToSell = {}
+                for _, targetRarity in ipairs(sellRarities) do
+                    local rarityList = BrainrotsByRarity[targetRarity]
+                    if rarityList then
+                        for _, brainrotName in ipairs(rarityList) do
+                            brainrotsToSell[brainrotName] = true
+                        end
+                    end
+                end
+
+
+                for _, tool in ipairs(backpack:GetChildren()) do
+                    if not autoSellByRarity then break end
+
+                    if tool:IsA("Tool") then
+                        local brainrotName = tool:GetAttribute("BrainrotName")
+                        if brainrotName and brainrotsToSell[brainrotName] then
+                            humanoid:EquipTool(tool)
+                            task.wait(0.15)
+
+
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
+                                    :WaitForChild("SellTool"):InvokeServer()
+                            end)
+                            task.wait(0.2)
+                        end
+                    end
+                end
+            end)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Anti-AFK (Always Enabled - Prevents 20 min AFK kick)
+local vu = game:GetService("VirtualUser")
+player.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
+
+-- Auto Reconnect (Always Enabled)
+pcall(function()
+    game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+        if child.Name == 'ErrorPrompt' and child:FindFirstChild('MessageArea') and child.MessageArea:FindFirstChild("ErrorFrame") then
+            game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+        end
+    end)
+end)
+
+-- Unlock Zoom handlers
+local function enableUnlockZoom()
+    if unlockZoomEnabled then return end
+    unlockZoomEnabled = true
+    -- store previous values if present
+    pcall(function()
+        prevCameraMin = player.CameraMinZoomDistance
+        prevCameraMax = player.CameraMaxZoomDistance
+    end)
+
+    local applied = false
+    -- Try to set on Player
+    pcall(function()
+        player.CameraMinZoomDistance = 0.5
+        player.CameraMaxZoomDistance = 500
+        applied = true
+    end)
+
+    -- Also try CurrentCamera in case of alternate API
+    pcall(function()
+        local cam = workspace and workspace.CurrentCamera
+        if cam then
+            pcall(function()
+                cam.CameraMinZoomDistance = 0.5
+                cam.CameraMaxZoomDistance = 500
+                applied = true
+            end)
+        end
+    end)
+
+    if applied then
+        WindUI:Notify({ Title = "Main", Content = "Zoom limits unlocked", Icon = "check", Duration = 3 })
+    else
+        WindUI:Notify({ Title = "Main", Content = "Failed to change zoom limits", Icon = "alert-triangle", Duration = 4 })
+    end
+end
+
+local function disableUnlockZoom()
+    if not unlockZoomEnabled then return end
+    unlockZoomEnabled = false
+    local restored = false
+    pcall(function()
+        if prevCameraMin then
+            player.CameraMinZoomDistance = prevCameraMin; restored = true
+        end
+        if prevCameraMax then
+            player.CameraMaxZoomDistance = prevCameraMax; restored = true
+        end
+    end)
+    pcall(function()
+        local cam = workspace and workspace.CurrentCamera
+        if cam then
+            pcall(function()
+                if prevCameraMin then cam.CameraMinZoomDistance = prevCameraMin end
+                if prevCameraMax then cam.CameraMaxZoomDistance = prevCameraMax end
+                restored = true
+            end)
+        end
+    end)
+
+    if restored then
+        WindUI:Notify({ Title = "Main", Content = "Zoom limits restored", Icon = "check", Duration = 3 })
+    else
+        WindUI:Notify({ Title = "Main", Content = "Zoom restore attempted", Icon = "check", Duration = 3 })
+    end
+end
+
+-- ================= GOD MODE HELPERS =================
+local function applyGodModeToCharacter(char)
+    if not char then return end
+    -- run async to wait for the character to be ready
+    task.spawn(function()
+        task.wait(0.25)
+        local humanoid = char:FindFirstChild("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local conns = {}
+        local modified = {}
+
+        if humanoid then
+            pcall(function()
+                humanoid.MaxHealth = 1e9
+                humanoid.Health = 1e9
+            end)
+            local c = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+                if humanoid.Health < 1000000 then
+                    humanoid.Health = 1000000
+                end
+            end)
+            table.insert(conns, c)
+        end
+
+        for _, part in ipairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                local ok, prevTrans = pcall(function() return part.Transparency end)
+                local ok2, prevCanTouch = pcall(function() return part.CanTouch end)
+                table.insert(modified,
+                    { part = part, transp = (ok and prevTrans) or nil, canTouch = (ok2 and prevCanTouch) or nil })
+                pcall(function() part.Transparency = 0.3 end)
+                pcall(function() part.CanTouch = false end)
+            end
+        end
+
+        if root then
+            local hb = RunService.Heartbeat:Connect(function()
+                pcall(function()
+                    root.Velocity = Vector3.new(0, 0, 0)
+                    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+                end)
+            end)
+            table.insert(conns, hb)
+        end
+
+        godModeConns[char] = { conns = conns, modified = modified }
+    end)
+end
+
+local function enableGodMode()
+    if godModeEnabled then return end
+    godModeEnabled = true
+    if player.Character then
+        applyGodModeToCharacter(player.Character)
+    end
+    godModeCharConn = player.CharacterAdded:Connect(function(char)
+        applyGodModeToCharacter(char)
+    end)
+    WindUI:Notify({ Title = "Main", Content = "God Mode enabled", Icon = "check", Duration = 3 })
+end
+
+local function disableGodMode()
+    if not godModeEnabled then return end
+    godModeEnabled = false
+    if godModeCharConn then
+        godModeCharConn:Disconnect(); godModeCharConn = nil
+    end
+    for char, data in pairs(godModeConns) do
+        if data and data.conns then
+            for _, c in ipairs(data.conns) do pcall(function() c:Disconnect() end) end
+        end
+        if data and data.modified then
+            for _, m in ipairs(data.modified) do
+                pcall(function()
+                    if m.part and m.transp ~= nil then m.part.Transparency = m.transp end
+                    if m.part and m.canTouch ~= nil then m.part.CanTouch = m.canTouch end
+                end)
+            end
+        end
+        godModeConns[char] = nil
+    end
+    WindUI:Notify({ Title = "Main", Content = "God Mode disabled", Icon = "check", Duration = 3 })
+end
+
+
+-- ================= TSUNAMI TRACKER =================
+-- Creates a small ScreenGui that shows distance & color-coded status for nearby tsunamis
+local RunService = game:GetService("RunService")
+local tsunamiGui = nil
+local tsunamiBox = nil
+local tsunamiText = nil
+local tsunamiHeartbeatConn = nil
+local tsunamiEnabled = false
+
+local function getTsunamiDistance()
+    local character = player.Character
+    if not character then return math.huge end
+    local root = character:FindFirstChild("HumanoidRootPart")
+    if not root then return math.huge end
+
+    local closest = math.huge
+    local activeTsunamis = workspace:FindFirstChild("ActiveTsunamis")
+    if activeTsunamis then
+        for i = 1, 6 do
+            local wave = activeTsunamis:FindFirstChild("Wave" .. i)
+            if wave then
+                local hitbox = wave:FindFirstChild("Hitbox")
+                if hitbox and hitbox:IsA("BasePart") then
+                    local dist = (hitbox.Position - root.Position).Magnitude
+                    if dist < closest then
+                        closest = dist
+                    end
+                end
+            end
+        end
+    end
+
+    if closest == math.huge then
+        for _, obj in pairs(workspace:GetChildren()) do
+            if obj:IsA("Model") then
+                if obj.Name:lower():find("tsunami") or obj.Name:lower():find("wave") then
+                    for _, part in pairs(obj:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            local dist = (part.Position - root.Position).Magnitude
+                            if dist < closest then
+                                closest = dist
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return closest
+end
+
+local function createTsunamiGui()
+    if tsunamiGui then return end
+    tsunamiGui = Instance.new("ScreenGui")
+    tsunamiGui.Name = "XuanTsunamiTracker"
+    tsunamiGui.ResetOnSpawn = false
+    tsunamiGui.Parent = player:WaitForChild("PlayerGui")
+
+    tsunamiBox = Instance.new("Frame")
+    tsunamiBox.Name = "TsunamiBox"
+    tsunamiBox.Size = UDim2.fromOffset(220, 26)
+    tsunamiBox.Position = UDim2.fromOffset(12, 12)
+    tsunamiBox.BackgroundColor3 = Color3.fromRGB(30, 34, 45)
+    tsunamiBox.BorderSizePixel = 0
+    tsunamiBox.Parent = tsunamiGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = tsunamiBox
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(80, 80, 100)
+    stroke.LineJoinMode = Enum.LineJoinMode.Round
+    stroke.Parent = tsunamiBox
+
+    tsunamiText = Instance.new("TextLabel")
+    tsunamiText.Name = "TsunamiText"
+    tsunamiText.Size = UDim2.new(1, -10, 1, -4)
+    tsunamiText.Position = UDim2.fromOffset(8, 1)
+    tsunamiText.BackgroundTransparency = 1
+    tsunamiText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    tsunamiText.Text = "Tsunami: Safe (>1500m)"
+    tsunamiText.Font = Enum.Font.Gotham
+    tsunamiText.TextSize = 13
+    tsunamiText.TextXAlignment = Enum.TextXAlignment.Left
+    tsunamiText.TextYAlignment = Enum.TextYAlignment.Center
+    tsunamiText.Parent = tsunamiBox
+
+    tsunamiHeartbeatConn = RunService.Heartbeat:Connect(function()
+        local dist = getTsunamiDistance()
+        if dist < 1500 then
+            if dist <= 500 then
+                tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                tsunamiText.TextColor3 = Color3.new(1, 1, 1)
+                tsunamiText.Text = "⚠️ Tsunami: " .. math.floor(dist) .. "m (DANGER)"
+            elseif dist <= 1000 then
+                tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+                tsunamiText.TextColor3 = Color3.new(0, 0, 0)
+                tsunamiText.Text = "Tsunami: " .. math.floor(dist) .. "m (WARNING)"
+            else
+                tsunamiBox.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+                tsunamiText.TextColor3 = Color3.new(0, 0, 0)
+                tsunamiText.Text = "Tsunami: " .. math.floor(dist) .. "m (SAFE)"
+            end
+        else
+            tsunamiBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+            tsunamiText.TextColor3 = Color3.new(1, 1, 1)
+            tsunamiText.Text = "Tsunami: Safe (>1500m)"
+        end
+    end)
+end
+
+local function destroyTsunamiGui()
+    if tsunamiHeartbeatConn then
+        tsunamiHeartbeatConn:Disconnect()
+        tsunamiHeartbeatConn = nil
+    end
+    if tsunamiGui then
+        tsunamiGui:Destroy()
+        tsunamiGui = nil
+        tsunamiBox = nil
+        tsunamiText = nil
+    end
+end
+
+local function enableTsunamiTracker()
+    if tsunamiEnabled then return end
+    tsunamiEnabled = true
+    createTsunamiGui()
+    WindUI:Notify({
+        Title = "Tsunami",
+        Content = "Tsunami tracker enabled",
+        Icon = "check",
+        Duration = 3,
+    })
+end
+
+local function disableTsunamiTracker()
+    if not tsunamiEnabled then return end
+    tsunamiEnabled = false
+    destroyTsunamiGui()
+    WindUI:Notify({
+        Title = "Tsunami",
+        Content = "Tsunami tracker disabled",
+        Icon = "check",
+        Duration = 3,
+    })
+end
+
+-- Add a section + toggle in the Tsunami tab
+local TsunamiSection = TsunamiTab:Section({ Title = "Tsunami Tracker", Opened = true, })
+TsunamiSection:Toggle({
+    Title = "Tsunami Tracker",
+    Desc = "Toggle tsunami tracker display",
+    Value = savedSettings.autoTsunamiTracker,
+    Callback = function(state)
+        if state then
+            enableTsunamiTracker()
+        else
+            disableTsunamiTracker()
+        end
+        savedSettings.autoTsunamiTracker = state
+        saveSettings(savedSettings)
+    end
+})
+
+local function findGapsFolder()
+    -- return the first existing 'Gaps' folder from known map locations
+    -- expanded to include Mars, Money and Radioactive map variants
+    local candidates = {
+       (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap.DefaultStudioMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
+    }
+    for _, f in ipairs(candidates) do
+        if f then return f end
+    end
+    return nil
+end
+
+-- TP Next Gap button removed by user request. Use `XuanHub_TPNextGap()` from console or rebind later.
+
+-- Teleport to previous gap (behind player) — single-step SmartMove (uses same ordering/safety as Smart Teleport)
+-- TP Previous Gap button removed by user request. Use `XuanHub_TPPrevGap()` from console or rebind later.
+
+-- Teleport to your base
+TsunamiSection:Button({
+    Title = "Teleport to Base",
+    Desc = "Teleport to your base",
+    Locked = false,
+    Callback = function()
+        teleportToBaseSmooth()
+    end
+})
+
+-- Smart-tour helpers (used by the Auto Tour toggles)
+local TweenService = game:GetService("TweenService")
+_G.BaseTweenSpeed = 0.15
+_G.AutoTourActive = false
+_G.ReverseTourActive = false
+_G.PostWaveBuffer = 0.05
+
+
+
+-- Generic collector: returns array of { idx = number, name = string, part = BasePart, inst = Instance }
+local function collectGapEntries(folder)
+    if not folder then return {} end
+    local entries = {}
+    for _, child in ipairs(folder:GetChildren()) do
+        if child then
+            -- attempt to find a usable BasePart for positioning
+            local part = (child:IsA("BasePart") and child) or (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+            if not part then
+                for _, d in ipairs(child:GetDescendants()) do
+                    if d:IsA("BasePart") then part = d; break end
+                end
+            end
+            if part then
+                local num = tonumber(child.Name:match("%d+"))
+                table.insert(entries, { idxRaw = num, name = child.Name, part = part, inst = child })
+            end
+        end
+    end
+
+    if #entries == 0 then return entries end
+
+    -- If any entries have numeric indices, sort by that; otherwise sort by X (left→right)
+    local hasNumbers = false
+    for _, e in ipairs(entries) do if e.idxRaw then hasNumbers = true; break end end
+    if hasNumbers then
+        table.sort(entries, function(a, b)
+            return (a.idxRaw or 9999) < (b.idxRaw or 9999)
+        end)
+        for i, e in ipairs(entries) do e.idx = e.idxRaw or i end
+    else
+        table.sort(entries, function(a, b)
+            return a.part.Position.X < b.part.Position.X
+        end)
+        for i, e in ipairs(entries) do e.idx = i end
+    end
+
+    return entries
+end
+
+local function GetNearestGapIndex()
+    local gaps = findGapsFolder()
+    local hrp = game.Players.LocalPlayer.Character and
+        game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not gaps or not hrp then return 1 end
+
+    local entries = collectGapEntries(gaps)
+    if #entries == 0 then return 1 end
+
+    local nearestIndex, minDistance = entries[1].idx, math.huge
+    for _, e in ipairs(entries) do
+        local ok, pos = pcall(function()
+            if e.inst and e.inst.GetModelCFrame then
+                return e.inst:GetModelCFrame().Position
+            elseif e.part then
+                return e.part.Position
+            end
+        end)
+        if ok and pos then
+            local dist = (hrp.Position - pos).Magnitude
+            if dist < minDistance then
+                minDistance, nearestIndex = dist, e.idx
+            end
+        end
+    end
+    return nearestIndex
+end
+
+local function IsPathClear(targetPos)
+    local tsunamiFolder = workspace:FindFirstChild("ActiveTsunamis")
+    if not tsunamiFolder then return true end
+    local hrp = game.Players.LocalPlayer.Character and
+        game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return true end
+    local padding = 45
+    local currentPos = hrp.Position
+    local minX, maxX = math.min(currentPos.X, targetPos.X) - padding, math.max(currentPos.X, targetPos.X) + padding
+    local minZ, maxZ = math.min(currentPos.Z, targetPos.Z) - padding, math.max(currentPos.Z, targetPos.Z) + padding
+    for _, model in pairs(tsunamiFolder:GetChildren()) do
+        for _, part in pairs(model:GetChildren()) do
+            if part:IsA("BasePart") and string.find(string.lower(part.Name), "wave") then
+                local wPos = part.Position
+                if (wPos.X >= minX and wPos.X <= maxX) and (wPos.Z >= minZ and wPos.Z <= maxZ) then
+                    return false
+                end
+            end
+        end
+    end
+    return true
+end
+
+local function SmartMove(targetPos, areaName)
+    local char = game.Players.LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local finalSpeed = _G.BaseTweenSpeed
+        local areaNum = tonumber(string.match(areaName, "%d+"))
+        if areaNum and areaNum >= 6 then
+            finalSpeed = _G.BaseTweenSpeed * 5.0
+        end
+        local info = TweenInfo.new(finalSpeed, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(hrp, info, { CFrame = CFrame.new(targetPos) })
+        tween:Play()
+        tween.Completed:Wait()
+    end
+end
+
+
+-- Teleport to last gap (button)
+TsunamiSection:Button({
+    Title = "Smart Teleport to Last Gap",
+    Desc = "Press to start teleport through gaps to the last gap",
+    Locked = false,
+    Callback = function()
+        if _G.AutoTourActive then
+            _G.AutoTourActive = false
+            WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap stopped", Icon = "check", Duration = 2 })
+            return
+        end
+
+        _G.AutoTourActive = true
+        _G.ReverseTourActive = false
+        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
+        task.spawn(function()
+            local gapsFolder = findGapsFolder()
+            if not gapsFolder then
+                _G.AutoTourActive = false; return
+            end
+
+            local entries = collectGapEntries(gapsFolder)
+            if #entries == 0 then
+                _G.AutoTourActive = false; return
+            end
+
+            -- determine range and current index
+            local maxIdx = entries[#entries].idx
+            while _G.AutoTourActive do
+                local currentPosIndex = GetNearestGapIndex()
+
+                -- iterate only over entries with idx > currentPosIndex up to maxIdx
+                for _, e in ipairs(entries) do
+                    if not _G.AutoTourActive then break end
+                    if e.idx > currentPosIndex and e.idx <= maxIdx then
+                        local ok, pos = pcall(function()
+                            if e.inst and e.inst.GetModelCFrame then
+                                return e.inst:GetModelCFrame().Position
+                            elseif e.part then
+                                return e.part.Position
+                            end
+                        end)
+                        if ok and pos then
+                            local targetPos = (pos + Vector3.new(0, -2, 0))
+
+                            -- notify once while waiting for the gap to become safe
+                            local blockedNotified = false
+                            while not IsPathClear(targetPos) and _G.AutoTourActive do
+                                if not blockedNotified then
+                                    pcall(function()
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
+                                        tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                    end)
+                                    print("[XuanHub] SmartTeleport: waiting for gap to clear:", e.name)
+                                    blockedNotified = true
+                                end
+                                task.wait(0.1)
+                            end
+
+                            if blockedNotified and _G.AutoTourActive then
+                                pcall(function()
+                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
+                                    tostring(e.name), Icon = "check", Duration = 2 })
+                                end)
+                                print("[XuanHub] SmartTeleport: gap cleared:", e.name)
+                            end
+
+                            SmartMove(targetPos, e.name)
+                            task.wait(1.5)
+                        end
+                    end
+                end
+
+                -- stop if we've reached the last gap
+                local nearest = GetNearestGapIndex()
+                if nearest >= maxIdx then
+                    _G.AutoTourActive = false
+                    WindUI:Notify({ Title = "Teleport", Content = "Reached last gap — stopped", Icon = "check", Duration = 3 })
+                    break
+                end
+
+                task.wait(2)
+            end
+        end)
+    end,
+})
+
+-- Teleport to first gap (reverse) - button
+TsunamiSection:Button({
+    Title = "Smart Teleport to First Gap",
+    Desc = "Press to Automatically teleport through gaps to the first gap",
+    Locked = false,
+    Callback = function()
+        if _G.ReverseTourActive then
+            _G.ReverseTourActive = false
+            WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap stopped", Icon = "check", Duration = 2 })
+            return
+        end
+
+        _G.ReverseTourActive = true
+        _G.AutoTourActive = false
+        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
+        task.spawn(function()
+            local gapsFolder = findGapsFolder()
+            if not gapsFolder then
+                _G.ReverseTourActive = false; return
+            end
+
+            local entries = collectGapEntries(gapsFolder)
+            if #entries == 0 then
+                _G.ReverseTourActive = false; return
+            end
+
+            local minIdx = entries[1].idx
+            while _G.ReverseTourActive do
+                local currentPosIndex = GetNearestGapIndex()
+
+                -- iterate entries with idx < currentPosIndex in descending order
+                for i = #entries, 1, -1 do
+                    if not _G.ReverseTourActive then break end
+                    local e = entries[i]
+                    if e.idx < currentPosIndex then
+                        local ok, pos = pcall(function()
+                            if e.inst and e.inst.GetModelCFrame then
+                                return e.inst:GetModelCFrame().Position
+                            elseif e.part then
+                                return e.part.Position
+                            end
+                        end)
+                        if ok and pos then
+                            local targetPos = (pos + Vector3.new(0, -2, 0))
+
+                            -- notify once while waiting for the gap to become safe
+                            local blockedNotified = false
+                            while not IsPathClear(targetPos) and _G.ReverseTourActive do
+                                if not blockedNotified then
+                                    pcall(function()
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
+                                        tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                    end)
+                                    print("[XuanHub] SmartTeleport (reverse): waiting for gap to clear:", e.name)
+                                    blockedNotified = true
+                                end
+                                task.wait(0.1)
+                            end
+
+                            if blockedNotified and _G.ReverseTourActive then
+                                pcall(function()
+                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
+                                    tostring(e.name), Icon = "check", Duration = 2 })
+                                end)
+                                print("[XuanHub] SmartTeleport (reverse): gap cleared:", e.name)
+                            end
+
+                            SmartMove(targetPos, e.name)
+                            task.wait(1.5)
+                        end
+                    end
+                end
+
+                -- stop if we've reached the first gap
+                local nearest = GetNearestGapIndex()
+                if nearest <= minIdx then
+                    _G.ReverseTourActive = false
+                    WindUI:Notify({ Title = "Teleport", Content = "Reached first gap — stopped", Icon = "check", Duration = 3 })
+                    break
+                end
+
+                task.wait(2)
+            end
+        end)
+    end,
+})
+
+-- Teleport-by-Rarity (Tsunami)
+-- Mapping (fixed): Common=Gap1 .. Celestial=Gap9
+local RARITY_TO_GAP = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythical = 6, Cosmic = 7, Secret = 8, Celestial = 9 }
+
+-- Read-only UI element (shows configured target rarity)
+-- NOTE: WindUI's Section may not expose a Tag method at runtime; place the tag in the Window header instead.
+
+
+-- Dropdown to choose target rarity (persisted)
+TsunamiSection:Dropdown({
+    Title = "Teleport target rarity",
+    Desc = "Which gap to stop at when using teleport-by-rarity",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial" },
+    Value = tostring(savedSettings.autoTeleportByRarityTarget or "Common"),
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        autoTeleportByRarityTarget = option
+        savedSettings.autoTeleportByRarityTarget = option
+        saveSettings(savedSettings)
+        TeleportByRarityLabel:SetTitle("Target: " .. tostring(option))
+    end,
+})
+
+-- Button: start a one-shot smart-teleport to the selected rarity's gap
+TsunamiSection:Button({
+    Title = "Teleport to Selected Rarity",
+    Desc = "Smart-teleport forward until the selected rarity's gap",
+    Callback = function()
+        local r = autoTeleportByRarityTarget or savedSettings.autoTeleportByRarityTarget or "Common"
+        local ok = pcall(function() return _G.XuanHub_TeleportToRarity and _G.XuanHub_TeleportToRarity(r) end)
+        if ok and _G.XuanHub_TeleportToRarity then
+            TeleportByRarityLabel:SetTitle("Target: " .. tostring(r) .. " (running)")
+            WindUI:Notify({ Title = "Teleport", Content = "Starting teleport to " .. tostring(r), Icon = "check", Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Teleport", Content = "Failed to start teleport", Icon = "alert-triangle", Duration = 2 })
+        end
+    end,
+})
+
+-- Button: stop all teleporting (rarity, smart tours, reverse tours, console-run teleports)
+TsunamiSection:Button({
+    Title = "Stop Teleport",
+    Desc = "Stop any running teleport operation (all modes)",
+    Callback = function()
+        -- disable all teleporting flags (short-circuit running loops)
+        local stopped = {}
+        if autoTeleportByRarity then autoTeleportByRarity = false; savedSettings.autoTeleportByRarity = false; table.insert(stopped, "rarity") end
+        if _G.AutoTourActive then _G.AutoTourActive = false; table.insert(stopped, "auto-tour") end
+        if _G.ReverseTourActive then _G.ReverseTourActive = false; table.insert(stopped, "reverse-tour") end
+
+        -- persist and update UI status
+        pcall(function() saveSettings(savedSettings) end)
+        pcall(function() TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common")) end)
+
+        -- best-effort: inform any external console toggles (no-ops if not present)
+        pcall(function() if type(_G.XuanHub_ToggleTeleportByRarity) == "function" then _G.XuanHub_ToggleTeleportByRarity() end end)
+
+        -- unified notification
+        local msg = (#stopped > 0) and ("Stopped: " .. table.concat(stopped, ", ")) or "No teleport operations were active"
+        WindUI:Notify({ Title = "Teleport", Content = msg, Icon = "info", Duration = 3 })
+    end,
+})
+
+-- Background loop: behaves like "Smart Teleport to Last Gap" but stops at mapped gap index
+task.spawn(function()
+    while scriptRunning do
+        if autoTeleportByRarity then
+            local ok, err = pcall(function()
+                local gapsFolder = findGapsFolder()
+                if not gapsFolder then
+                    autoTeleportByRarity = false
+                    savedSettings.autoTeleportByRarity = false
+                    saveSettings(savedSettings)
+                    WindUI:Notify({ Title = "Teleport", Content = "No gaps found", Icon = "alert-triangle", Duration = 3 })
+                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+                    return
+                end
+
+                local entries = collectGapEntries(gapsFolder)
+                if #entries == 0 then
+                    autoTeleportByRarity = false
+                    savedSettings.autoTeleportByRarity = false
+                    saveSettings(savedSettings)
+                    WindUI:Notify({ Title = "Teleport", Content = "No gap entries", Icon = "alert-triangle", Duration = 3 })
+                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+                    return
+                end
+
+                local targetRarity = tostring(autoTeleportByRarityTarget or "Common")
+                local targetIdx = RARITY_TO_GAP[targetRarity]
+                if not targetIdx then
+                    WindUI:Notify({ Title = "Teleport", Content = "Invalid target rarity", Icon = "alert-triangle", Duration = 3 })
+                    autoTeleportByRarity = false
+                    return
+                end
+
+                -- clamp target to available range
+                local maxIdx = entries[#entries].idx
+                if targetIdx > maxIdx then
+                    WindUI:Notify({ Title = "Teleport", Content = "Target gap out of range: " .. tostring(targetIdx), Icon =
+                    "alert-triangle", Duration = 3 })
+                    autoTeleportByRarity = false
+                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+                    return
+                end
+
+                -- perform forward tour until reaching targetIdx
+                while autoTeleportByRarity do
+                    local currentPosIndex = GetNearestGapIndex()
+                    if currentPosIndex >= targetIdx then
+                        WindUI:Notify({ Title = "Teleport", Content = "Reached target gap (" ..
+                        tostring(targetRarity) .. ")", Icon = "check", Duration = 2 })
+                        autoTeleportByRarity = false
+                        savedSettings.autoTeleportByRarity = false
+                        saveSettings(savedSettings)
+                        TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or targetRarity))
+                        break
+                    end
+
+                    for _, e in ipairs(entries) do
+                        if not autoTeleportByRarity then break end
+                        if e.idx > currentPosIndex and e.idx <= targetIdx then
+                            local ok2, pos = pcall(function()
+                                if e.inst and e.inst.GetModelCFrame then
+                                    return e.inst:GetModelCFrame().Position
+                                elseif e.part then
+                                    return e.part.Position
+                                end
+                            end)
+                            if ok2 and pos then
+                                local targetPos = (pos + Vector3.new(0, -2, 0))
+
+                                local blockedNotified = false
+                                while not IsPathClear(targetPos) and autoTeleportByRarity do
+                                    if not blockedNotified then
+                                        pcall(function()
+                                            WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
+                                            tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                        end)
+                                        print("[XuanHub] TeleportByRarity: waiting for gap to clear:", e.name)
+                                        blockedNotified = true
+                                    end
+                                    task.wait(0.12)
+                                end
+
+                                if blockedNotified and autoTeleportByRarity then
+                                    pcall(function()
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
+                                        tostring(e.name), Icon = "check", Duration = 2 })
+                                    end)
+                                    print("[XuanHub] TeleportByRarity: gap cleared:", e.name)
+                                end
+
+                                SmartMove(targetPos, e.name)
+                                task.wait(1.2)
+                            end
+                        end
+                    end
+
+                    task.wait(1)
+                end
+            end)
+            if not ok then
+                warn("TeleportByRarity error:", err)
+                autoTeleportByRarity = false
+                TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
+            end
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Console helpers
+_G.XuanHub_TeleportToRarity = function(rarity)
+    if rarity and type(rarity) == "string" then
+        autoTeleportByRarityTarget = rarity
+        savedSettings.autoTeleportByRarityTarget = rarity
+        saveSettings(savedSettings)
+        autoTeleportByRarity = true
+        savedSettings.autoTeleportByRarity = true
+        saveSettings(savedSettings)
+        return true
+    end
+    return false
+end
+
+_G.XuanHub_ToggleTeleportByRarity = function()
+    autoTeleportByRarity = not autoTeleportByRarity
+    savedSettings.autoTeleportByRarity = autoTeleportByRarity
+    saveSettings(savedSettings)
+    return autoTeleportByRarity
+end
+
+-- Debug helper: reports which Gaps folder would be used and child count (non-destructive)
+_G.XuanHub_FindGapsFolderInfo = function()
+    local f = findGapsFolder()
+    if not f then
+        return nil, "no gaps found"
+    end
+    local parentName = f.Parent and f.Parent.Name or "<unknown>"
+    local count = #f:GetChildren()
+    return f, string.format("found: %s (parent: %s) — children=%d", f:GetFullName(), parentName, count)
+end
+
+-- ================= BASE TAB =================
+local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })
+
+-- VIP Walls section
+local VIPWallsSection = BaseTab:Section({ Title = "VIP Walls", Opened = true, })
+
+-- Unlock Default Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock VIP Walls",
+    Desc = "Disable Shield of VIP Walls (Default Map)",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local defaultMap = workspace:FindFirstChild("DefaultMap_SharedInstances")
+            if not defaultMap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = defaultMap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Default Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Unlock Mars Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Mars Map VIP Wall",
+    Desc = "Disable Shield of Mars Map VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local marsMap = workspace:FindFirstChild("MarsMap_SharedInstances")
+            if not marsMap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = marsMap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found in Mars Map", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Mars Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Unlock Radioactive VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Radioactive VIP Walls",
+    Desc = "Disable Shield of Radioactive VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local rmap = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
+            if not rmap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = rmap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Radioactive VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Unlock Money Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Money Map VIP Walls",
+    Desc = "Disable Shield of Money Map VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local mmap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+            if not mmap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = mmap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Money Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Utilities section (visible)
+local UtilitiesSection = BaseTab:Section({ Title = "Utilities", Opened = true, })
+
+local UpgBaseOnce = UpgBase:Button({
+    Title = "Upgrade Base",
+    Desc = "Purchase one base upgrade",
+    Locked = false,
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+                "RE/Plot.UpgradeBase"):FireServer()
+        end)
+        WindUI:Notify({
+            Title = "Upgraded",
+            Content = "Base upgrade purchased!",
+            Icon = "check",
+            Duration = 3,
+        })
+    end
+})
+
+-- Upgrade Carry (manual)
+local UpgCarryOnce = UpgBase:Button({
+    Title = "Upgrade Carry",
+    Desc = "Purchase one carry upgrade",
+    Locked = false,
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeCarry")
+                :InvokeServer()
+        end)
+        WindUI:Notify({
+            Title = "Upgraded",
+            Content = "Carry upgrade purchased!",
+            Icon = "check",
+            Duration = 3,
+        })
+    end
+})
+
+-- Bring Back Celestial Timer
+UpgBase:Button({
+    Title = "Bring Back Celestial Timer",
+    Desc = "Show the Celestial Timer visibility",
+    Locked = false,
+    Callback = function()
+        local playerGui = player:FindFirstChild("PlayerGui")
+        if playerGui then
+            local celestialTimer = playerGui:FindFirstChild("CelestialTimeLeft")
+            if celestialTimer then
+                celestialTimer.Enabled = not celestialTimer.Enabled
+                local status = celestialTimer.Enabled and "shown" or "hidden"
+                WindUI:Notify({
+                    Title = "Celestial Timer",
+                    Content = "Timer " .. status,
+                    Icon = "check",
+                    Duration = 3,
+                })
+            else
+                WindUI:Notify({
+                    Title = "Celestial Timer",
+                    Content = "Timer not found",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+            end
+        end
+    end
+})
+
+-- Unlock Zoom Limit
+UtilitiesSection:Toggle({
+    Title = "Unlock Zoom Limit",
+    Desc = "Unlock camera zoom limits",
+    Value = savedSettings.unlockZoom,
+    Callback = function(state)
+        if state then
+            enableUnlockZoom()
+        else
+            disableUnlockZoom()
+        end
+        savedSettings.unlockZoom = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- God Mode
+UtilitiesSection:Toggle({
+    Title = "God Mode",
+    Desc = "Immune To the tsunami for one time or for more than 3 waves if the tsunami is close to each other",
+    Value = savedSettings.godMode,
+    Callback = function(state)
+        if state then
+            enableGodMode()
+        else
+            disableGodMode()
+        end
+        savedSettings.godMode = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- Wider hitbox helpers
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local BASE_SIZE = Vector3.new(4, 4, 4)
+local MAX_SIZE = Vector3.new(150, 150, 150)
+
+local function _collectToolHitboxes()
+    table.clear(_widerHitbox_tracking)
+    -- Backpack
+    if LocalPlayer:FindFirstChild("Backpack") then
+        for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            if tool:IsA("Tool") then
+                local hb = tool:FindFirstChild("Hitbox")
+                if hb and hb:IsA("BasePart") then
+                    _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
+                end
+            end
+        end
+    end
+    -- Character (equipped)
+    if LocalPlayer.Character then
+        for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
+            if tool:IsA("Tool") then
+                local hb = tool:FindFirstChild("Hitbox")
+                if hb and hb:IsA("BasePart") then
+                    _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
+                end
+            end
+        end
+    end
+end
+
+local function _applyWiderHitboxes()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    _collectToolHitboxes()
+    if not next(_widerHitbox_tracking) then return end
+
+    -- find nearby players
+    local hrp = LocalPlayer.Character.HumanoidRootPart
+    local nearby = {}
+    for _, pl in ipairs(Players:GetPlayers()) do
+        if pl ~= LocalPlayer and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (pl.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if d <= 50 then table.insert(nearby, pl.Character.HumanoidRootPart) end
+        end
+    end
+
+    for hb, meta in pairs(_widerHitbox_tracking) do
+        if #nearby == 0 then
+            hb.Size = meta.origSize or BASE_SIZE
+            hb.Transparency = meta.origTransparency or 1
+            hb.CanCollide = false
+        else
+            local targetPos = hrp.Position
+            if #nearby == 1 then
+                local dir = (nearby[1].Position - hrp.Position).Unit
+                targetPos = nearby[1].Position + dir * 2
+            else
+                local total = Vector3.new()
+                for _, p in ipairs(nearby) do
+                    total = total + p.Position
+                end
+                targetPos = total / #nearby
+            end
+            local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or
+                MAX_SIZE
+            hb.Size = finalSize
+            hb.Position = targetPos
+            hb.Transparency = 0.7
+            hb.CanCollide = false
+        end
+    end
+end
+
+local function startWiderHitbox()
+    if widerHitboxConn then return end
+    widerHitboxEnabled = true
+    widerHitboxConn = RunService.Heartbeat:Connect(function()
+        if widerHitboxEnabled then _applyWiderHitboxes() end
+    end)
+    -- react to tool/character changes
+    LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+        task.wait(0.1); _collectToolHitboxes()
+    end)
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1); _collectToolHitboxes()
+    end)
+    WindUI:Notify({ Title = "Utilities", Content = "Wider hitbox enabled", Icon = "check", Duration = 2 })
+end
+
+local function stopWiderHitbox()
+    widerHitboxEnabled = false
+    if widerHitboxConn then
+        widerHitboxConn:Disconnect()
+        widerHitboxConn = nil
+    end
+    -- restore originals
+    for hb, meta in pairs(_widerHitbox_tracking) do
+        pcall(function()
+            if meta.part and meta.origSize then meta.part.Size = meta.origSize end
+            if meta.part and meta.origTransparency then meta.part.Transparency = meta.origTransparency end
+            if meta.part then meta.part.CanCollide = false end
+        end)
+    end
+    table.clear(_widerHitbox_tracking)
+    WindUI:Notify({ Title = "Utilities", Content = "Wider hitbox disabled", Icon = "check", Duration = 2 })
+end
+
+-- Utilities: Wider hitbox UI
+UtilitiesSection:Toggle({
+    Title = "Enable Wider Hitbox",
+    Desc = "Expand tool hitboxes when players are nearby",
+    Value = savedSettings.hitboxEnabled,
+    Callback = function(state)
+        savedSettings.hitboxEnabled = state
+        saveSettings(savedSettings)
+        if state then
+            widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
+            startWiderHitbox()
+        else
+            stopWiderHitbox()
+        end
+    end
+})
+
+UtilitiesSection:Slider({
+    Title = "Hitbox Width",
+    Desc = "How wide the hitbox becomes (studs)",
+    Step = 1,
+    Value = { Min = 20, Max = 120, Default = savedSettings.hitboxWidth or 70 },
+    Callback = function(value)
+        widerHitboxWidth = math.clamp(tonumber(value) or 70, 8, 200)
+        savedSettings.hitboxWidth = widerHitboxWidth
+        saveSettings(savedSettings)
+    end
+})
+
+-- Buttons moved from Main (simplified)
+local SellAllBtn = UpgBase:Button({
+    Title = "Sell All Inventory",
+    Desc = "Double-click to sell your entire inventory",
+    Locked = false,
+    Callback = function()
+        local currentTime = tick()
+        if currentTime - lastSellAllClick < 2 then
+            -- Double-click detected
+            local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll")
+                :InvokeServer()
+            if result == false or result == nil then
+                WindUI:Notify({
+                    Title = "Sold",
+                    Content = "You don't have any Brainrots in your Inventory.",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+            else
+                WindUI:Notify({
+                    Title = "Sold",
+                    Content = "Successfully Sold All Brainrots!",
+                    Icon = "check",
+                    Duration = 3,
+                })
+            end
+            lastSellAllClick = 0
+        else
+            -- First click
+            lastSellAllClick = currentTime
+            WindUI:Notify({
+                Title = "Sell All",
+                Content = "Click again to confirm",
+                Icon = "alert-triangle",
+                Duration = 2,
+            })
+        end
+    end
+})
+
+local SellHeldBtn = UpgBase:Button({
+    Title = "Sell Held Tool",
+    Desc = "Sells the brainrot you are currently holding",
+    Locked = false,
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellTool"):InvokeServer()
+        end)
+        WindUI:Notify({
+            Title = "Sold",
+            Content = "Held tool sold!",
+            Icon = "check",
+            Duration = 3,
+        })
+    end
+})
+
+
+-- ================= EVENT TAB =================
+local RadioactiveSection = EventTab:Section({
+    Title = "Radioactive Event",
+    Opened = true,
+})
+
+-- Auto Collect Radioactive
+RadioactiveSection:Toggle({
+    Title = "Auto Collect Radioactive Coins",
+    Desc = "Automatically Collect Radioactive Coins",
+    Value = savedSettings.autoCollectRadioactive,
+    Callback = function(state)
+        active = state
+        savedSettings.autoCollectRadioactive = state
+        saveSettings(savedSettings)
+    end
+})
+
+RadioactiveSection:Space()
+
+-- Auto Spin
+RadioactiveSection:Toggle({
+    Title = "Auto Spin Radioactive Wheel",
+    Desc = "Automatically spins the radioactive wheel",
+    Value = savedSettings.autoSpin,
+    Callback = function(state)
+        spinning = state
+        savedSettings.autoSpin = state
+        saveSettings(savedSettings)
+    end
+})
+
+RadioactiveSection:Input({
+    Title = "Spin Delay",
+    Value = tostring(savedSettings.spinDelay),
+    Placeholder = "0.5",
+    Callback = function(value)
+        local delay = tonumber(value)
+        if delay and delay >= 0.1 then
+            savedSettings.spinDelay = delay
+            saveSettings(savedSettings)
+        end
+    end
+})
+
+RadioactiveSection:Space()
+
+-- Auto Obby
+RadioactiveSection:Toggle({
+    Title = "Auto Complete Radioactive Obby",
+    Desc = "Automatically complete the Radioactive obby ",
+    Value = savedSettings.autoObby,
+    Callback = function(state)
+        autoObby = state
+        savedSettings.autoObby = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- UFO Event
+local UFOSection = EventTab:Section({
+    Title = "UFO Event",
+    Opened = true,
+})
+
+UFOSection:Toggle({
+    Title = "Auto Collect UFO Coins",
+    Desc = "Automatically collects UFO coins",
+    Value = savedSettings.autoCollectUFO,
+    Callback = function(state)
+        autoCollectUFO = state
+        savedSettings.autoCollectUFO = state
+        saveSettings(savedSettings)
+    end
+})
+
+UFOSection:Toggle({
+    Title = "Auto Spin UFO Wheel",
+    Desc = "Automatically spins the UFO wheel",
+    Value = savedSettings.autoSpinUFO,
+    Callback = function(state)
+        autoSpinUFO = state
+        savedSettings.autoSpinUFO = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- Money Event
+local MoneySection = EventTab:Section({
+    Title = "Money Event",
+    Opened = true,
+})
+
+MoneySection:Toggle({
+    Title = "Auto Collect Gold Bar",
+    Desc = "Automatically collect Gold Bars",
+    Value = savedSettings.autoCollectGoldBar,
+    Callback = function(state)
+        autoCollectGoldBar = state
+        savedSettings.autoCollectGoldBar = state
+        saveSettings(savedSettings)
+    end
+})
+
+MoneySection:Toggle({
+    Title = "Auto Spin Money Wheel",
+    Desc = "Automatically spin the money wheel",
+    Value = savedSettings.autoSpinMoneyWheel,
+    Callback = function(state)
+        autoSpinMoneyWheel = state
+        savedSettings.autoSpinMoneyWheel = state
+        saveSettings(savedSettings)
+    end
+})
+
+MoneySection:Toggle({
+    Title = "Auto Complete Money Obbies",
+    Desc = "Automatically complete 3 Money obbies",
+    Value = savedSettings.autoCompleteMoneyObby,
+    Callback = function(state)
+        autoCompleteMoneyObby = state
+        savedSettings.autoCompleteMoneyObby = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- New: Auto-rejoin after completing 3 money obby cycles
+MoneySection:Toggle({
+    Title = "Auto Rejoin After Money Obbies",
+    Desc = "When enabled, rejoin the server automatically after 3 completed obby cycles",
+    Value = savedSettings.autoRejoinAfterMoneyObby,
+    Callback = function(state)
+        autoRejoinAfterMoneyObby = state
+        savedSettings.autoRejoinAfterMoneyObby = state
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Money Obby", Content = (state and "Auto-rejoin enabled" or "Auto-rejoin disabled"), Icon = "info", Duration = 2 })
+    end
+})
+
+-- ================= AUTO TAB =================
+local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
+
+-- Auto Upgrade Base
+local AutoUpgradeBaseToggle = AutoSection:Toggle({
+    Title = "Auto Upgrade Base",
+    Desc = "Automatically upgrades your base",
+    Value = savedSettings.autoUpgradeBase,
+    Callback = function(state)
+        autoUpgradeBase = state
+        savedSettings.autoUpgradeBase = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- Auto Collect Money
+local AutoCollectMoneyToggle = AutoSection:Toggle({
+    Title = "Auto Collect Money",
+    Desc = "Automatically collects money from your base",
+    Value = savedSettings.autoCollectMoney,
+    Callback = function(state)
+        collectingMoney = state
+        savedSettings.autoCollectMoney = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- Auto Open Lucky Block (select & auto-open a lucky block from Backpack)
+AutoSection:Dropdown({
+    Title = "Lucky Block to Open",
+    Desc = "Select which Lucky Block to auto-open from your Backpack",
+    Values = {
+        "Radioactive Block","UFO Block","Money Block","Jackpot Block","Alien Block","Admin Block",
+        "Common Block","Uncommon Block","Rare Block","Epic Block","Legendary Block","Mythical Block",
+        "Cosmic Block","Secret Block","Celestial Block","Divine Block","Infinity Block"
+    },
+    Value = tostring(savedSettings.autoOpenLuckyBlockTarget or "Radioactive Block"),
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        autoOpenLuckyBlockTarget = option
+        savedSettings.autoOpenLuckyBlockTarget = option
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Auto Open", Content = "Target set: " .. tostring(option), Icon = "check", Duration = 2 })
+    end,
+})
+
+AutoSection:Toggle({
+    Title = "Auto Open Lucky Block",
+    Desc = "Automatically equip & open matching Lucky Blocks from your Backpack",
+    Value = savedSettings.autoOpenLuckyBlock,
+    Callback = function(state)
+        autoOpenLuckyBlock = state
+        savedSettings.autoOpenLuckyBlock = state
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Auto Open", Content = (state and "Enabled" or "Disabled"), Icon = "info", Duration = 2 })
+    end
+})
+
+AutoSection:Slider({
+    Title = "Open delay (s)",
+    Desc = "Delay after equipping before attempting to open the block",
+    Step = 0.1,
+    Value = { Min = 0.1, Max = 2, Default = tonumber(savedSettings.autoOpenLuckyBlockDelay) or 0.6 },
+    Callback = function(value)
+        autoOpenLuckyBlockDelay = tonumber(value) or 0.6
+        savedSettings.autoOpenLuckyBlockDelay = autoOpenLuckyBlockDelay
+        saveSettings(savedSettings)
+    end
+})
+
+-- Console helpers for Auto Open Lucky Block
+_G.XuanHub_OpenLuckyBlockNow = function(name)
+    if type(name) ~= "string" then return false end
+    -- trigger one-shot open by temporarily enabling the loop and forcing a quick scan
+    local prev = autoOpenLuckyBlock
+    autoOpenLuckyBlock = true
+    autoOpenLuckyBlockTarget = name
+    task.spawn(function()
+        task.wait(0.1)
+        autoOpenLuckyBlock = prev
+    end)
+    return true
+end
+
+
+-- One-shot scanner + helpers for Lucky Blocks (matches Attributes.DisplayName or tool.Name)
+local function normalizeLuckyName(s)
+    if not s then return "" end
+    s = tostring(s)
+    s = s:gsub("%s*[Bb]lock%s*$", "")
+    s = s:gsub("%s+", " ")
+    s = s:match("^%s*(.-)%s*$") or s
+    return s:lower()
+end
+
+local function scanBackpackForLuckyBlock(target)
+    local out = {}
+    target = normalizeLuckyName(target or autoOpenLuckyBlockTarget or savedSettings.autoOpenLuckyBlockTarget or "")
+    if target == "" then return out end
+    local bp = player and player:FindFirstChild("Backpack")
+    if not bp then return out end
+
+    for _, tool in ipairs(bp:GetChildren()) do
+        if tool and tool:IsA("Tool") then
+            local ok, disp = pcall(function() return tool:GetAttribute("DisplayName") end)
+            local dispName = (ok and disp) or tool.Name
+            if normalizeLuckyName(dispName) == target then
+                table.insert(out, { tool = tool, display = tostring(dispName), name = tool.Name })
+            end
+        end
+    end
+
+    -- also check equipped tool
+    local char = player and player.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool and tool:IsA("Tool") then
+                local ok2, disp2 = pcall(function() return tool:GetAttribute("DisplayName") end)
+                local dispName2 = (ok2 and disp2) or tool.Name
+                if normalizeLuckyName(dispName2) == target then
+                    table.insert(out, { tool = tool, display = tostring(dispName2), name = tool.Name, equipped = true })
+                end
+            end
+        end
+    end
+
+    return out
+end
+
+-- UI: Scan Backpack now (reports matches in UI + console)
+AutoSection:Button({
+    Title = "Scan Lucky Block (Backpack)",
+    Desc = "Find tools in Backpack whose Attributes.DisplayName matches the dropdown",
+    Callback = function()
+        local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
+        if not matches or #matches == 0 then
+            WindUI:Notify({ Title = "Auto Open", Content = "No matching Lucky Blocks found", Icon = "info", Duration = 3 })
+            print("[XuanHub] ScanLuckyBlock: no matches for", tostring(autoOpenLuckyBlockTarget))
+            return
+        end
+        WindUI:Notify({ Title = "Auto Open", Content = tostring(#matches) .. " match(es) — check console", Icon = "check", Duration = 4 })
+        for i, m in ipairs(matches) do
+            print(string.format("[XuanHub] Match %d: tool.Name=%s, DisplayName=%s, equipped=%s", i, tostring(m.name), tostring(m.display), tostring(m.equipped)))
+        end
+    end,
+})
+
+-- Console helper: scan Backpack for matching lucky block tools
+_G.XuanHub_ScanLuckyBlockBackpack = function(name)
+    local ok, res = pcall(function() return scanBackpackForLuckyBlock(name or autoOpenLuckyBlockTarget) end)
+    if not ok then return nil, tostring(res) end
+    return res, (#res .. " match(es)")
+end
+
+-- Keep single Open helper (one-shot)
+_G.XuanHub_OpenLuckyBlockNow = function(name)
+    if type(name) ~= "string" then return false end
+    local prev = autoOpenLuckyBlock
+    autoOpenLuckyBlock = true
+    autoOpenLuckyBlockTarget = name
+    task.spawn(function()
+        task.wait(0.1)
+        autoOpenLuckyBlock = prev
+    end)
+    return true
+end
+
+-- Background loop: equip matching Backpack tools and simulate click to open them
+task.spawn(function()
+    local recentlyOpened = setmetatable({}, { __mode = "k" }) -- weak keys
+    while scriptRunning do
+        if autoOpenLuckyBlock then
+            -- robustly run the auto-open sequence and surface any internal error with traceback
+            local ok, err = xpcall(function()
+                if not player or not player.Parent then return end
+                local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
+                if not matches or #matches == 0 then return end
+
+                local char = player.Character
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                for _, m in ipairs(matches) do
+                    if not autoOpenLuckyBlock then break end
+                    local tool = m.tool
+                    if not tool or not tool:IsA("Tool") then goto continue_tool end
+
+                    local last = recentlyOpened[tool] or 0
+                    if tick() - last < 1.5 then goto continue_tool end
+
+                    -- attempt to equip (guarded)
+                    if humanoid and humanoid.IsA and humanoid.IsA(humanoid, "Humanoid") then
+                        local suc, why = pcall(function() humanoid:EquipTool(tool) end)
+                        if not suc then
+                            warn("[XuanHub] EquipTool failed:", tostring(why))
+                        end
+                    end
+
+                    -- wait up to 3s for equip (longer timeout for flaky loads)
+                    local startT = tick()
+                    while tick() - startT < 3 do
+                        if not autoOpenLuckyBlock then break end
+                        if tool.Parent == player.Character then break end
+                        task.wait(0.05)
+                    end
+
+                    if tool.Parent == player.Character then
+                        -- follow the same equip/hold pattern as Auto Sell: equip -> short wait -> try multiple open attempts
+                        task.wait(0.15) -- match Auto Sell's small wait so game registers the equip
+
+                        local opened = false
+                        for attempt = 1, 4 do
+                            if not autoOpenLuckyBlock then break end
+
+                            -- 1) try Tool:Activate()
+                            if tool and type(tool.Activate) == "function" then
+                                local okA, aerr = pcall(function() tool:Activate() end)
+                                if okA then
+                                    opened = true
+                                    print("[XuanHub] AutoOpen: Tool:Activate succeeded (attempt)", attempt, tool.Name)
+                                    break
+                                else
+                                    warn("[XuanHub] AutoOpen: Tool:Activate failed:", tostring(aerr))
+                                end
+                            end
+
+                            -- 2) try VirtualUser click
+                            local okV, verr = pcall(function()
+                                local cam = workspace and workspace.CurrentCamera
+                                local virtual = (typeof(vu) ~= "nil") and vu or game:GetService("VirtualUser")
+                                if virtual and type(virtual.Button1Down) == "function" then
+                                    virtual:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
+                                    task.wait(0.04)
+                                    virtual:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
+                                    return true
+                                end
+                                return false
+                            end)
+                            if okV and verr then
+                                opened = true
+                                print("[XuanHub] AutoOpen: VirtualUser click succeeded (attempt)", attempt, tool.Name)
+                                break
+                            elseif not okV then
+                                warn("[XuanHub] AutoOpen: VirtualUser attempt failed:", tostring(verr))
+                            end
+
+                            -- 3) try touch on Handle (fallback)
+                            local okT, terr = pcall(function()
+                                local h = tool:FindFirstChild("Handle")
+                                if h and h:IsA("BasePart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    firetouchinterest(player.Character.HumanoidRootPart, h, 0)
+                                    task.wait(0.05)
+                                    firetouchinterest(player.Character.HumanoidRootPart, h, 1)
+                                    return true
+                                end
+                                return false
+                            end)
+                            if okT and terr then
+                                opened = true
+                                print("[XuanHub] AutoOpen: touch fallback succeeded (attempt)", attempt, tool.Name)
+                                break
+                            elseif not okT then
+                                warn("[XuanHub] AutoOpen: touch fallback error:", tostring(terr))
+                            end
+
+                            task.wait(0.12)
+                        end
+
+                        -- keep the item equipped (track & hold like Auto Sell does)
+                        recentlyOpened[tool] = tick()
+
+                        if opened then
+                            WindUI:Notify({ Title = "Lucky Block", Content = "Opened: " .. tostring(m.display), Icon = "check", Duration = 2 })
+                            print("[XuanHub] AutoOpen: opened tool=", tool.Name, "display=", tostring(m.display))
+                        else
+                            WindUI:Notify({ Title = "Lucky Block", Content = "Attempted open (not confirmed): " .. tostring(m.display), Icon = "info", Duration = 3 })
+                            warn("[XuanHub] AutoOpen: attempts exhausted for tool=", tostring(tool and tool.Name))
+                        end
+
+                        task.wait(0.25)
+                    else
+                        warn("[XuanHub] equip timeout or equip failed for tool:", tostring(tool and tool.Name))
+                    end
+                    ::continue_tool::
+                end
+            end, function(e) return debug.traceback(e) end)
+
+            if not ok then
+                warn("[XuanHub] AutoOpenLuckyBlock runtime error:\n", err)
+                pcall(function()
+                    WindUI:Notify({ Title = "AutoOpen", Content = "Error — check console (see traceback)", Icon = "alert-triangle", Duration = 4 })
+                end)
+            end
+
+            task.wait(0.8)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Upgrade Carry
+local AutoUpgradeCarryToggle = AutoSection:Toggle({
+    Title = "Auto Upgrade Carry",
+    Desc = "Automatically upgrades carry capacity",
+    Value = savedSettings.autoUpgradeCarry,
+    Callback = function(state)
+        autoUpgradeCarry = state
+        savedSettings.autoUpgradeCarry = state
+        saveSettings(savedSettings)
+    end
+})
+
+-- Auto Upgrade Speed
+local AutoUpgradeSpeedToggle = AutoSection:Toggle({
+    Title = "Auto Upgrade Speed",
+    Desc = "Automatically upgrades movement speed",
+    Value = savedSettings.autoUpgradeSpeed,
+    Callback = function(state)
+        autoUpgradeSpeed = state
+        savedSettings.autoUpgradeSpeed = state
+        saveSettings(savedSettings)
+    end
+})
+
+local SpeedAmountDropdown = AutoSection:Dropdown({
+    Title = "Speed Amount",
+    Desc = "Select upgrade speed amount",
+    Values = { "1", "5", "10" },
+    Value = tostring(savedSettings.upgradeSpeedAmount),
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        upgradeSpeedAmount = tonumber(option)
+        savedSettings.upgradeSpeedAmount = upgradeSpeedAmount
+        saveSettings(savedSettings)
+        print("Speed amount set to: " .. tostring(option))
+    end
+})
+
+-- Auto Rebirth
+local AutoRebirthToggle = AutoSection:Toggle({
+    Title = "Auto Rebirth",
+    Desc = "Automatically rebirths when possible",
+    Value = savedSettings.autoRebirth,
+    Callback = function(state)
+        autoRebirth = state
+        savedSettings.autoRebirth = state
+        saveSettings(savedSettings)
+    end
+})
+
+AutoSection:Space()
+
+-- Auto Sell by Rarity Dropdown
+AutoSection:Dropdown({
+    Title = "Select Rarities to Sell",
+    Desc = "Choose which rarities to auto-sell",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
+    Value = savedSettings.sellRarities or {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        sellRarities = selected
+        savedSettings.sellRarities = selected
+        saveSettings(savedSettings)
+
+        if #selected > 0 then
+            local rarityList = table.concat(selected, ", ")
+            WindUI:Notify({
+                Title = "Auto Sell",
+                Content = "Will sell: " .. rarityList,
+                Icon = "check",
+                Duration = 3,
+            })
+        end
+    end
+})
+
+-- Auto Sell by Rarity Toggle
+AutoSection:Toggle({
+    Title = "Auto Sell by Rarity",
+    Desc = "Automatically sell selected rarities",
+    Value = savedSettings.autoSellByRarity,
+    Callback = function(state)
+        autoSellByRarity = state
+        savedSettings.autoSellByRarity = state
+        saveSettings(savedSettings)
+
+        if state then
+            if #sellRarities == 0 then
+                WindUI:Notify({
+                    Title = "Auto Sell",
+                    Content = "Please select rarities first!",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+                autoSellByRarity = false
+            else
+                WindUI:Notify({
+                    Title = "Auto Sell",
+                    Content = "Auto Sell enabled",
+                    Icon = "check",
+                    Duration = 3,
+                })
+            end
+        end
+    end
+})
+
+-- ================= MISC TAB =================
+local UISection = MiscTab:Section({
+    Title = "UI Settings",
+    Opened = true,
+})
+
+UISection:Toggle({
+    Title = "Profile Icon",
+    Desc = "Toggle profile visibility",
+    Value = true,
+    Callback = function(state)
+        local stateinfo = state
+        if stateinfo then
+            Window.User:Enable()
+        else
+            Window.User:Disable()
+        end
+    end
+})
+
+UISection:Toggle({
+    Title = "Set Profile Anonymous",
+    Desc = "Hide your profile information",
+    Value = false,
+    Callback = function(state)
+        local stateinfo = state
+        if stateinfo then
+            Window.User:SetAnonymous(true)
+        else
+            Window.User:SetAnonymous(false)
+        end
+    end
+})
+
+UISection:Toggle({
+    Title = "UI Transparency",
+    Desc = "Toggle window transparency",
+    Value = true,
+    Callback = function(state)
+        local stateinfo = state
+        if stateinfo then
+            Window:ToggleTransparency(true)
+        else
+            Window:ToggleTransparency(false)
+        end
+    end
+})
+
+UISection:Button({
+    Title = "Reset Config",
+    Desc = "Delete saved settings and reset to defaults",
+    Callback = function()
+        local filePath = "XuanHub/" .. settingsFileName
+        if isfile(filePath) then
+            delfile(filePath)
+            WindUI:Notify({
+                Title = "Config Reset",
+                Content = "Config reset! Rejoin to take effect",
+                Icon = "check",
+                Duration = 5
+            })
+        else
+            WindUI:Notify({
+                Title = "Config Reset",
+                Content = "No config file found",
+                Icon = "info",
+                Duration = 3
+            })
+        end
+    end
+})
+
+local MiscSettings = MiscTab:Section({
+    Title = "Game Settings",
+    Opened = true,
+})
+
+-- Anti-AFK (Always On)
+MiscSettings:Button({
+    Title = "Anti-AFK (Always On)",
+    Desc = "Prevents AFK kick - Always enabled",
+    Callback = function()
+        WindUI:Notify({ Title = "Info", Content = "Anti-AFK is always enabled", Icon = "info", Duration = 2 })
+    end
+})
+
+MiscSettings:Space()
+
+-- Auto Reconnect (Always On)
+MiscSettings:Button({
+    Title = "Auto Reconnect (Always On)",
+    Desc = "Auto rejoin on disconnect - Always enabled",
+    Callback = function()
+        WindUI:Notify({ Title = "Info", Content = "Auto Reconnect is always enabled", Icon = "info", Duration = 2 })
+    end
+})
+
+MiscTab:Space()
+MiscTab:Space()
+
+MiscTab:Section({
+    Title = "Server Actions",
+    Opened = true,
+})
+
+local ServerGroup = MiscTab:Group()
+
+ServerGroup:Button({
+    Title = "Server Hop",
+    Icon = "solar:refresh-bold",
+    Callback = function()
+        Window:ServerHop()
+    end
+
+
+})
+
+ServerGroup:Space()
+
+ServerGroup:Button({
+    Title = "Rejoin",
+    Icon = "solar:restart-bold",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+    end
+})
+
+-- ================= SETTINGS APPLY =================
+task.spawn(function()
+    task.wait(0.5) -- Wait for GUI to fully load
+
+    -- Apply Auto Collect Money
+    if savedSettings.autoCollectMoney then
+        collectingMoney = true
+    end
+
+    -- Apply Auto Collect Radioactive
+    if savedSettings.autoCollectRadioactive then
+        active = true
+    end
+
+    -- Apply Auto Spin
+    if savedSettings.autoSpin then
+        spinning = true
+    end
+
+    -- Apply Auto Upgrade Base
+    if savedSettings.autoUpgradeBase then
+        autoUpgradeBase = true
+    end
+
+    -- Apply Auto Upgrade Carry
+    if savedSettings.autoUpgradeCarry then
+        autoUpgradeCarry = true
+    end
+
+    -- Apply Auto Upgrade Speed
+    if savedSettings.autoUpgradeSpeed then
+        autoUpgradeSpeed = true
+    end
+
+    -- Apply Upgrade Speed Amount
+    if savedSettings.upgradeSpeedAmount then
+        upgradeSpeedAmount = savedSettings.upgradeSpeedAmount
+    end
+
+    -- Apply Auto Rebirth
+    if savedSettings.autoRebirth then
+        autoRebirth = true
+    end
+
+    -- Apply Auto Sell by Rarity
+    if savedSettings.autoSellByRarity then
+        autoSellByRarity = true
+        sellRarities = savedSettings.sellRarities or {}
+    end
+
+    -- Apply Auto Obby
+    if savedSettings.autoObby then
+        autoObby = true
+
+        -- quick-start: try to interact with any existing obby using the resilient finder
+        task.spawn(function()
+            local root = findRadioactiveRoot()
+            if root then
+                local obbyEnd = root:FindFirstChild("ObbyEnd")
+                if obbyEnd and humanoidRootPart then
+                    pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(humanoidRootPart, obbyEnd, 1) end)
+                end
+            end
+        end)
+    end
+
+    -- Apply Auto Collect UFO
+    if savedSettings.autoCollectUFO then
+        autoCollectUFO = true
+    end
+
+    -- Apply Auto Collect Gold Bar (Money Event)
+    if savedSettings.autoCollectGoldBar then
+        autoCollectGoldBar = true
+    end
+
+    -- Apply Auto Complete Money Obby
+    if savedSettings.autoCompleteMoneyObby then
+        autoCompleteMoneyObby = true
+    end
+
+    -- Apply Auto Open Lucky Block
+    if savedSettings.autoOpenLuckyBlock then
+        autoOpenLuckyBlock = true
+        autoOpenLuckyBlockTarget = tostring(savedSettings.autoOpenLuckyBlockTarget or autoOpenLuckyBlockTarget)
+        autoOpenLuckyBlockDelay = tonumber(savedSettings.autoOpenLuckyBlockDelay) or autoOpenLuckyBlockDelay
+    end
+
+    -- Apply Auto Rejoin after Money Obby
+    if savedSettings.autoRejoinAfterMoneyObby then
+        autoRejoinAfterMoneyObby = true
+    end
+
+    -- Apply Auto Sell by Rarity
+    if savedSettings.autoSellByRarity then
+        autoSellByRarity = true
+        sellRarities = savedSettings.sellRarities or {}
+    end
+
+    -- Apply Auto Spin Money Wheel
+    if savedSettings.autoSpinMoneyWheel then
+        autoSpinMoneyWheel = true
+    end
+
+    -- Apply Auto Spin UFO Wheel
+    if savedSettings.autoSpinUFO then
+        autoSpinUFO = true
+    end
+
+    -- Apply God Mode
+    if savedSettings.godMode then
+        enableGodMode()
+    end
+
+    -- Apply Unlock Zoom
+    if savedSettings.unlockZoom then
+        enableUnlockZoom()
+    end
+
+    -- Apply Tsunami Tracker
+    if savedSettings.autoTsunamiTracker then
+        enableTsunamiTracker()
+    end
+
+    -- Apply Teleport-by-Rarity (Tsunami)
+    if savedSettings.autoTeleportByRarity then
+        autoTeleportByRarity = true
+        autoTeleportByRarityTarget = tostring(savedSettings.autoTeleportByRarityTarget or "Common")
+        -- start loop asynchronously (UI toggle removed — console/config controlled)
+        task.spawn(function()
+            -- reuse same logic as the runtime loop (non-blocking)
+            if autoTeleportByRarity then
+                _G.XuanHub_TeleportToRarity = _G.XuanHub_TeleportToRarity or function(r) end -- ensure exists
+                _G.XuanHub_ToggleTeleportByRarity = _G.XuanHub_ToggleTeleportByRarity or function() end
+            end
+        end)
+    end
+
+    -- Apply Wider Hitbox
+    if savedSettings.hitboxEnabled then
+        widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
+        startWiderHitbox()
+    end
+
+    -- Apply UI Settings
+    task.wait(0.2)
+    if savedSettings.profileIcon then
+        Window.Icon:Enable()
+    else
+        Window.Icon:Disable()
+    end
+
+    if savedSettings.uiTransparency then
+        Window:ToggleTransparency()
+    end
+end)
+
+-- ================= FINALIZE =================
+WindUI:Notify({
+    Title = "Xuan Hub Loaded",
+    Content = "Welcome " .. player.DisplayName .. "!",
+    Icon = "check",
+    Duration = 5,
+})
+
+print("--===== XUAN HUB READY =====--")
