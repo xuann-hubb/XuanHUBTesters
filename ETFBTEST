@@ -2318,7 +2318,7 @@ AutoSection:Space()
 AutoSection:Dropdown({
     Title = "Select Rarities to Sell",
     Desc = "Choose which rarities to auto-sell",
-    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret" },
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
     Value = savedSettings.sellRarities or {},
     Multi = true,
     AllowNone = true,
