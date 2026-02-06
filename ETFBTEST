@@ -1356,11 +1356,6 @@ local function findGapsFolder()
         (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
-    for _, f in ipairs(legacyCandidates) do
-        if f and #f:GetChildren() > 0 then return f end
-    end
-
-    return nil
 end
 
 -- TP Next Gap button removed by user request. Use `XuanHub_TPNextGap()` from console or rebind later.
@@ -1662,11 +1657,7 @@ local RARITY_TO_GAP = { Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythi
 
 -- Read-only UI element (shows configured target rarity)
 -- NOTE: WindUI's Section may not expose a Tag method at runtime; place the tag in the Window header instead.
-local TeleportByRarityLabel = Window:Tag({
-    Title = "Teleport target",
-    Icon = "map-pin",
-    Color = Color3.fromRGB(120, 120, 255),
-})
+
 TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
 
 -- Dropdown to choose target rarity (persisted)
