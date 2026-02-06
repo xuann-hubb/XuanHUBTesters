@@ -1436,21 +1436,67 @@ _G.PostWaveBuffer = 0.05
 
 
 
+-- Generic collector: returns array of { idx = number, name = string, part = BasePart, inst = Instance }
+local function collectGapEntries(folder)
+    if not folder then return {} end
+    local entries = {}
+    for _, child in ipairs(folder:GetChildren()) do
+        if not child then continue end
+        -- attempt to find a usable BasePart for positioning
+        local part = (child:IsA("BasePart") and child) or (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+        if not part then
+            for _, d in ipairs(child:GetDescendants()) do
+                if d:IsA("BasePart") then part = d; break end
+            end
+        end
+        if part then
+            local num = tonumber(child.Name:match("%d+"))
+            table.insert(entries, { idxRaw = num, name = child.Name, part = part, inst = child })
+        end
+    end
+
+    if #entries == 0 then return entries end
+
+    -- If any entries have numeric indices, sort by that; otherwise sort by X (left→right)
+    local hasNumbers = false
+    for _, e in ipairs(entries) do if e.idxRaw then hasNumbers = true; break end end
+    if hasNumbers then
+        table.sort(entries, function(a, b)
+            return (a.idxRaw or 9999) < (b.idxRaw or 9999)
+        end)
+        for i, e in ipairs(entries) do e.idx = e.idxRaw or i end
+    else
+        table.sort(entries, function(a, b)
+            return a.part.Position.X < b.part.Position.X
+        end)
+        for i, e in ipairs(entries) do e.idx = i end
+    end
+
+    return entries
+end
+
 local function GetNearestGapIndex()
     local gaps = findGapsFolder()
     local hrp = game.Players.LocalPlayer.Character and
         game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not gaps or not hrp then return 1 end
-    local nearestIndex, minDistance = 1, math.huge
-    for i = 1, 9 do
-        local gap = gaps:FindFirstChild("Gap" .. i)
-        if gap then
-            local ok, gp = pcall(function() return gap:GetModelCFrame() end)
-            if ok and gp then
-                local dist = (hrp.Position - gp.Position).Magnitude
-                if dist < minDistance then
-                    minDistance, nearestIndex = dist, i
-                end
+
+    local entries = collectGapEntries(gaps)
+    if #entries == 0 then return 1 end
+
+    local nearestIndex, minDistance = entries[1].idx, math.huge
+    for _, e in ipairs(entries) do
+        local ok, pos = pcall(function()
+            if e.inst and e.inst.GetModelCFrame then
+                return e.inst:GetModelCFrame().Position
+            elseif e.part then
+                return e.part.Position
+            end
+        end)
+        if ok and pos then
+            local dist = (hrp.Position - pos).Magnitude
+            if dist < minDistance then
+                minDistance, nearestIndex = dist, e.idx
             end
         end
     end
@@ -1502,7 +1548,6 @@ TsunamiSection:Button({
     Desc = "Press to start teleport through gaps to the last gap",
     Locked = false,
     Callback = function()
-        -- toggle behaviour on button press
         if _G.AutoTourActive then
             _G.AutoTourActive = false
             WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap stopped", Icon = "check", Duration = 2 })
@@ -1513,27 +1558,45 @@ TsunamiSection:Button({
         _G.ReverseTourActive = false
         WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
-            local gaps = findGapsFolder()
-            if not gaps then
-                _G.AutoTourActive = false; return
-            end
+            local gapsFolder = findGapsFolder()
+            if not gapsFolder then _G.AutoTourActive = false; return end
+
+            local entries = collectGapEntries(gapsFolder)
+            if #entries == 0 then _G.AutoTourActive = false; return end
+
+            -- determine range and current index
+            local maxIdx = entries[#entries].idx
             while _G.AutoTourActive do
                 local currentPosIndex = GetNearestGapIndex()
-                for i = 1, 9 do
+
+                -- iterate only over entries with idx > currentPosIndex up to maxIdx
+                for _, e in ipairs(entries) do
                     if not _G.AutoTourActive then break end
-                    if i > currentPosIndex or (i == 1 and currentPosIndex == 9) then
-                        local target = gaps:FindFirstChild("Gap" .. i)
-                        if target then
-                            local ok, mcf = pcall(function() return target:GetModelCFrame() end)
-                            if ok and mcf then
-                                local targetPos = (mcf * CFrame.new(0, -2, 0)).Position
-                                while not IsPathClear(targetPos) and _G.AutoTourActive do task.wait(0.1) end
-                                SmartMove(targetPos, "Gap" .. i)
-                                task.wait(1.5)
+                    if e.idx > currentPosIndex and e.idx <= maxIdx then
+                        local ok, pos = pcall(function()
+                            if e.inst and e.inst.GetModelCFrame then
+                                return e.inst:GetModelCFrame().Position
+                            elseif e.part then
+                                return e.part.Position
                             end
+                        end)
+                        if ok and pos then
+                            local targetPos = (pos + Vector3.new(0, -2, 0))
+                            while not IsPathClear(targetPos) and _G.AutoTourActive do task.wait(0.1) end
+                            SmartMove(targetPos, e.name)
+                            task.wait(1.5)
                         end
                     end
                 end
+
+                -- stop if we've reached the last gap
+                local nearest = GetNearestGapIndex()
+                if nearest >= maxIdx then
+                    _G.AutoTourActive = false
+                    WindUI:Notify({ Title = "Teleport", Content = "Reached last gap — stopped", Icon = "check", Duration = 3 })
+                    break
+                end
+
                 task.wait(2)
             end
         end)
@@ -1556,27 +1619,45 @@ TsunamiSection:Button({
         _G.AutoTourActive = false
         WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
-            local gaps = findGapsFolder()
-            if not gaps then
-                _G.ReverseTourActive = false; return
-            end
+            local gapsFolder = findGapsFolder()
+            if not gapsFolder then _G.ReverseTourActive = false; return end
+
+            local entries = collectGapEntries(gapsFolder)
+            if #entries == 0 then _G.ReverseTourActive = false; return end
+
+            local minIdx = entries[1].idx
             while _G.ReverseTourActive do
                 local currentPosIndex = GetNearestGapIndex()
-                if currentPosIndex > 1 then
-                    for i = currentPosIndex - 1, 1, -1 do
-                        if not _G.ReverseTourActive then break end
-                        local target = gaps:FindFirstChild("Gap" .. i)
-                        if target then
-                            local ok, mcf = pcall(function() return target:GetModelCFrame() end)
-                            if ok and mcf then
-                                local targetPos = (mcf * CFrame.new(0, -2, 0)).Position
-                                while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
-                                SmartMove(targetPos, "Gap" .. i)
-                                task.wait(1.5)
+
+                -- iterate entries with idx < currentPosIndex in descending order
+                for i = #entries, 1, -1 do
+                    if not _G.ReverseTourActive then break end
+                    local e = entries[i]
+                    if e.idx < currentPosIndex then
+                        local ok, pos = pcall(function()
+                            if e.inst and e.inst.GetModelCFrame then
+                                return e.inst:GetModelCFrame().Position
+                            elseif e.part then
+                                return e.part.Position
                             end
+                        end)
+                        if ok and pos then
+                            local targetPos = (pos + Vector3.new(0, -2, 0))
+                            while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
+                            SmartMove(targetPos, e.name)
+                            task.wait(1.5)
                         end
                     end
                 end
+
+                -- stop if we've reached the first gap
+                local nearest = GetNearestGapIndex()
+                if nearest <= minIdx then
+                    _G.ReverseTourActive = false
+                    WindUI:Notify({ Title = "Teleport", Content = "Reached first gap — stopped", Icon = "check", Duration = 3 })
+                    break
+                end
+
                 task.wait(2)
             end
         end)
