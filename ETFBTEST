@@ -1232,34 +1232,6 @@ local function createTsunamiGui()
 
     tsunamiHeartbeatConn = RunService.Heartbeat:Connect(function()
         local dist = getTsunamiDistance()
-
-        -- check nearest gap safety (uses same logic as smart-teleport)
-        local gapFolder = findGapsFolder()
-        local gapIdx, gapPos, gapSafe
-        if gapFolder then
-            local ok, idx = pcall(function() return GetNearestGapIndex() end)
-            gapIdx = (ok and idx) and idx or nil
-            if gapIdx then
-                local gap = gapFolder:FindFirstChild("Gap" .. gapIdx)
-                if gap then
-                    local ok2, mcf = pcall(function() return gap:GetModelCFrame() end)
-                    gapPos = (ok2 and mcf) and (mcf * CFrame.new(0, -2, 0)).Position or nil
-                    if gapPos then
-                        gapSafe = pcall(function() return IsPathClear(gapPos) end) and IsPathClear(gapPos)
-                    end
-                end
-            end
-        end
-
-        -- If nearest gap exists and is blocked, show that prominently
-        if gapPos and gapSafe == false then
-            tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-            tsunamiText.TextColor3 = Color3.new(0, 0, 0)
-            tsunamiText.Text = "⚠️ Nearest gap blocked — Tsunami: " .. (dist == math.huge and ">1500m" or (math.floor(dist) .. "m"))
-            return
-        end
-
-        -- fallback to distance-only display (preserve existing colors)
         if dist < 1500 then
             if dist <= 500 then
                 tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
@@ -1545,25 +1517,9 @@ TsunamiSection:Button({
             end
             while _G.AutoTourActive do
                 local currentPosIndex = GetNearestGapIndex()
-
-                -- determine actual max gap index present
-                local maxGap = 0
-                for _, c in ipairs(gaps:GetChildren()) do
-                    local n = tonumber(c.Name:match("^Gap(%d+)$"))
-                    if n and n > maxGap then maxGap = n end
-                end
-                if maxGap <= 0 then _G.AutoTourActive = false; break end
-
-                -- if we're already at/after the last gap, stop
-                if currentPosIndex >= maxGap then
-                    _G.AutoTourActive = false
-                    WindUI:Notify({ Title = "Teleport", Content = "Reached last gap — stopped", Icon = "check", Duration = 2 })
-                    break
-                end
-
-                for i = 1, maxGap do
+                for i = 1, 9 do
                     if not _G.AutoTourActive then break end
-                    if i > currentPosIndex or (i == 1 and currentPosIndex == maxGap) then
+                    if i > currentPosIndex or (i == 1 and currentPosIndex == 9) then
                         local target = gaps:FindFirstChild("Gap" .. i)
                         if target then
                             local ok, mcf = pcall(function() return target:GetModelCFrame() end)
@@ -1572,13 +1528,6 @@ TsunamiSection:Button({
                                 while not IsPathClear(targetPos) and _G.AutoTourActive do task.wait(0.1) end
                                 SmartMove(targetPos, "Gap" .. i)
                                 task.wait(1.5)
-
-                                -- stop if this was the final gap
-                                if i == maxGap then
-                                    _G.AutoTourActive = false
-                                    WindUI:Notify({ Title = "Teleport", Content = "Reached last gap — stopped", Icon = "check", Duration = 2 })
-                                    break
-                                end
                             end
                         end
                     end
@@ -1611,24 +1560,8 @@ TsunamiSection:Button({
             end
             while _G.ReverseTourActive do
                 local currentPosIndex = GetNearestGapIndex()
-
-                -- determine actual min gap index present
-                local minGap = math.huge
-                for _, c in ipairs(gaps:GetChildren()) do
-                    local n = tonumber(c.Name:match("^Gap(%d+)$"))
-                    if n and n < minGap then minGap = n end
-                end
-                if minGap == math.huge then _G.ReverseTourActive = false; break end
-
-                -- if we're already at/at the first gap, stop
-                if currentPosIndex <= minGap then
-                    _G.ReverseTourActive = false
-                    WindUI:Notify({ Title = "Teleport", Content = "Reached first gap — stopped", Icon = "check", Duration = 2 })
-                    break
-                end
-
-                if currentPosIndex > minGap then
-                    for i = currentPosIndex - 1, minGap, -1 do
+                if currentPosIndex > 1 then
+                    for i = currentPosIndex - 1, 1, -1 do
                         if not _G.ReverseTourActive then break end
                         local target = gaps:FindFirstChild("Gap" .. i)
                         if target then
@@ -1638,13 +1571,6 @@ TsunamiSection:Button({
                                 while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
                                 SmartMove(targetPos, "Gap" .. i)
                                 task.wait(1.5)
-
-                                -- stop if this was the first gap
-                                if i == minGap then
-                                    _G.ReverseTourActive = false
-                                    WindUI:Notify({ Title = "Teleport", Content = "Reached first gap — stopped", Icon = "check", Duration = 2 })
-                                    break
-                                end
                             end
                         end
                     end
