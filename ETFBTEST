@@ -1309,23 +1309,48 @@ TsunamiSection:Toggle({
 })
 
 local function findGapsFolder()
-    -- return the first existing 'Gaps' folder from known map locations
-    -- expanded to include Mars, Money and Radioactive map variants
-    local candidates = {
-        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
+    -- Return the most appropriate 'Gaps' folder.
+    -- Preference rules (new):
+    -- 1) If any EVENT shared-instance (Mars/Money/Radioactive) is *active* (has a non-empty Gaps) -> use it
+    -- 2) Otherwise use DefaultMap_SharedInstances (if available and has Gaps)
+    -- 3) Fallback to legacy locations (non-shared names and Misc folders)
+
+    local function hasActiveGaps(inst)
+        if not inst then return false end
+        local g = inst:FindFirstChild("Gaps")
+        if not g then return false end
+        -- consider "active" only when the Gaps folder actually contains gap entries
+        return #g:GetChildren() > 0
+    end
+
+    -- 1) Prefer event shared-instances when they are active
+    local eventShared = { "MarsMap_SharedInstances", "MoneyMap_SharedInstances", "RadioactiveMap_SharedInstances" }
+    for _, name in ipairs(eventShared) do
+        local inst = workspace:FindFirstChild(name)
+        if hasActiveGaps(inst) then
+            return inst:FindFirstChild("Gaps")
+        end
+    end
+
+    -- 2) If no event is active, use DefaultMap_SharedInstances when present
+    local defaultShared = workspace:FindFirstChild("DefaultMap_SharedInstances")
+    if hasActiveGaps(defaultShared) then
+        return defaultShared:FindFirstChild("Gaps")
+    end
+
+    -- 3) Legacy / broader fallbacks (preserve original compatibility)
+    local legacyCandidates = {
         (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
-    for _, f in ipairs(candidates) do
-        if f then return f end
+    for _, f in ipairs(legacyCandidates) do
+        if f and #f:GetChildren() > 0 then return f end
     end
+
     return nil
 end
 
