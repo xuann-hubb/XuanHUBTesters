@@ -1329,10 +1329,10 @@ local function findGapsFolder()
     return nil
 end
 
--- Teleport to next gap (in front of player)
+-- Teleport to next gap (in front of player) — single-step SmartMove (uses same ordering/safety as Smart Teleport)
 TsunamiSection:Button({
     Title = "TP Next Gap",
-    Desc = "Teleport to the next gap ahead of you",
+    Desc = "Teleport to the next gap ahead of you (one step)",
     Locked = false,
     Callback = function()
         local gapsFolder = findGapsFolder()
@@ -1341,42 +1341,59 @@ TsunamiSection:Button({
             return
         end
 
-        local gaps = gapsFolder:GetChildren()
-        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not root then
+        local entries = collectGapEntries(gapsFolder)
+        if #entries == 0 then
+            WindUI:Notify({ Title = "Tsunami", Content = "No usable gaps found", Icon = "alert-triangle", Duration = 3 })
+            return
+        end
+
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
             WindUI:Notify({ Title = "Tsunami", Content = "Character not ready", Icon = "alert-triangle", Duration = 3 })
             return
         end
 
-        local look = root.CFrame.LookVector
-        local pos = root.Position
-        local best, bestScore = nil, math.huge
-
-        for _, g in ipairs(gaps) do
-            local part = (g:IsA("BasePart") and g) or
-                (g:IsA("Model") and (g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")))
-            if part then
-                local rel = part.Position - pos
-                local proj = rel:Dot(look)
-                if proj > 0 and proj < bestScore then
-                    bestScore = proj
-                    best = part
-                end
+        -- find nearest entry in the sorted entries array
+        local nearestI, nearestD = 1, math.huge
+        for i, e in ipairs(entries) do
+            if e and e.part and e.part.Position then
+                local d = (hrp.Position - e.part.Position).Magnitude
+                if d < nearestD then nearestD, nearestI = d, i end
             end
         end
 
-        if best then
-            root.CFrame = CFrame.new(best.Position + Vector3.new(0, 5, 0))
-        else
-            WindUI:Notify({ Title = "Tsunami", Content = "No gap ahead", Icon = "alert-triangle", Duration = 3 })
+        local nextEntry = entries[nearestI + 1]
+        if not nextEntry then
+            WindUI:Notify({ Title = "Tsunami", Content = "Already at last gap", Icon = "info", Duration = 3 })
+            return
         end
+
+        local ok, pos = pcall(function()
+            if nextEntry.inst and nextEntry.inst.GetModelCFrame then
+                return nextEntry.inst:GetModelCFrame().Position
+            else
+                return nextEntry.part and nextEntry.part.Position
+            end
+        end)
+        if not ok or not pos then
+            WindUI:Notify({ Title = "Tsunami", Content = "Target gap position unavailable", Icon = "alert-triangle", Duration = 3 })
+            return
+        end
+
+        local targetPos = (pos + Vector3.new(0, -2, 0))
+        while not IsPathClear(targetPos) do
+            task.wait(0.1)
+        end
+
+        SmartMove(targetPos, nextEntry.name)
+        WindUI:Notify({ Title = "Tsunami", Content = "Teleported to next gap: " .. tostring(nextEntry.name), Icon = "check", Duration = 2 })
     end
 })
 
--- Teleport to previous gap (behind player)
+-- Teleport to previous gap (behind player) — single-step SmartMove (uses same ordering/safety as Smart Teleport)
 TsunamiSection:Button({
     Title = "TP Previous Gap",
-    Desc = "Teleport to the previous gap behind you",
+    Desc = "Teleport to the previous gap behind you (one step)",
     Locked = false,
     Callback = function()
         local gapsFolder = findGapsFolder()
@@ -1385,35 +1402,52 @@ TsunamiSection:Button({
             return
         end
 
-        local gaps = gapsFolder:GetChildren()
-        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-        if not root then
+        local entries = collectGapEntries(gapsFolder)
+        if #entries == 0 then
+            WindUI:Notify({ Title = "Tsunami", Content = "No usable gaps found", Icon = "alert-triangle", Duration = 3 })
+            return
+        end
+
+        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
             WindUI:Notify({ Title = "Tsunami", Content = "Character not ready", Icon = "alert-triangle", Duration = 3 })
             return
         end
 
-        local look = root.CFrame.LookVector
-        local pos = root.Position
-        local best, bestScore = nil, -math.huge
-
-        for _, g in ipairs(gaps) do
-            local part = (g:IsA("BasePart") and g) or
-                (g:IsA("Model") and (g.PrimaryPart or g:FindFirstChildWhichIsA("BasePart")))
-            if part then
-                local rel = part.Position - pos
-                local proj = rel:Dot(look)
-                if proj < 0 and proj > bestScore then
-                    bestScore = proj
-                    best = part
-                end
+        -- find nearest entry in the sorted entries array
+        local nearestI, nearestD = 1, math.huge
+        for i, e in ipairs(entries) do
+            if e and e.part and e.part.Position then
+                local d = (hrp.Position - e.part.Position).Magnitude
+                if d < nearestD then nearestD, nearestI = d, i end
             end
         end
 
-        if best then
-            root.CFrame = CFrame.new(best.Position + Vector3.new(0, 5, 0))
-        else
-            WindUI:Notify({ Title = "Tsunami", Content = "No gap behind", Icon = "alert-triangle", Duration = 3 })
+        local prevEntry = entries[nearestI - 1]
+        if not prevEntry then
+            WindUI:Notify({ Title = "Tsunami", Content = "Already at first gap", Icon = "info", Duration = 3 })
+            return
         end
+
+        local ok, pos = pcall(function()
+            if prevEntry.inst and prevEntry.inst.GetModelCFrame then
+                return prevEntry.inst:GetModelCFrame().Position
+            else
+                return prevEntry.part and prevEntry.part.Position
+            end
+        end)
+        if not ok or not pos then
+            WindUI:Notify({ Title = "Tsunami", Content = "Target gap position unavailable", Icon = "alert-triangle", Duration = 3 })
+            return
+        end
+
+        local targetPos = (pos + Vector3.new(0, -2, 0))
+        while not IsPathClear(targetPos) do
+            task.wait(0.1)
+        end
+
+        SmartMove(targetPos, prevEntry.name)
+        WindUI:Notify({ Title = "Tsunami", Content = "Teleported to previous gap: " .. tostring(prevEntry.name), Icon = "check", Duration = 2 })
     end
 })
 
