@@ -1314,8 +1314,7 @@ TsunamiSection:Button({
     Desc = "Teleport to the next gap ahead of you",
     Locked = false,
     Callback = function()
-        local misc = workspace:FindFirstChild("Misc")
-        local gapsFolder = misc and misc:FindFirstChild("Gaps")
+        local gapsFolder = findGapsFolder()
         if not gapsFolder then
             WindUI:Notify({ Title = "Tsunami", Content = "Gaps not found", Icon = "alert-triangle", Duration = 3 })
             return
@@ -1359,8 +1358,7 @@ TsunamiSection:Button({
     Desc = "Teleport to the previous gap behind you",
     Locked = false,
     Callback = function()
-        local misc = workspace:FindFirstChild("Misc")
-        local gapsFolder = misc and misc:FindFirstChild("Gaps")
+        local gapsFolder = findGapsFolder()
         if not gapsFolder then
             WindUI:Notify({ Title = "Tsunami", Content = "Gaps not found", Icon = "alert-triangle", Duration = 3 })
             return
@@ -1415,8 +1413,29 @@ _G.AutoTourActive = false
 _G.ReverseTourActive = false
 _G.PostWaveBuffer = 0.05
 
+local function findGapsFolder()
+    -- return the first existing 'Gaps' folder from known map locations
+    -- expanded to include Mars, Money and Radioactive map variants
+    local candidates = {
+        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
+    }
+    for _, f in ipairs(candidates) do
+        if f then return f end
+    end
+    return nil
+end
+
 local function GetNearestGapIndex()
-    local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
+    local gaps = findGapsFolder()
     local hrp = game.Players.LocalPlayer.Character and
         game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
     if not gaps or not hrp then return 1 end
@@ -1492,7 +1511,7 @@ TsunamiSection:Button({
         _G.ReverseTourActive = false
         WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
-            local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
+            local gaps = findGapsFolder()
             if not gaps then
                 _G.AutoTourActive = false; return
             end
@@ -1535,7 +1554,7 @@ TsunamiSection:Button({
         _G.AutoTourActive = false
         WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
-            local gaps = workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")
+            local gaps = findGapsFolder()
             if not gaps then
                 _G.ReverseTourActive = false; return
             end
@@ -1678,6 +1697,45 @@ VIPWallsSection:Button({
             end
 
             WindUI:Notify({ Title = "VIP Walls", Content = "Radioactive VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
+-- Unlock Money Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Money Map VIP Walls",
+    Desc = "Disable Shield of Money Map VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local mmap = workspace:FindFirstChild("MoneyMap_SharedInstances")
+            if not mmap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = mmap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Money Map VIP Walls unlocked", Icon = "check", Duration = 3 })
         end)
         if not ok then
             WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
