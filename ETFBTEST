@@ -1353,19 +1353,48 @@ TsunamiSection:Button({
             return
         end
 
-        -- find nearest entry in the sorted entries array
-        local nearestI, nearestD = 1, math.huge
-        for i, e in ipairs(entries) do
-            if e and e.part and e.part.Position then
-                local d = (hrp.Position - e.part.Position).Magnitude
-                if d < nearestD then nearestD, nearestI = d, i end
+        -- Prefer numeric-index progression (Gap1 -> Gap2 -> ...). Fall back to position-based if indices absent.
+        local nextEntry = nil
+        local hasNumeric = false
+        for _, e in ipairs(entries) do if e.idxRaw then hasNumeric = true; break end end
+
+        if hasNumeric then
+            local curIdx = GetNearestGapIndex()
+            -- exact next index
+            for _, e in ipairs(entries) do
+                if e.idx and e.idx == curIdx + 1 then nextEntry = e; break end
+            end
+            -- if exact missing, pick smallest idx > curIdx
+            if not nextEntry then
+                for _, e in ipairs(entries) do
+                    if e.idx and e.idx > curIdx then nextEntry = e; break end
+                end
+            end
+        else
+            -- position-based fallback (existing behavior)
+            local playerX = hrp.Position.X
+            for _, e in ipairs(entries) do
+                if e and e.part and e.part.Position and e.part.Position.X > playerX then
+                    nextEntry = e
+                    break
+                end
+            end
+            if not nextEntry then
+                local nearestI, nearestD = 1, math.huge
+                for i, e in ipairs(entries) do
+                    if e and e.part and e.part.Position then
+                        local d = (hrp.Position - e.part.Position).Magnitude
+                        if d < nearestD then nearestD, nearestI = d, i end
+                    end
+                end
+                nextEntry = entries[nearestI + 1]
             end
         end
 
-        local nextEntry = entries[nearestI + 1]
         if not nextEntry then
             WindUI:Notify({ Title = "Tsunami", Content = "Already at last gap", Icon = "info", Duration = 3 })
-            return
+            print("[XuanHub] TP Next: no next entry found")
+            return false
         end
 
         local ok, pos = pcall(function()
@@ -1414,19 +1443,50 @@ TsunamiSection:Button({
             return
         end
 
-        -- find nearest entry in the sorted entries array
-        local nearestI, nearestD = 1, math.huge
-        for i, e in ipairs(entries) do
-            if e and e.part and e.part.Position then
-                local d = (hrp.Position - e.part.Position).Magnitude
-                if d < nearestD then nearestD, nearestI = d, i end
+        -- Prefer numeric-index progression backwards (GapN -> GapN-1). Fall back to position-based if indices absent.
+        local prevEntry = nil
+        local hasNumeric = false
+        for _, e in ipairs(entries) do if e.idxRaw then hasNumeric = true; break end end
+
+        if hasNumeric then
+            local curIdx = GetNearestGapIndex()
+            -- exact previous index
+            for _, e in ipairs(entries) do
+                if e.idx and e.idx == curIdx - 1 then prevEntry = e; break end
+            end
+            -- if exact missing, pick largest idx < curIdx
+            if not prevEntry then
+                for i = #entries, 1, -1 do
+                    local e = entries[i]
+                    if e.idx and e.idx < curIdx then prevEntry = e; break end
+                end
+            end
+        else
+            -- position-based fallback (existing behavior)
+            local playerX = hrp.Position.X
+            for i = #entries, 1, -1 do
+                local e = entries[i]
+                if e and e.part and e.part.Position and e.part.Position.X < playerX then
+                    prevEntry = e
+                    break
+                end
+            end
+            if not prevEntry then
+                local nearestI, nearestD = 1, math.huge
+                for i, e in ipairs(entries) do
+                    if e and e.part and e.part.Position then
+                        local d = (hrp.Position - e.part.Position).Magnitude
+                        if d < nearestD then nearestD, nearestI = d, i end
+                    end
+                end
+                prevEntry = entries[nearestI - 1]
             end
         end
 
-        local prevEntry = entries[nearestI - 1]
         if not prevEntry then
             WindUI:Notify({ Title = "Tsunami", Content = "Already at first gap", Icon = "info", Duration = 3 })
-            return
+            print("[XuanHub] TP Prev: no previous entry found")
+            return false
         end
 
         local ok, pos = pcall(function()
@@ -1617,7 +1677,27 @@ TsunamiSection:Button({
                         end)
                         if ok and pos then
                             local targetPos = (pos + Vector3.new(0, -2, 0))
-                            while not IsPathClear(targetPos) and _G.AutoTourActive do task.wait(0.1) end
+
+                            -- notify once while waiting for the gap to become safe
+                            local blockedNotified = false
+                            while not IsPathClear(targetPos) and _G.AutoTourActive do
+                                if not blockedNotified then
+                                    pcall(function()
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " .. tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                    end)
+                                    print("[XuanHub] SmartTeleport: waiting for gap to clear:", e.name)
+                                    blockedNotified = true
+                                end
+                                task.wait(0.1)
+                            end
+
+                            if blockedNotified and _G.AutoTourActive then
+                                pcall(function()
+                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " .. tostring(e.name), Icon = "check", Duration = 2 })
+                                end)
+                                print("[XuanHub] SmartTeleport: gap cleared:", e.name)
+                            end
+
                             SmartMove(targetPos, e.name)
                             task.wait(1.5)
                         end
@@ -1678,7 +1758,27 @@ TsunamiSection:Button({
                         end)
                         if ok and pos then
                             local targetPos = (pos + Vector3.new(0, -2, 0))
-                            while not IsPathClear(targetPos) and _G.ReverseTourActive do task.wait(0.1) end
+
+                            -- notify once while waiting for the gap to become safe
+                            local blockedNotified = false
+                            while not IsPathClear(targetPos) and _G.ReverseTourActive do
+                                if not blockedNotified then
+                                    pcall(function()
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " .. tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                    end)
+                                    print("[XuanHub] SmartTeleport (reverse): waiting for gap to clear:", e.name)
+                                    blockedNotified = true
+                                end
+                                task.wait(0.1)
+                            end
+
+                            if blockedNotified and _G.ReverseTourActive then
+                                pcall(function()
+                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " .. tostring(e.name), Icon = "check", Duration = 2 })
+                                end)
+                                print("[XuanHub] SmartTeleport (reverse): gap cleared:", e.name)
+                            end
+
                             SmartMove(targetPos, e.name)
                             task.wait(1.5)
                         end
