@@ -1338,10 +1338,15 @@ local function findGapsFolder()
     -- return the first existing 'Gaps' folder from known map locations
     -- expanded to include Mars, Money and Radioactive map variants
     local candidates = {
+        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
     for _, f in ipairs(candidates) do
@@ -1381,13 +1386,10 @@ local function collectGapEntries(folder)
     for _, child in ipairs(folder:GetChildren()) do
         if child then
             -- attempt to find a usable BasePart for positioning
-            local part = (child:IsA("BasePart") and child) or
-            (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+            local part = (child:IsA("BasePart") and child) or (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
             if not part then
                 for _, d in ipairs(child:GetDescendants()) do
-                    if d:IsA("BasePart") then
-                        part = d; break
-                    end
+                    if d:IsA("BasePart") then part = d; break end
                 end
             end
             if part then
@@ -1401,9 +1403,7 @@ local function collectGapEntries(folder)
 
     -- If any entries have numeric indices, sort by that; otherwise sort by X (left→right)
     local hasNumbers = false
-    for _, e in ipairs(entries) do if e.idxRaw then
-            hasNumbers = true; break
-        end end
+    for _, e in ipairs(entries) do if e.idxRaw then hasNumbers = true; break end end
     if hasNumbers then
         table.sort(entries, function(a, b)
             return (a.idxRaw or 9999) < (b.idxRaw or 9999)
@@ -1470,32 +1470,6 @@ local function IsPathClear(targetPos)
     return true
 end
 
--- Prevent the player entering the FallingDown state immediately after a teleport.
--- Default behavior: disable the FallingDown state briefly then re-enable it to avoid long-term side-effects.
-local function disableFallingForLocalCharacter(duration)
-    duration = (type(duration) == "number") and duration or 2
-    pcall(function()
-        local pl = game.Players.LocalPlayer
-        if not pl then return end
-        local char = pl.Character
-        if not char then return end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum and hum.SetStateEnabled then
-            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-            if duration > 0 then
-                task.spawn(function()
-                    task.wait(duration)
-                    pcall(function()
-                        if hum and hum.SetStateEnabled then
-                            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-                        end
-                    end)
-                end)
-            end
-        end
-    end)
-end
-
 local function SmartMove(targetPos, areaName)
     local char = game.Players.LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1509,13 +1483,9 @@ local function SmartMove(targetPos, areaName)
         local tween = TweenService:Create(hrp, info, { CFrame = CFrame.new(targetPos) })
         tween:Play()
         tween.Completed:Wait()
-
-        -- prevent the common "fall immediately after teleport" issue
-        pcall(function()
-            disableFallingForLocalCharacter(2)
-        end)
     end
 end
+
 
 -- Teleport to last gap (button)
 TsunamiSection:Button({
