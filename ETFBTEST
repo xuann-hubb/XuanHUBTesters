@@ -1330,57 +1330,23 @@ TsunamiSection:Toggle({
 })
 
 local function findGapsFolder()
-    -- Robust, map-aware Gaps locator
-    -- Behavior:
-    -- 1) Prefer non-empty Gaps in event/shared maps (Mars/Money/Radioactive) and DefaultMap shared
-    -- 2) If no non-empty found, return the first *existing* Gaps folder in the same priority order (so DefaultMap still works)
-    -- 3) All lookups are short-circuited and pcall-protected to avoid race crashes during teleports
-
-    local function safeFind(name)
-        local ok, inst = pcall(function() return workspace:FindFirstChild(name) end)
-        if not ok or not inst then return nil end
-        local ok2, gaps = pcall(function() return inst:FindFirstChild("Gaps") end)
-        if not ok2 then return nil end
-        return gaps
-    end
-
-    local function hasChildren(folder)
-        if not folder then return false end
-        local ok, n = pcall(function() return #folder:GetChildren() end)
-        return ok and (n or 0) > 0
-    end
-
-    -- Priority groups (each entry is {sharedName, plainName})
-    local groups = {
-        { "MarsMap_SharedInstances", "MarsMap" },
-        { "MoneyMap_SharedInstances", "MoneyMap" },
-        { "RadioactiveMap_SharedInstances", "RadioactiveMap" },
-        { "DefaultMap_SharedInstances", "DefaultMap" },
-        { "Misc_SharedInstances", "Misc" },
+    -- return the first existing 'Gaps' folder from known map locations
+    -- expanded to include Mars, Money and Radioactive map variants
+    local candidates = {
+        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
-
-    -- PASS A: prefer the first non-empty Gaps (event maps prioritized)
-    for _, pair in ipairs(groups) do
-        local g = safeFind(pair[1]) or safeFind(pair[2])
-        if hasChildren(g) then return g end
+    for _, f in ipairs(candidates) do
+        if f then return f end
     end
-
-    -- PASS B: no non-empty found — return the first existing Gaps (so empty-but-present folders count)
-    for _, pair in ipairs(groups) do
-        local g = safeFind(pair[1]) or safeFind(pair[2])
-        if g then return g end
-    end
-
-    -- Final fallback: quick breadth-first check for any 'Gaps' under workspace (limited and short-circuited)
-    for _, child in ipairs(workspace:GetChildren()) do
-        if type(child.Name) == "string" then
-            if child.Name:match("Map") or child.Name:match("SharedInstances") or child.Name == "Misc" then
-                local ok, gaps = pcall(function() return child:FindFirstChild("Gaps") end)
-                if ok and gaps then return gaps end
-            end
-        end
-    end
-
     return nil
 end
 
