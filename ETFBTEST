@@ -1330,47 +1330,56 @@ TsunamiSection:Toggle({
 })
 
 local function findGapsFolder()
-    -- Return the most appropriate 'Gaps' folder.
-    -- Preference rules (new):
-    -- 1) If any EVENT shared-instance (Mars/Money/Radioactive) is *active* (has a non-empty Gaps) -> use it
-    -- 2) Otherwise use DefaultMap_SharedInstances (if available and has Gaps)
-    -- 3) Fallback to legacy locations (non-shared names and Misc folders)
+    -- Robust, map-aware Gaps locator
+    -- Behavior:
+    -- 1) Prefer non-empty Gaps in event/shared maps (Mars/Money/Radioactive) and DefaultMap shared
+    -- 2) If no non-empty found, return the first *existing* Gaps folder in the same priority order (so DefaultMap still works)
+    -- 3) All lookups are short-circuited and pcall-protected to avoid race crashes during teleports
 
-
-
-    -- 3) Legacy / broader fallbacks (preserve original compatibility)
-    -- Use explicit if/elseif checks (short-circuiting) and pcall-guards so lookups stay stable during teleports.
-    local function folderHasChildren(inst)
-        if not inst then return false end
-        local ok, g = pcall(function() return inst:FindFirstChild("Gaps") end)
-        if not ok or not g then return false end
-        local ok2, n = pcall(function() return #g:GetChildren() end)
-        return ok2 and (n or 0) > 0
+    local function safeFind(name)
+        local ok, inst = pcall(function() return workspace:FindFirstChild(name) end)
+        if not ok or not inst then return nil end
+        local ok2, gaps = pcall(function() return inst:FindFirstChild("Gaps") end)
+        if not ok2 then return nil end
+        return gaps
     end
 
-    -- Short-circuit checks (order matters)
-    local inst = workspace:FindFirstChild("MarsMap_SharedInstances")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
+    local function hasChildren(folder)
+        if not folder then return false end
+        local ok, n = pcall(function() return #folder:GetChildren() end)
+        return ok and (n or 0) > 0
+    end
 
-    inst = workspace:FindFirstChild("MoneyMap_SharedInstances")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
+    -- Priority groups (each entry is {sharedName, plainName})
+    local groups = {
+        { "MarsMap_SharedInstances", "MarsMap" },
+        { "MoneyMap_SharedInstances", "MoneyMap" },
+        { "RadioactiveMap_SharedInstances", "RadioactiveMap" },
+        { "DefaultMap_SharedInstances", "DefaultMap" },
+        { "Misc_SharedInstances", "Misc" },
+    }
 
-    inst = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
+    -- PASS A: prefer the first non-empty Gaps (event maps prioritized)
+    for _, pair in ipairs(groups) do
+        local g = safeFind(pair[1]) or safeFind(pair[2])
+        if hasChildren(g) then return g end
+    end
 
-    -- Prefer DefaultMap shared variant, then fallback to non-shared DefaultMap
-    inst = workspace:FindFirstChild("DefaultMap_SharedInstances")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
+    -- PASS B: no non-empty found — return the first existing Gaps (so empty-but-present folders count)
+    for _, pair in ipairs(groups) do
+        local g = safeFind(pair[1]) or safeFind(pair[2])
+        if g then return g end
+    end
 
-    inst = workspace:FindFirstChild("DefaultMap")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
-
-    -- Misc fallbacks
-    inst = workspace:FindFirstChild("Misc_SharedInstances")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
-
-    inst = workspace:FindFirstChild("Misc")
-    if folderHasChildren(inst) then return inst:FindFirstChild("Gaps") end
+    -- Final fallback: quick breadth-first check for any 'Gaps' under workspace (limited and short-circuited)
+    for _, child in ipairs(workspace:GetChildren()) do
+        if type(child.Name) == "string" then
+            if child.Name:match("Map") or child.Name:match("SharedInstances") or child.Name == "Misc" then
+                local ok, gaps = pcall(function() return child:FindFirstChild("Gaps") end)
+                if ok and gaps then return gaps end
+            end
+        end
+    end
 
     return nil
 end
