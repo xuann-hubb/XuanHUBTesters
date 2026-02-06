@@ -25,19 +25,19 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
-    
+
     Accent = WindUI:Gradient({
-        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 }, -- Teal start
-        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 }, -- Blue middle
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
         ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
     }, {
         Rotation = 45,
     }),
-    Outline = Color3.fromHex("#1ABC9C"), -- Holographic teal outline
-    Text = Color3.fromHex("#FFFFFF"), -- Pure white text
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
     Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
-    Button = Color3.fromHex("#E70AD5"), -- Darker holographic teal
-    Icon = Color3.fromHex("#3DFFDC"), -- Light holographic cyan
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
 })
 
 -- ================= SETTINGS PERSISTENCE =================
@@ -75,12 +75,12 @@ local defaultSettings = {
     -- Wider hitbox (tool reach)
     hitboxEnabled = false,
     hitboxWidth = 70,
-	-- Auto Sell by Rarity
-	autoSellByRarity = false,
-	sellRarities = {},
+    -- Auto Sell by Rarity
+    autoSellByRarity = false,
+    sellRarities = {},
 }
 
-    local function loadSettings()
+local function loadSettings()
     if not isfolder("XuanHub") then
         makefolder("XuanHub")
     end
@@ -129,7 +129,7 @@ local Window = WindUI:CreateWindow({
     OutlineThickness = 3,
     Resizable = true,
     Transparent = true,
-      User = {
+    User = {
         Enabled = true,
     },
 })
@@ -165,7 +165,7 @@ RunService.RenderStepped:Connect(function()
         fps = frames
         frames = 0
         last = now
-        
+
         -- Get ping
         pcall(function()
             local item = Stats.Network.ServerStatsItem:FindFirstChild("Data Ping")
@@ -173,7 +173,7 @@ RunService.RenderStepped:Connect(function()
                 ping = math.floor(item:GetValue())
             end
         end)
-        
+
         -- Update tag
         VersionTag:SetTitle(string.format("v%d | Ping: %d | FPS: %d", version, ping, fps))
     end
@@ -619,7 +619,7 @@ task.spawn(function()
                 local args = { [1] = "Money", [2] = false }
                 local ok, remote = pcall(function()
                     return game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net")
-                    :FindFirstChild("RF/WheelSpin.Roll")
+                        :FindFirstChild("RF/WheelSpin.Roll")
                 end)
                 if ok and remote then
                     pcall(function() remote:InvokeServer(unpack(args)) end)
@@ -678,8 +678,13 @@ task.spawn(function()
                 task.wait(1)
             else
                 -- Found the radioactive map
-                WindUI:Notify({ Title = "Radioactive Obby", Content = "Radioactive Event found! Starting...", Icon =
-                "check", Duration = 2 })
+                WindUI:Notify({
+                    Title = "Radioactive Obby",
+                    Content = "Radioactive Event found! Starting...",
+                    Icon =
+                    "check",
+                    Duration = 2
+                })
 
                 -- Run the obby completion sequence 2 times
                 for cycleCount = 1, 2 do
@@ -720,7 +725,8 @@ task.spawn(function()
                                 -- wait 2s before teleporting to reduce chance of dying
                                 task.wait(2)
 
-                                local targetPos = touchPart.Position or (obbyEnd:IsA("BasePart") and obbyEnd.Position) or (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
+                                local targetPos = touchPart.Position or (obbyEnd:IsA("BasePart") and obbyEnd.Position) or
+                                (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
                                 if targetPos then
                                     rootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
                                     task.wait(0.3)
@@ -733,8 +739,13 @@ task.spawn(function()
 
                     -- Notify after each cycle
                     if completed then
-                        WindUI:Notify({ Title = "Radioactive Obby", Content = "Cycle " .. cycleCount .. "/2 completed", Icon =
-                        "check", Duration = 2 })
+                        WindUI:Notify({
+                            Title = "Radioactive Obby",
+                            Content = "Cycle " .. cycleCount .. "/2 completed",
+                            Icon =
+                            "check",
+                            Duration = 2
+                        })
                     end
 
                     if cycleCount < 2 then
@@ -833,8 +844,13 @@ task.spawn(function()
 
                     -- Notify after each cycle
                     if completed then
-                        WindUI:Notify({ Title = "Money Obby", Content = "Cycle " .. cycleCount .. "/3 completed", Icon =
-                        "check", Duration = 2 })
+                        WindUI:Notify({
+                            Title = "Money Obby",
+                            Content = "Cycle " .. cycleCount .. "/3 completed",
+                            Icon =
+                            "check",
+                            Duration = 2
+                        })
                     end
 
                     if cycleCount < 3 then
@@ -917,28 +933,28 @@ end)
 task.spawn(function()
     -- Brainrot names by rarity (hardcoded list)
     local BrainrotsByRarity = {
-        Common = {"Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni"},
-        Uncommon = {"Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67"},
-        Rare = {"Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur"},
-        Epic = {"Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic"},
-        Legendary = {"Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci"},
-        Mythical = {"Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno"},
-        Cosmic = {"La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh"},
-        Secret = {"Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini"},
-        Celestial = {"Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini"},
-        Divine = {"Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero"},
+        Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
+        Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
+        Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
+        Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
+        Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
+        Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
+        Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh" },
+        Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini" },
+        Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini" },
+        Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero" },
     }
-    
+
     while scriptRunning do
         if autoSellByRarity and #sellRarities > 0 then
             pcall(function()
                 local backpack = player:FindFirstChild("Backpack")
                 local character = player.Character
                 if not backpack or not character then return end
-                
+
                 local humanoid = character:FindFirstChild("Humanoid")
                 if not humanoid then return end
-                
+
                 -- Build list of brainrots to sell from selected rarities
                 local brainrotsToSell = {}
                 for _, targetRarity in ipairs(sellRarities) do
@@ -949,19 +965,18 @@ task.spawn(function()
                         end
                     end
                 end
-                
-                
+
+
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoSellByRarity then break end
-                    
+
                     if tool:IsA("Tool") then
                         local brainrotName = tool:GetAttribute("BrainrotName")
                         if brainrotName and brainrotsToSell[brainrotName] then
-                            
                             humanoid:EquipTool(tool)
                             task.wait(0.15)
-                            
-                           
+
+
                             pcall(function()
                                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
                                     :WaitForChild("SellTool"):InvokeServer()
@@ -1321,7 +1336,7 @@ local function findGapsFolder()
     -- 2) Otherwise use DefaultMap_SharedInstances (if available and has Gaps)
     -- 3) Fallback to legacy locations (non-shared names and Misc folders)
 
-   
+
 
     -- 3) Legacy / broader fallbacks (preserve original compatibility)
     -- Use explicit if/elseif checks (short-circuiting) and pcall-guards so lookups stay stable during teleports.
@@ -1391,10 +1406,13 @@ local function collectGapEntries(folder)
     for _, child in ipairs(folder:GetChildren()) do
         if child then
             -- attempt to find a usable BasePart for positioning
-            local part = (child:IsA("BasePart") and child) or (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+            local part = (child:IsA("BasePart") and child) or
+            (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
             if not part then
                 for _, d in ipairs(child:GetDescendants()) do
-                    if d:IsA("BasePart") then part = d; break end
+                    if d:IsA("BasePart") then
+                        part = d; break
+                    end
                 end
             end
             if part then
@@ -1408,7 +1426,9 @@ local function collectGapEntries(folder)
 
     -- If any entries have numeric indices, sort by that; otherwise sort by X (left→right)
     local hasNumbers = false
-    for _, e in ipairs(entries) do if e.idxRaw then hasNumbers = true; break end end
+    for _, e in ipairs(entries) do if e.idxRaw then
+            hasNumbers = true; break
+        end end
     if hasNumbers then
         table.sort(entries, function(a, b)
             return (a.idxRaw or 9999) < (b.idxRaw or 9999)
@@ -1508,10 +1528,14 @@ TsunamiSection:Button({
         WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
             local gapsFolder = findGapsFolder()
-            if not gapsFolder then _G.AutoTourActive = false; return end
+            if not gapsFolder then
+                _G.AutoTourActive = false; return
+            end
 
             local entries = collectGapEntries(gapsFolder)
-            if #entries == 0 then _G.AutoTourActive = false; return end
+            if #entries == 0 then
+                _G.AutoTourActive = false; return
+            end
 
             -- determine range and current index
             local maxIdx = entries[#entries].idx
@@ -1537,7 +1561,8 @@ TsunamiSection:Button({
                             while not IsPathClear(targetPos) and _G.AutoTourActive do
                                 if not blockedNotified then
                                     pcall(function()
-                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " .. tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
+                                        tostring(e.name), Icon = "alert-triangle", Duration = 3 })
                                     end)
                                     print("[XuanHub] SmartTeleport: waiting for gap to clear:", e.name)
                                     blockedNotified = true
@@ -1547,7 +1572,8 @@ TsunamiSection:Button({
 
                             if blockedNotified and _G.AutoTourActive then
                                 pcall(function()
-                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " .. tostring(e.name), Icon = "check", Duration = 2 })
+                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
+                                    tostring(e.name), Icon = "check", Duration = 2 })
                                 end)
                                 print("[XuanHub] SmartTeleport: gap cleared:", e.name)
                             end
@@ -1589,10 +1615,14 @@ TsunamiSection:Button({
         WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
         task.spawn(function()
             local gapsFolder = findGapsFolder()
-            if not gapsFolder then _G.ReverseTourActive = false; return end
+            if not gapsFolder then
+                _G.ReverseTourActive = false; return
+            end
 
             local entries = collectGapEntries(gapsFolder)
-            if #entries == 0 then _G.ReverseTourActive = false; return end
+            if #entries == 0 then
+                _G.ReverseTourActive = false; return
+            end
 
             local minIdx = entries[1].idx
             while _G.ReverseTourActive do
@@ -1618,7 +1648,8 @@ TsunamiSection:Button({
                             while not IsPathClear(targetPos) and _G.ReverseTourActive do
                                 if not blockedNotified then
                                     pcall(function()
-                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " .. tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
+                                        tostring(e.name), Icon = "alert-triangle", Duration = 3 })
                                     end)
                                     print("[XuanHub] SmartTeleport (reverse): waiting for gap to clear:", e.name)
                                     blockedNotified = true
@@ -1628,7 +1659,8 @@ TsunamiSection:Button({
 
                             if blockedNotified and _G.ReverseTourActive then
                                 pcall(function()
-                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " .. tostring(e.name), Icon = "check", Duration = 2 })
+                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
+                                    tostring(e.name), Icon = "check", Duration = 2 })
                                 end)
                                 print("[XuanHub] SmartTeleport (reverse): gap cleared:", e.name)
                             end
@@ -1655,12 +1687,11 @@ TsunamiSection:Button({
 
 -- Teleport-by-Rarity (Tsunami)
 -- Mapping (fixed): Common=Gap1 .. Celestial=Gap9
-local RARITY_TO_GAP = { Common=1, Uncommon=2, Rare=3, Epic=4, Legendary=5, Mythical=6, Cosmic=7, Secret=8, Celestial=9 }
+local RARITY_TO_GAP = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythical = 6, Cosmic = 7, Secret = 8, Celestial = 9 }
 
 -- Read-only UI element (shows configured target rarity)
 -- NOTE: WindUI's Section may not expose a Tag method at runtime; place the tag in the Window header instead.
 
-TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
 
 -- Dropdown to choose target rarity (persisted)
 TsunamiSection:Dropdown({
@@ -1686,8 +1717,8 @@ TsunamiSection:Button({
         local r = autoTeleportByRarityTarget or savedSettings.autoTeleportByRarityTarget or "Common"
         local ok = pcall(function() return _G.XuanHub_TeleportToRarity and _G.XuanHub_TeleportToRarity(r) end)
         if ok and _G.XuanHub_TeleportToRarity then
-            TeleportByRarityLabel:SetTitle("Target: "..tostring(r).." (running)")
-            WindUI:Notify({ Title = "Teleport", Content = "Starting teleport to "..tostring(r), Icon = "check", Duration = 2 })
+            TeleportByRarityLabel:SetTitle("Target: " .. tostring(r) .. " (running)")
+            WindUI:Notify({ Title = "Teleport", Content = "Starting teleport to " .. tostring(r), Icon = "check", Duration = 2 })
         else
             WindUI:Notify({ Title = "Teleport", Content = "Failed to start teleport", Icon = "alert-triangle", Duration = 2 })
         end
@@ -1743,7 +1774,8 @@ task.spawn(function()
                 -- clamp target to available range
                 local maxIdx = entries[#entries].idx
                 if targetIdx > maxIdx then
-                    WindUI:Notify({ Title = "Teleport", Content = "Target gap out of range: "..tostring(targetIdx), Icon = "alert-triangle", Duration = 3 })
+                    WindUI:Notify({ Title = "Teleport", Content = "Target gap out of range: " .. tostring(targetIdx), Icon =
+                    "alert-triangle", Duration = 3 })
                     autoTeleportByRarity = false
                     TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
                     return
@@ -1753,7 +1785,8 @@ task.spawn(function()
                 while autoTeleportByRarity do
                     local currentPosIndex = GetNearestGapIndex()
                     if currentPosIndex >= targetIdx then
-                        WindUI:Notify({ Title = "Teleport", Content = "Reached target gap ("..tostring(targetRarity)..")", Icon = "check", Duration = 2 })
+                        WindUI:Notify({ Title = "Teleport", Content = "Reached target gap (" ..
+                        tostring(targetRarity) .. ")", Icon = "check", Duration = 2 })
                         autoTeleportByRarity = false
                         savedSettings.autoTeleportByRarity = false
                         saveSettings(savedSettings)
@@ -1778,7 +1811,8 @@ task.spawn(function()
                                 while not IsPathClear(targetPos) and autoTeleportByRarity do
                                     if not blockedNotified then
                                         pcall(function()
-                                            WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " .. tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                            WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
+                                            tostring(e.name), Icon = "alert-triangle", Duration = 3 })
                                         end)
                                         print("[XuanHub] TeleportByRarity: waiting for gap to clear:", e.name)
                                         blockedNotified = true
@@ -1788,7 +1822,8 @@ task.spawn(function()
 
                                 if blockedNotified and autoTeleportByRarity then
                                     pcall(function()
-                                        WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " .. tostring(e.name), Icon = "check", Duration = 2 })
+                                        WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
+                                        tostring(e.name), Icon = "check", Duration = 2 })
                                     end)
                                     print("[XuanHub] TeleportByRarity: gap cleared:", e.name)
                                 end
@@ -1863,7 +1898,7 @@ VIPWallsSection:Button({
                 WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
                 return
             end
-            
+
             local walls = defaultMap:FindFirstChild("VIPWalls")
             if not walls then
                 WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
@@ -1902,7 +1937,7 @@ VIPWallsSection:Button({
                 WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
                 return
             end
-            
+
             local walls = marsMap:FindFirstChild("VIPWalls")
             if not walls then
                 WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found in Mars Map", Icon = "alert-triangle", Duration = 3 })
@@ -2176,7 +2211,7 @@ local function _applyWiderHitboxes()
                 targetPos = total / #nearby
             end
             local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or
-            MAX_SIZE
+                MAX_SIZE
             hb.Size = finalSize
             hb.Position = targetPos
             hb.Transparency = 0.7
@@ -2258,7 +2293,7 @@ local SellAllBtn = UpgBase:Button({
         if currentTime - lastSellAllClick < 2 then
             -- Double-click detected
             local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll")
-            :InvokeServer()
+                :InvokeServer()
             if result == false or result == nil then
                 WindUI:Notify({
                     Title = "Sold",
@@ -2524,7 +2559,7 @@ AutoSection:Dropdown({
         sellRarities = selected
         savedSettings.sellRarities = selected
         saveSettings(savedSettings)
-        
+
         if #selected > 0 then
             local rarityList = table.concat(selected, ", ")
             WindUI:Notify({
@@ -2546,7 +2581,7 @@ AutoSection:Toggle({
         autoSellByRarity = state
         savedSettings.autoSellByRarity = state
         saveSettings(savedSettings)
-        
+
         if state then
             if #sellRarities == 0 then
                 WindUI:Notify({
@@ -2623,18 +2658,18 @@ UISection:Button({
         local filePath = "XuanHub/" .. settingsFileName
         if isfile(filePath) then
             delfile(filePath)
-            WindUI:Notify({ 
-                Title = "Config Reset", 
-                Content = "Config reset! Rejoin to take effect", 
-                Icon = "check", 
-                Duration = 5 
+            WindUI:Notify({
+                Title = "Config Reset",
+                Content = "Config reset! Rejoin to take effect",
+                Icon = "check",
+                Duration = 5
             })
         else
-            WindUI:Notify({ 
-                Title = "Config Reset", 
-                Content = "No config file found", 
-                Icon = "info", 
-                Duration = 3 
+            WindUI:Notify({
+                Title = "Config Reset",
+                Content = "No config file found",
+                Icon = "info",
+                Duration = 3
             })
         end
     end
@@ -2828,7 +2863,7 @@ task.spawn(function()
         widerHitboxWidth = tonumber(savedSettings.hitboxWidth) or 70
         startWiderHitbox()
     end
-    
+
     -- Apply UI Settings
     task.wait(0.2)
     if savedSettings.profileIcon then
@@ -2836,7 +2871,7 @@ task.spawn(function()
     else
         Window.Icon:Disable()
     end
-    
+
     if savedSettings.uiTransparency then
         Window:ToggleTransparency()
     end
