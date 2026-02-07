@@ -362,7 +362,7 @@ local AutoSection = AutoTab:Section({
 AutoSection:Dropdown({
     Title = "Speed Upgrade Amount",
     Desc = "Select upgrade amount for auto speed",
-    List = { "1", "5", "10" },
+    Values = { "1", "5", "10" },
     Value = tostring(savedSettings.speedUpgradeAmount or 1),
     Callback = function(value)
         speedUpgradeAmount = tonumber(value)
@@ -431,29 +431,6 @@ AutoSection:Toggle({
             Icon = state and "check" or "x",
             Duration = 2,
         })
-        -- Manage global ProximityPrompt HoldDuration when auto farm enabled
-        if state then
-            -- set existing prompts to require 5s hold
-            for _, v in ipairs(workspace:GetDescendants()) do
-                if v:IsA("ProximityPrompt") then
-                    pcall(function() v.HoldDuration = 5 end)
-                end
-            end
-            -- ensure new prompts created later are set to 5s as well
-            if not grabConn then
-                grabConn = workspace.DescendantAdded:Connect(function(v)
-                    if v:IsA("ProximityPrompt") then
-                        task.wait()
-                        pcall(function() v.HoldDuration = 5 end)
-                    end
-                end)
-            end
-        else
-            if grabConn then
-                grabConn:Disconnect()
-                grabConn = nil
-            end
-        end
     end,
 })
 
@@ -507,67 +484,11 @@ task.spawn(function()
                         for _, obj in pairs(celestial:GetChildren()) do
                             local root = obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("HumanoidRootPart")
                             if root and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                -- 1. Teleport to celestial
                                 player.Character.HumanoidRootPart.CFrame = root.CFrame
-                                                task.wait(0.5) -- Wait for TP (increased to 7s)
                                 
-                                -- 2. Grab/interact: pick nearest ProximityPrompt to the player under this celestial (fallback to nearby workspace prompts)
-                                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                               local function triggerPrompt(prompt)
-    if not prompt then return end
-    pcall(function()
-        -- fire the prompt immediately, then hold for 5 seconds
-        fireproximityprompt(prompt)
-        task.wait(5)
-    end)
-end
-                                if hrp then
-                                    local nearestPrompt = nil
-                                    local nearestDist = math.huge
-
-                                    -- search only inside the current celestial object first
-                                    for _, v2 in ipairs(obj:GetDescendants()) do
-                                        if v2:IsA("ProximityPrompt") and v2.Enabled then
-                                            local part = v2.Parent
-                                            local pos = nil
-                                            if part and part:IsA("BasePart") then
-                                                pos = part.Position
-                                            elseif v2.KeyCode then
-                                                -- fallback use prompt.Parent's position if possible
-                                                pos = (part and part:IsA("BasePart") and part.Position) or nil
-                                            end
-                                            if pos then
-                                                local d = (pos - hrp.Position).Magnitude
-                                                if d < nearestDist then
-                                                    nearestDist = d
-                                                    nearestPrompt = v2
-                                                end
-                                            end
-                                        end
-                                    end
-
-                                    -- if none found under the celestial, try nearby workspace prompts (within 15 studs)
-                                    if not nearestPrompt then
-                                        for _, v2 in ipairs(workspace:GetDescendants()) do
-                                            if v2:IsA("ProximityPrompt") and v2.Enabled then
-                                                local part = v2.Parent
-                                                local pos = (part and part:IsA("BasePart") and part.Position) or nil
-                                                if pos then
-                                                    local d = (pos - hrp.Position).Magnitude
-                                                    if d < nearestDist and d <= 15 then
-                                                        nearestDist = d
-                                                        nearestPrompt = v2
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-
-                                    if nearestPrompt then
-                                        triggerPrompt(nearestPrompt)
-                                    end
-                                end
-
-                                task.wait(7) -- Wait for grab/loot to complete (was 0.5s, increased to 2s)
+                                -- 2. Wait 5 seconds
+                                task.wait(5)
                                 
                                 -- 3. TP to safezone/Baseplate
                                 local baseplate = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Baseplate")
