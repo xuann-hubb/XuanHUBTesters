@@ -38,9 +38,11 @@ WindUI:AddTheme({
 -- ================= SETTINGS PERSISTENCE =================
 local settingsFileName = "XuanHubConfig_SLFB.json"
 local defaultSettings = {
-    autoSellAll = false,
+    -- autoSellAll removed per user request
     speedUpgradeAmount = 1,
     autoUpgradeSpeed = false,
+    autoUpgradeBase = false,
+    autoUpgradeCarry = false,
     infJump = false,
     autoFarmCelestials = false,
     removeVIPWalls = false,
@@ -154,6 +156,8 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
+MainTab:Select()
+
 -- ================= MAIN TAB =================
 local MainTab = Window:Tab({
     Title = "Main",
@@ -166,13 +170,15 @@ local MainSection = MainTab:Section({
 })
 
 -- Auto states
-local autoSellAll = savedSettings.autoSellAll or false
 local speedUpgradeAmount = savedSettings.speedUpgradeAmount or 1
 local autoUpgradeSpeed = savedSettings.autoUpgradeSpeed or false
+local autoUpgradeBase = savedSettings.autoUpgradeBase or false
+local autoUpgradeCarry = savedSettings.autoUpgradeCarry or false
 local infJump = savedSettings.infJump or false
 local autoFarmCelestials = savedSettings.autoFarmCelestials or false
 local removeVIPWalls = savedSettings.removeVIPWalls or false
 local vipConn -- Connection for VIP wall removal
+local grabConn -- Connection for auto-grab prompt HoldDuration management
 
 -- Upgrade Base Button
 MainSection:Button({
@@ -389,7 +395,6 @@ AutoSection:Dropdown({
     end,
 })
 
--- Auto Upgrade Speed Toggle
 AutoSection:Toggle({
     Title = "Auto Upgrade Speed",
     Desc = "Automatically upgrade speed continuously",
@@ -408,22 +413,29 @@ AutoSection:Toggle({
     end,
 })
 
--- Auto Sell Toggle
+-- Auto Upgrade Base Toggle
 AutoSection:Toggle({
-    Title = "Auto Sell All",
-    Desc = "Automatically sell entire inventory continuously",
-    Value = savedSettings.autoSellAll,
+    Title = "Auto Upgrade Base",
+    Desc = "Automatically upgrade base when possible",
+    Value = savedSettings.autoUpgradeBase,
     Callback = function(state)
-        autoSellAll = state
-        savedSettings.autoSellAll = state
+        autoUpgradeBase = state
+        savedSettings.autoUpgradeBase = state
         saveSettings(savedSettings)
-        
-        WindUI:Notify({
-            Title = "Auto Sell",
-            Content = state and "Auto Sell enabled!" or "Auto Sell disabled",
-            Icon = state and "check" or "x",
-            Duration = 2,
-        })
+        WindUI:Notify({ Title = "Auto Upgrade Base", Content = state and "Enabled" or "Disabled", Icon = state and "check" or "x", Duration = 2 })
+    end,
+})
+
+-- Auto Upgrade Carry Toggle
+AutoSection:Toggle({
+    Title = "Auto Upgrade Carry",
+    Desc = "Automatically upgrade carry when possible",
+    Value = savedSettings.autoUpgradeCarry,
+    Callback = function(state)
+        autoUpgradeCarry = state
+        savedSettings.autoUpgradeCarry = state
+        saveSettings(savedSettings)
+        WindUI:Notify({ Title = "Auto Upgrade Carry", Content = state and "Enabled" or "Disabled", Icon = state and "check" or "x", Duration = 2 })
     end,
 })
 
@@ -443,20 +455,33 @@ AutoSection:Toggle({
             Icon = state and "check" or "x",
             Duration = 2,
         })
+        -- Manage global ProximityPrompt HoldDuration when auto farm enabled
+        if state then
+            -- set existing prompts to require 5s hold
+            for _, v in ipairs(workspace:GetDescendants()) do
+                if v:IsA("ProximityPrompt") then
+                    pcall(function() v.HoldDuration = 5 end)
+                end
+            end
+            -- ensure new prompts created later are set to 5s as well
+            if not grabConn then
+                grabConn = workspace.DescendantAdded:Connect(function(v)
+                    if v:IsA("ProximityPrompt") then
+                        task.wait()
+                        pcall(function() v.HoldDuration = 5 end)
+                    end
+                end)
+            end
+        else
+            if grabConn then
+                grabConn:Disconnect()
+                grabConn = nil
+            end
+        end
     end,
 })
 
--- Auto Sell Loop
-task.spawn(function()
-    while task.wait(1) do
-        if autoSellAll then
-            pcall(function()
-                local args = { "SellAll" }
-                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(args))
-            end)
-        end
-    end
-end)
+-- Auto Sell loop removed (user requested)
 
 -- Auto Upgrade Speed Loop
 task.spawn(function()
@@ -465,6 +490,29 @@ task.spawn(function()
             pcall(function()
                 local args = { "Speed", speedUpgradeAmount }
                 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Speed"):InvokeServer(unpack(args))
+            end)
+        end
+    end
+end)
+
+-- Auto Upgrade Base Loop
+task.spawn(function()
+    while task.wait(1) do
+        if autoUpgradeBase then
+            pcall(function()
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Upgrade"):InvokeServer()
+            end)
+        end
+    end
+end)
+
+-- Auto Upgrade Carry Loop
+task.spawn(function()
+    while task.wait(1) do
+        if autoUpgradeCarry then
+            pcall(function()
+                local args = { "Carry" }
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Carry"):InvokeServer(unpack(args))
             end)
         end
     end
