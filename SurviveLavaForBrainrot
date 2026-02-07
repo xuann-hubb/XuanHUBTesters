@@ -1,0 +1,442 @@
+print("--===== XUAN HUB LOADED (WindUI) =====--")
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+
+-- ================= LOAD WINDUI =================
+local WindUI = loadstring(game:HttpGet(
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
+
+-- ================= SET FONT (IMPORTANT) =================
+-- WindUI text font
+WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
+
+-- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
+
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
+})
+
+-- ================= SETTINGS PERSISTENCE =================
+local settingsFileName = "XuanHubConfig_SLFB.json"
+local defaultSettings = {
+    autoSellAll = false,
+    speedUpgradeAmount = 1,
+    autoUpgradeSpeed = false,
+    infJump = false,
+    autoFarmCelestials = false,
+}
+
+local function loadSettings()
+    if not isfolder("XuanHub") then
+        makefolder("XuanHub")
+    end
+
+    if isfile("XuanHub/" .. settingsFileName) then
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(readfile("XuanHub/" .. settingsFileName))
+        end)
+        if success and data then
+            return data
+        end
+    end
+
+    -- no settings file or parse failed: return a safe copy of defaults
+    local ok, copy = pcall(function()
+        return HttpService:JSONDecode(HttpService:JSONEncode(defaultSettings))
+    end)
+    if ok and type(copy) == "table" then
+        return copy
+    end
+
+    return defaultSettings
+end
+
+local function saveSettings(settings)
+    pcall(function()
+        if not isfolder("XuanHub") then
+            makefolder("XuanHub")
+        end
+        writefile("XuanHub/" .. settingsFileName, HttpService:JSONEncode(settings))
+    end)
+end
+
+local savedSettings = loadSettings()
+
+-- ================= CREATE WINDUI WINDOW =================
+local Window = WindUI:CreateWindow({
+    Folder = "XuanHub",
+    Title = "XUAN HUB",
+    Author = "by discord.gg/kaydensdens",
+    Icon = "rbxassetid://103326199885496",
+    Theme = "Holographic", -- Use custom holographic theme
+    Size = UDim2.fromOffset(640, 480),
+    Draggable = true,
+    HasOutline = true,
+    OutlineThickness = 3,
+    Resizable = true,
+    Transparent = true,
+    User = {
+        Enabled = true,
+    },
+})
+
+
+
+Window:EditOpenButton({
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
+})
+
+-- Add version tag with FPS and Ping counter
+local version = game.PlaceVersion -- Server version
+local fps = 0
+local ping = 0
+local Stats = game:GetService("Stats")
+
+local VersionTag = Window:Tag({
+    Title = string.format("v%d | Ping: 0 | FPS: 0", version),
+    Icon = "solar:server-bold",
+    Color = Color3.fromRGB(255, 105, 180), -- Pink color
+    Border = true,
+})
+
+local frames = 0
+local last = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    frames = frames + 1
+    local now = os.clock()
+    if now - last >= 1 then
+        fps = frames
+        frames = 0
+        last = now
+
+        -- Get ping
+        pcall(function()
+            local item = Stats.Network.ServerStatsItem:FindFirstChild("Data Ping")
+            if item then
+                ping = math.floor(item:GetValue())
+            end
+        end)
+
+        -- Update tag
+        VersionTag:SetTitle(string.format("v%d | Ping: %d | FPS: %d", version, ping, fps))
+    end
+end)
+
+-- ================= MAIN TAB =================
+local MainTab = Window:Tab({
+    Title = "Main",
+    Icon = "lucide:house",
+})
+
+local MainSection = MainTab:Section({
+    Title = "Main Features",
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Opened = true,
+})
+
+-- Auto states
+local autoSellAll = savedSettings.autoSellAll or false
+local speedUpgradeAmount = savedSettings.speedUpgradeAmount or 1
+local autoUpgradeSpeed = savedSettings.autoUpgradeSpeed or false
+local infJump = savedSettings.infJump or false
+local autoFarmCelestials = savedSettings.autoFarmCelestials or false
+
+-- Upgrade Base Button
+MainSection:Button({
+    Title = "Upgrade Base",
+    Description = "Upgrade your base once",
+    Callback = function()
+        pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Upgrade"):InvokeServer()
+            WindUI:Notify({
+                Title = "Upgrade",
+                Content = "Base upgraded!",
+                Icon = "check",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+-- Upgrade Speed Button (one-time)
+MainSection:Button({
+    Title = "Upgrade Speed",
+    Description = "Upgrade speed once with selected amount",
+    Callback = function()
+        pcall(function()
+            local args = { "Speed", speedUpgradeAmount }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Speed"):InvokeServer(unpack(args))
+            WindUI:Notify({
+                Title = "Speed",
+                Content = "Speed upgraded x" .. speedUpgradeAmount .. "!",
+                Icon = "zap",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+-- Upgrade Carry Button
+MainSection:Button({
+    Title = "Upgrade Carry",
+    Description = "Upgrade carry capacity",
+    Callback = function()
+        pcall(function()
+            local args = { "Carry" }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Carry"):InvokeServer(unpack(args))
+            WindUI:Notify({
+                Title = "Carry",
+                Content = "Carry upgraded!",
+                Icon = "package",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+-- Sell Held Tool Button
+MainSection:Button({
+    Title = "Sell Held Tool",
+    Description = "Sell one held item",
+    Callback = function()
+        pcall(function()
+            local args = { "SellOne" }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(args))
+            WindUI:Notify({
+                Title = "Sell",
+                Content = "Sold held tool!",
+                Icon = "dollar-sign",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+-- Sell Entire Inventory Button
+MainSection:Button({
+    Title = "Sell Entire Inventory",
+    Description = "Sell all items at once",
+    Callback = function()
+        pcall(function()
+            local args = { "SellAll" }
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(args))
+            WindUI:Notify({
+                Title = "Sell",
+                Content = "Sold entire inventory!",
+                Icon = "dollar-sign",
+                Duration = 2,
+            })
+        end)
+    end,
+})
+
+-- ================= UTILITIES SECTION =================
+local UtilitiesSection = MainTab:Section({
+    Title = "Utilities",
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Opened = true,
+})
+
+-- Infinite Jump Toggle
+UtilitiesSection:Toggle({
+    Title = "Infinite Jump",
+    Description = "Jump infinitely without cooldown",
+    Value = savedSettings.infJump,
+    Callback = function(state)
+        infJump = state
+        savedSettings.infJump = state
+        saveSettings(savedSettings)
+        
+        WindUI:Notify({
+            Title = "Infinite Jump",
+            Content = state and "Infinite Jump enabled!" or "Infinite Jump disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
+    end,
+})
+
+-- Infinite Jump Logic
+local UserInputService = game:GetService("UserInputService")
+UserInputService.JumpRequest:Connect(function()
+    if infJump then
+        local char = player.Character
+        if char and char:FindFirstChild("Humanoid") then
+            char.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+end)
+
+-- ================= AUTO TAB =================
+local AutoTab = Window:Tab({
+    Title = "Auto",
+    Icon = "lucide:bot",
+})
+
+local AutoSection = AutoTab:Section({
+    Title = "Automation Features",
+    TextXAlignment = Enum.TextXAlignment.Left,
+    Opened = true,
+})
+
+-- Speed Upgrade Amount Dropdown
+AutoSection:Dropdown({
+    Title = "Speed Upgrade Amount",
+    Description = "Select upgrade amount for auto speed",
+    List = { "1", "5", "10" },
+    Value = tostring(savedSettings.speedUpgradeAmount or 1),
+    Callback = function(value)
+        speedUpgradeAmount = tonumber(value)
+        savedSettings.speedUpgradeAmount = speedUpgradeAmount
+        saveSettings(savedSettings)
+    end,
+})
+
+-- Auto Upgrade Speed Toggle
+AutoSection:Toggle({
+    Title = "Auto Upgrade Speed",
+    Description = "Automatically upgrade speed continuously",
+    Value = savedSettings.autoUpgradeSpeed,
+    Callback = function(state)
+        autoUpgradeSpeed = state
+        savedSettings.autoUpgradeSpeed = state
+        saveSettings(savedSettings)
+        
+        WindUI:Notify({
+            Title = "Auto Upgrade Speed",
+            Content = state and "Auto Upgrade enabled!" or "Auto Upgrade disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
+    end,
+})
+
+-- Auto Sell Toggle
+AutoSection:Toggle({
+    Title = "Auto Sell All",
+    Description = "Automatically sell entire inventory continuously",
+    Value = savedSettings.autoSellAll,
+    Callback = function(state)
+        autoSellAll = state
+        savedSettings.autoSellAll = state
+        saveSettings(savedSettings)
+        
+        WindUI:Notify({
+            Title = "Auto Sell",
+            Content = state and "Auto Sell enabled!" or "Auto Sell disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
+    end,
+})
+
+-- Auto Farm Celestials Toggle
+AutoSection:Toggle({
+    Title = "Auto Farm Celestials",
+    Description = "Automatically farm Celestial brainrots (TP → Grab → Safezone)",
+    Value = savedSettings.autoFarmCelestials,
+    Callback = function(state)
+        autoFarmCelestials = state
+        savedSettings.autoFarmCelestials = state
+        saveSettings(savedSettings)
+        
+        WindUI:Notify({
+            Title = "Auto Farm Celestials",
+            Content = state and "Auto Farm enabled!" or "Auto Farm disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
+    end,
+})
+
+-- Auto Sell Loop
+task.spawn(function()
+    while task.wait(1) do
+        if autoSellAll then
+            pcall(function()
+                local args = { "SellAll" }
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(args))
+            end)
+        end
+    end
+end)
+
+-- Auto Upgrade Speed Loop
+task.spawn(function()
+    while task.wait(1) do
+        if autoUpgradeSpeed then
+            pcall(function()
+                local args = { "Speed", speedUpgradeAmount }
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Speed"):InvokeServer(unpack(args))
+            end)
+        end
+    end
+end)
+
+-- Auto Farm Celestials Loop
+task.spawn(function()
+    while task.wait(3) do -- Check every 3 seconds
+        if autoFarmCelestials then
+            pcall(function()
+                -- 1. TP to Celestial brainrots
+                local path = workspace:FindFirstChild("GameFolder")
+                if path then
+                    local celestial = path:FindFirstChild("Brainrots") and path.Brainrots:FindFirstChild("Celestial")
+                    if celestial then
+                        for _, obj in pairs(celestial:GetChildren()) do
+                            local root = obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("HumanoidRootPart")
+                            if root and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                player.Character.HumanoidRootPart.CFrame = root.CFrame
+                                task.wait(0.5) -- Wait for TP
+                                
+                                -- 2. Grab/interact (simulate long press E)
+                                for _, v in ipairs(workspace:GetDescendants()) do
+                                    if v:IsA("ProximityPrompt") and v.Enabled then
+                                        -- Temporarily set hold duration to 0 for instant grab
+                                        local originalDuration = v.HoldDuration
+                                        v.HoldDuration = 0
+                                        task.wait(0.1)
+                                        -- Trigger the prompt
+                                        fireproximityprompt(v)
+                                        task.wait(0.1)
+                                        v.HoldDuration = originalDuration
+                                    end
+                                end
+                                
+                                task.wait(0.5) -- Wait for grab
+                                
+                                -- 3. TP to safezone/Baseplate
+                                local baseplate = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Baseplate")
+                                if baseplate and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                                    player.Character.HumanoidRootPart.CFrame = baseplate.CFrame + Vector3.new(0, 5, 0)
+                                end
+                                
+                                break -- Only process first celestial found
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
