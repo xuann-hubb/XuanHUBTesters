@@ -41,6 +41,7 @@ local defaultSettings = {
     autoUpgradeSpeed = false,
     infJump = false,
     autoFarmCelestials = false,
+    removeVIPWalls = false,
 }
 
 local function loadSettings()
@@ -159,11 +160,13 @@ local speedUpgradeAmount = savedSettings.speedUpgradeAmount or 1
 local autoUpgradeSpeed = savedSettings.autoUpgradeSpeed or false
 local infJump = savedSettings.infJump or false
 local autoFarmCelestials = savedSettings.autoFarmCelestials or false
+local removeVIPWalls = savedSettings.removeVIPWalls or false
+local vipConn -- Connection for VIP wall removal
 
 -- Upgrade Base Button
 MainSection:Button({
     Title = "Upgrade Base",
-    Description = "Upgrade your base once",
+    Desc = "Upgrade your base once",
     Callback = function()
         pcall(function()
             game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Upgrade"):InvokeServer()
@@ -180,7 +183,7 @@ MainSection:Button({
 -- Upgrade Speed Button (one-time)
 MainSection:Button({
     Title = "Upgrade Speed",
-    Description = "Upgrade speed once with selected amount",
+    Desc = "Upgrade speed once with selected amount",
     Callback = function()
         pcall(function()
             local args = { "Speed", speedUpgradeAmount }
@@ -198,7 +201,7 @@ MainSection:Button({
 -- Upgrade Carry Button
 MainSection:Button({
     Title = "Upgrade Carry",
-    Description = "Upgrade carry capacity",
+    Desc = "Upgrade carry capacity",
     Callback = function()
         pcall(function()
             local args = { "Carry" }
@@ -216,7 +219,7 @@ MainSection:Button({
 -- Sell Held Tool Button
 MainSection:Button({
     Title = "Sell Held Tool",
-    Description = "Sell one held item",
+    Desc = "Sell one held item",
     Callback = function()
         pcall(function()
             local args = { "SellOne" }
@@ -234,7 +237,7 @@ MainSection:Button({
 -- Sell Entire Inventory Button
 MainSection:Button({
     Title = "Sell Entire Inventory",
-    Description = "Sell all items at once",
+    Desc = "Sell all items at once",
     Callback = function()
         pcall(function()
             local args = { "SellAll" }
@@ -249,6 +252,48 @@ MainSection:Button({
     end,
 })
 
+-- Remove VIP Walls Toggle
+MainSection:Toggle({
+    Title = "Remove VIP Walls",
+    Desc = "Automatically destroy VIP doors and walls",
+    Value = savedSettings.removeVIPWalls,
+    Callback = function(state)
+        removeVIPWalls = state
+        savedSettings.removeVIPWalls = state
+        saveSettings(savedSettings)
+        
+        if state then
+            -- Destroy existing VIP walls
+            for _, v in pairs(workspace:GetDescendants()) do
+                if v.Name == "VIPDoors" or v.Name == "VIPDoor" then 
+                    pcall(function() v:Destroy() end) 
+                end
+            end
+            -- Set up connection for new VIP walls
+            if not vipConn then
+                vipConn = workspace.DescendantAdded:Connect(function(v)
+                    if v.Name == "VIPDoors" or v.Name == "VIPDoor" then 
+                        pcall(function() v:Destroy() end) 
+                    end
+                end)
+            end
+        else
+            -- Disconnect the connection when disabled
+            if vipConn then 
+                vipConn:Disconnect() 
+                vipConn = nil 
+            end
+        end
+        
+        WindUI:Notify({
+            Title = "VIP Walls",
+            Content = state and "VIP walls will be removed!" or "VIP walls removal disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
+    end,
+})
+
 -- ================= UTILITIES SECTION =================
 local UtilitiesSection = MainTab:Section({
     Title = "Utilities",
@@ -258,7 +303,7 @@ local UtilitiesSection = MainTab:Section({
 -- Infinite Jump Toggle
 UtilitiesSection:Toggle({
     Title = "Infinite Jump",
-    Description = "Jump infinitely without cooldown",
+    Desc = "Jump infinitely without cooldown",
     Value = savedSettings.infJump,
     Callback = function(state)
         infJump = state
@@ -299,7 +344,7 @@ local AutoSection = AutoTab:Section({
 -- Speed Upgrade Amount Dropdown
 AutoSection:Dropdown({
     Title = "Speed Upgrade Amount",
-    Description = "Select upgrade amount for auto speed",
+    Desc = "Select upgrade amount for auto speed",
     List = { "1", "5", "10" },
     Value = tostring(savedSettings.speedUpgradeAmount or 1),
     Callback = function(value)
@@ -312,7 +357,7 @@ AutoSection:Dropdown({
 -- Auto Upgrade Speed Toggle
 AutoSection:Toggle({
     Title = "Auto Upgrade Speed",
-    Description = "Automatically upgrade speed continuously",
+    Desc = "Automatically upgrade speed continuously",
     Value = savedSettings.autoUpgradeSpeed,
     Callback = function(state)
         autoUpgradeSpeed = state
@@ -331,7 +376,7 @@ AutoSection:Toggle({
 -- Auto Sell Toggle
 AutoSection:Toggle({
     Title = "Auto Sell All",
-    Description = "Automatically sell entire inventory continuously",
+    Desc = "Automatically sell entire inventory continuously",
     Value = savedSettings.autoSellAll,
     Callback = function(state)
         autoSellAll = state
@@ -350,7 +395,7 @@ AutoSection:Toggle({
 -- Auto Farm Celestials Toggle
 AutoSection:Toggle({
     Title = "Auto Farm Celestials",
-    Description = "Automatically farm Celestial brainrots (TP → Grab → Safezone)",
+    Desc = "Automatically farm Celestial brainrots (TP → Grab → Safezone)",
     Value = savedSettings.autoFarmCelestials,
     Callback = function(state)
         autoFarmCelestials = state
@@ -406,17 +451,64 @@ task.spawn(function()
                                 player.Character.HumanoidRootPart.CFrame = root.CFrame
                                 task.wait(0.5) -- Wait for TP
                                 
-                                -- 2. Grab/interact (simulate long press E)
-                                for _, v in ipairs(workspace:GetDescendants()) do
-                                    if v:IsA("ProximityPrompt") and v.Enabled then
-                                        -- Temporarily set hold duration to 0 for instant grab
-                                        local originalDuration = v.HoldDuration
-                                        v.HoldDuration = 0
-                                        task.wait(0.1)
-                                        -- Trigger the prompt
-                                        fireproximityprompt(v)
-                                        task.wait(0.1)
-                                        v.HoldDuration = originalDuration
+                                -- 2. Grab/interact: pick nearest ProximityPrompt to the player under this celestial (fallback to nearby workspace prompts)
+                                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                                local function triggerPrompt(prompt)
+                                    if not prompt then return end
+                                    pcall(function()
+                                        local originalDuration = prompt.HoldDuration
+                                        prompt.HoldDuration = 0
+                                        task.wait(0.05)
+                                        fireproximityprompt(prompt)
+                                        task.wait(0.06)
+                                        prompt.HoldDuration = originalDuration
+                                    end)
+                                end
+
+                                if hrp then
+                                    local nearestPrompt = nil
+                                    local nearestDist = math.huge
+
+                                    -- search only inside the current celestial object first
+                                    for _, v2 in ipairs(obj:GetDescendants()) do
+                                        if v2:IsA("ProximityPrompt") and v2.Enabled then
+                                            local part = v2.Parent
+                                            local pos = nil
+                                            if part and part:IsA("BasePart") then
+                                                pos = part.Position
+                                            elseif v2.KeyCode then
+                                                -- fallback use prompt.Parent's position if possible
+                                                pos = (part and part:IsA("BasePart") and part.Position) or nil
+                                            end
+                                            if pos then
+                                                local d = (pos - hrp.Position).Magnitude
+                                                if d < nearestDist then
+                                                    nearestDist = d
+                                                    nearestPrompt = v2
+                                                end
+                                            end
+                                        end
+                                    end
+
+                                    -- if none found under the celestial, try nearby workspace prompts (within 15 studs)
+                                    if not nearestPrompt then
+                                        for _, v2 in ipairs(workspace:GetDescendants()) do
+                                            if v2:IsA("ProximityPrompt") and v2.Enabled then
+                                                local part = v2.Parent
+                                                local pos = (part and part:IsA("BasePart") and part.Position) or nil
+                                                if pos then
+                                                    local d = (pos - hrp.Position).Magnitude
+                                                    if d < nearestDist and d <= 15 then
+                                                        nearestDist = d
+                                                        nearestPrompt = v2
+                                                    end
+                                                end
+                                            end
+                                        end
+                                    end
+
+                                    if nearestPrompt then
+                                        triggerPrompt(nearestPrompt)
                                     end
                                 end
                                 
