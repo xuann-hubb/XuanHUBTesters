@@ -7,12 +7,23 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
--- When auto farming is active, auto-fire any proximity prompts that begin a hold (instant interact helper)
+-- track last-fire times per prompt to respect cooldowns
+local promptCooldowns = setmetatable({}, { __mode = "k" })
 local ppConn
 ppConn = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, _)
-    if prompt and prompt:IsA("ProximityPrompt") and autoFarmCelestials then
-        pcall(function() fireproximityprompt(prompt) end)
+    if not (prompt and prompt:IsA("ProximityPrompt") and autoFarmCelestials) then return end
+    local last = promptCooldowns[prompt] or 0
+    local now = tick()
+    if now - last < 3 then
+        return
     end
+    -- schedule immediate fire but record cooldown so it cannot be abused repeatedly
+    promptCooldowns[prompt] = now
+    pcall(function()
+        -- small delay to emulate natural hold timing
+        task.wait(0.15)
+        fireproximityprompt(prompt)
+    end)
 end)
 
 -- ================= LOAD WINDUI =================
@@ -88,6 +99,15 @@ local function saveSettings(settings)
 end
 
 local savedSettings = loadSettings()
+
+-- Helper: get the player's plot instance (returns Instance or nil)
+local function GetMyPlot()
+    local plotName = player and player:GetAttribute("Plot")
+    if not plotName or plotName == "" then return nil end
+    local gf = workspace:FindFirstChild("GameFolder")
+    local plots = gf and gf:FindFirstChild("Plots")
+    return plots and plots:FindFirstChild(plotName) or nil
+end
 
 -- ================= CREATE WINDUI WINDOW =================
 local Window = WindUI:CreateWindow({
@@ -300,6 +320,30 @@ MainSection:Toggle({
             Icon = state and "check" or "x",
             Duration = 2,
         })
+    end,
+})
+
+-- Teleport to My Plot Button
+MainSection:Button({
+    Title = "TP To My Plot",
+    Desc = "Teleport your character to your plot pivot",
+    Callback = function()
+        local plot = GetMyPlot()
+        if not plot then
+            pcall(function()
+                WindUI:Notify({ Title = "TP", Content = "No plot found (check your Plot attribute)", Icon = "alert-triangle", Duration = 2 })
+            end)
+            return
+        end
+
+        pcall(function()
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local pivot = plot:GetPivot()
+                -- match the original script's offset and orientation
+                player.Character:PivotTo(pivot * CFrame.new(0, 4, -10) * CFrame.Angles(0, math.pi, 0))
+                WindUI:Notify({ Title = "TP", Content = "Teleported to your plot", Icon = "check", Duration = 2 })
+            end
+        end)
     end,
 })
 
