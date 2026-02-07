@@ -511,8 +511,8 @@ task.spawn(function()
                                         triggerPrompt(nearestPrompt)
                                     end
                                 end
-                                
-                                task.wait(0.5) -- Wait for grab
+
+                                task.wait(2) -- Wait for grab/loot to complete (was 0.5s, increased to 2s)
                                 
                                 -- 3. TP to safezone/Baseplate
                                 local baseplate = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Baseplate")
