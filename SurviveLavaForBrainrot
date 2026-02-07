@@ -150,7 +150,6 @@ local MainTab = Window:Tab({
 
 local MainSection = MainTab:Section({
     Title = "Main Features",
-    TextXAlignment = Enum.TextXAlignment.Left,
     Opened = true,
 })
 
@@ -253,7 +252,6 @@ MainSection:Button({
 -- ================= UTILITIES SECTION =================
 local UtilitiesSection = MainTab:Section({
     Title = "Utilities",
-    TextXAlignment = Enum.TextXAlignment.Left,
     Opened = true,
 })
 
@@ -295,7 +293,6 @@ local AutoTab = Window:Tab({
 
 local AutoSection = AutoTab:Section({
     Title = "Automation Features",
-    TextXAlignment = Enum.TextXAlignment.Left,
     Opened = true,
 })
 
