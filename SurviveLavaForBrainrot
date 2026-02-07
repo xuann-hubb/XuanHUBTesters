@@ -7,23 +7,6 @@ local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 
--- track last-fire times per prompt to respect cooldowns
-local promptCooldowns = setmetatable({}, { __mode = "k" })
-local ppConn
-ppConn = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, _)
-    if not (prompt and prompt:IsA("ProximityPrompt") and autoFarmCelestials) then return end
-    local last = promptCooldowns[prompt] or 0
-    local now = tick()
-    if now - last < 1 then
-        return
-    end
-    -- schedule immediate fire but record cooldown so it cannot be abused repeatedly
-    promptCooldowns[prompt] = now
-    pcall(function()
-        task.wait(0.5)
-        fireproximityprompt(prompt)
-    end)
-end)
 
 -- ================= LOAD WINDUI =================
 local WindUI = loadstring(game:HttpGet(
