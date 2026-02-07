@@ -20,8 +20,8 @@ ppConn = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, _
     -- schedule immediate fire but record cooldown so it cannot be abused repeatedly
     promptCooldowns[prompt] = now
     pcall(function()
-        -- small delay to emulate natural hold timing
-        task.wait(0.15)
+        -- emulate a real hold: wait 5 seconds before firing
+        task.wait(0.5)
         fireproximityprompt(prompt)
     end)
 end)
@@ -502,22 +502,20 @@ task.spawn(function()
                             local root = obj:FindFirstChildWhichIsA("BasePart") or obj:FindFirstChild("HumanoidRootPart")
                             if root and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                                 player.Character.HumanoidRootPart.CFrame = root.CFrame
-                                task.wait(0.5) -- Wait for TP
+                                                task.wait(0.5) -- Wait for TP (increased to 7s)
                                 
                                 -- 2. Grab/interact: pick nearest ProximityPrompt to the player under this celestial (fallback to nearby workspace prompts)
                                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                                local function triggerPrompt(prompt)
-                                    if not prompt then return end
-                                    pcall(function()
-                                        local originalDuration = prompt.HoldDuration
-                                        prompt.HoldDuration = 0
-                                        task.wait(0.05)
-                                        fireproximityprompt(prompt)
-                                        task.wait(0.06)
-                                        prompt.HoldDuration = originalDuration
-                                    end)
-                                end
-
+                               local function triggerPrompt(prompt)
+    if not prompt then return end
+    pcall(function()
+        local originalDuration = prompt.HoldDuration
+        prompt.HoldDuration = 5
+        task.wait(5)
+        fireproximityprompt(prompt)
+        prompt.HoldDuration = originalDuration
+    end)
+end
                                 if hrp then
                                     local nearestPrompt = nil
                                     local nearestDist = math.huge
@@ -565,7 +563,7 @@ task.spawn(function()
                                     end
                                 end
 
-                                task.wait(2) -- Wait for grab/loot to complete (was 0.5s, increased to 2s)
+                                task.wait(7) -- Wait for grab/loot to complete (was 0.5s, increased to 2s)
                                 
                                 -- 3. TP to safezone/Baseplate
                                 local baseplate = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Baseplate")
