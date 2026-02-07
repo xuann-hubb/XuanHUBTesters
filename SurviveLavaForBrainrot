@@ -169,6 +169,7 @@ local MainSection = MainTab:Section({
     Opened = true,
 })
 
+MainTab:Select()
 -- Auto states
 local speedUpgradeAmount = savedSettings.speedUpgradeAmount or 1
 local autoUpgradeSpeed = savedSettings.autoUpgradeSpeed or false
@@ -197,7 +198,7 @@ MainSection:Button({
     end,
 })
 
-MainTab:Select()
+
 
 -- Upgrade Speed Button (one-time)
 MainSection:Button({
@@ -272,44 +273,17 @@ MainSection:Button({
 })
 
 -- Remove VIP Walls Toggle
-MainSection:Toggle({
-    Title = "Remove VIP Walls",
-    Desc = "Automatically destroy VIP doors and walls",
-    Value = savedSettings.removeVIPWalls,
-    Callback = function(state)
-        removeVIPWalls = state
-        savedSettings.removeVIPWalls = state
-        saveSettings(savedSettings)
-        
-        if state then
-            -- Destroy existing VIP walls
-            for _, v in pairs(workspace:GetDescendants()) do
-                if v.Name == "VIPDoors" or v.Name == "VIPDoor" then 
-                    pcall(function() v:Destroy() end) 
-                end
-            end
-            -- Set up connection for new VIP walls
-            if not vipConn then
-                vipConn = workspace.DescendantAdded:Connect(function(v)
-                    if v.Name == "VIPDoors" or v.Name == "VIPDoor" then 
-                        pcall(function() v:Destroy() end) 
-                    end
-                end)
-            end
-        else
-            -- Disconnect the connection when disabled
-            if vipConn then 
-                vipConn:Disconnect() 
-                vipConn = nil 
+-- Unlock VIP Walls (one-shot)
+MainSection:Button({
+    Title = "Unlock VIP Walls",
+    Desc = "Destroy VIP doors/walls (one-time)",
+    Callback = function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v.Name == "VIPDoors" or v.Name == "VIPDoor" then
+                pcall(function() v:Destroy() end)
             end
         end
-        
-        WindUI:Notify({
-            Title = "VIP Walls",
-            Content = state and "VIP walls will be removed!" or "VIP walls removal disabled",
-            Icon = state and "check" or "x",
-            Duration = 2,
-        })
+        WindUI:Notify({ Title = "VIP Walls", Content = "Removed existing VIP walls.", Icon = "check", Duration = 2 })
     end,
 })
 
@@ -541,11 +515,9 @@ task.spawn(function()
                                local function triggerPrompt(prompt)
     if not prompt then return end
     pcall(function()
-        local originalDuration = prompt.HoldDuration
-        prompt.HoldDuration = 5
-        task.wait(5)
+        -- fire the prompt immediately, then hold for 5 seconds
         fireproximityprompt(prompt)
-        prompt.HoldDuration = originalDuration
+        task.wait(5)
     end)
 end
                                 if hrp then
