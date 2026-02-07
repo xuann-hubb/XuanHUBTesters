@@ -156,7 +156,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
-MainTab:Select()
+
 
 -- ================= MAIN TAB =================
 local MainTab = Window:Tab({
@@ -196,6 +196,8 @@ MainSection:Button({
         end)
     end,
 })
+
+MainTab:Select()
 
 -- Upgrade Speed Button (one-time)
 MainSection:Button({
