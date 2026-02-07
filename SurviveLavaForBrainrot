@@ -5,6 +5,15 @@ local player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local ProximityPromptService = game:GetService("ProximityPromptService")
+
+-- When auto farming is active, auto-fire any proximity prompts that begin a hold (instant interact helper)
+local ppConn
+ppConn = ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, _)
+    if prompt and prompt:IsA("ProximityPrompt") and autoFarmCelestials then
+        pcall(function() fireproximityprompt(prompt) end)
+    end
+end)
 
 -- ================= LOAD WINDUI =================
 local WindUI = loadstring(game:HttpGet(
@@ -512,7 +521,7 @@ task.spawn(function()
                                     end
                                 end
 
-                                task.wait(5) -- Wait for grab/loot to complete (was 0.5s, increased to 2s)
+                                task.wait(2) -- Wait for grab/loot to complete (was 0.5s, increased to 2s)
                                 
                                 -- 3. TP to safezone/Baseplate
                                 local baseplate = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Baseplate")
