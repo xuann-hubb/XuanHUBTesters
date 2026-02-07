@@ -63,6 +63,10 @@ local defaultSettings = {
     autoCollectGoldBar = false,
     -- Money Obby Auto Complete
     autoCompleteMoneyObby = false,
+    -- Arcade Event
+    autoCollectGameConsole = false,
+    autoCollectArcadeTicket = false,
+    autoSpinArcadeWheel = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
     autoOpenLuckyBlockTarget = "Radioactive Block",
@@ -237,6 +241,9 @@ local autoObby = false
 local collectingMoney = false
 local autoCollectUFO = false
 local autoCollectGoldBar = false
+local autoCollectGameConsole = false
+local autoCollectArcadeTicket = false
+local autoSpinArcadeWheel = false
 -- Teleport-by-rarity (Tsunami)
 local autoTeleportByRarity = false
 local autoTeleportByRarityTarget = "Common"
@@ -621,6 +628,88 @@ task.spawn(function()
                 end
             end)
             task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Game Console (Arcade Event)
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectGameConsole then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local folder = workspace:FindFirstChild("ArcadeEventConsoles")
+                if not hrp or not folder then return end
+                local gameConsole = folder:FindFirstChild("Game Console")
+                if gameConsole then
+                    -- touch all BasePart descendants with TouchInterest
+                    for _, d in ipairs(gameConsole:GetDescendants()) do
+                        if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                            pcall(function() firetouchinterest(hrp, d, 0) end)
+                            task.wait()
+                            pcall(function() firetouchinterest(hrp, d, 1) end)
+                            task.wait(0.05)
+                        end
+                    end
+                end
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Collect Arcade Ticket
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectArcadeTicket then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local folder = workspace:FindFirstChild("ArcadeEventTickets")
+                if not hrp or not folder then return end
+                local ticket = folder:FindFirstChild("Ticket")
+                if ticket then
+                    -- navigate to Ticket.Ticket and touch it
+                    local ticketPart = ticket:FindFirstChild("Ticket")
+                    if ticketPart and ticketPart:IsA("BasePart") then
+                        pcall(function() firetouchinterest(hrp, ticketPart, 0) end)
+                        task.wait()
+                        pcall(function() firetouchinterest(hrp, ticketPart, 1) end)
+                        task.wait(0.05)
+                    else
+                        -- fallback: find any BasePart with TouchInterest under Ticket
+                        for _, d in ipairs(ticket:GetDescendants()) do
+                            if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                                pcall(function() firetouchinterest(hrp, d, 0) end)
+                                task.wait()
+                                pcall(function() firetouchinterest(hrp, d, 1) end)
+                                task.wait(0.05)
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0.2)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Spin Arcade Wheel Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSpinArcadeWheel then
+            pcall(function()
+                local args = { "Arcade", false }
+                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+            end)
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
         else
             task.wait(0.5)
         end
@@ -2051,6 +2140,45 @@ VIPWallsSection:Button({
     end
 })
 
+-- Unlock Arcade Map VIP Walls
+VIPWallsSection:Button({
+    Title = "Unlock Arcade Map VIP Walls",
+    Desc = "Disable Shield of Arcade Map VIP Walls",
+    Locked = false,
+    Callback = function()
+        local ok, err = pcall(function()
+            local arcadeMap = workspace:FindFirstChild("ArcadeMap_SharedInstances")
+            if not arcadeMap then
+                WindUI:Notify({ Title = "VIP Walls", Content = "Map not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            local walls = arcadeMap:FindFirstChild("VIPWalls")
+            if not walls then
+                WindUI:Notify({ Title = "VIP Walls", Content = "VIPWalls not found", Icon = "alert-triangle", Duration = 3 })
+                return
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
+            end
+
+            for _, v in pairs(walls:GetDescendants()) do
+                if v:IsA("TouchTransmitter") then
+                    v:Destroy()
+                end
+            end
+
+            WindUI:Notify({ Title = "VIP Walls", Content = "Arcade Map VIP Walls unlocked", Icon = "check", Duration = 3 })
+        end)
+        if not ok then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Failed to unlock: " .. tostring(err), Icon = "alert-triangle", Duration = 4 })
+        end
+    end
+})
+
 -- Utilities section (visible)
 local UtilitiesSection = BaseTab:Section({ Title = "Utilities", Opened = true, })
 
@@ -2489,6 +2617,45 @@ MoneySection:Toggle({
     end
 })
 
+-- Arcade Event Section
+local ArcadeSection = EventTab:Section({
+    Title = "Arcade Event",
+    Opened = true,
+})
+
+ArcadeSection:Toggle({
+    Title = "Auto Collect Game Console",
+    Desc = "Automatically collect from Game Console",
+    Value = savedSettings.autoCollectGameConsole,
+    Callback = function(state)
+        autoCollectGameConsole = state
+        savedSettings.autoCollectGameConsole = state
+        saveSettings(savedSettings)
+    end
+})
+
+ArcadeSection:Toggle({
+    Title = "Auto Collect Ticket",
+    Desc = "Automatically collect Arcade Tickets",
+    Value = savedSettings.autoCollectArcadeTicket,
+    Callback = function(state)
+        autoCollectArcadeTicket = state
+        savedSettings.autoCollectArcadeTicket = state
+        saveSettings(savedSettings)
+    end
+})
+
+ArcadeSection:Toggle({
+    Title = "Auto Spin Arcade Wheel",
+    Desc = "Automatically spin the Arcade wheel",
+    Value = savedSettings.autoSpinArcadeWheel,
+    Callback = function(state)
+        autoSpinArcadeWheel = state
+        savedSettings.autoSpinArcadeWheel = state
+        saveSettings(savedSettings)
+    end
+})
+
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
@@ -2657,132 +2824,58 @@ _G.XuanHub_OpenLuckyBlockNow = function(name)
     return true
 end
 
--- Background loop: equip matching Backpack tools and simulate click to open them
+-- Background loop: Auto Open Lucky Block (same logic as Auto Sell by Rarity)
 task.spawn(function()
-    local recentlyOpened = setmetatable({}, { __mode = "k" }) -- weak keys
     while scriptRunning do
-        if autoOpenLuckyBlock then
-            -- robustly run the auto-open sequence and surface any internal error with traceback
-            local ok, err = xpcall(function()
-                if not player or not player.Parent then return end
-                local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
-                if not matches or #matches == 0 then return end
+        if autoOpenLuckyBlock and autoOpenLuckyBlockTarget ~= "" then
+            pcall(function()
+                local backpack = player:FindFirstChild("Backpack")
+                local character = player.Character
+                if not backpack or not character then return end
 
-                local char = player.Character
-                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
-                for _, m in ipairs(matches) do
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then return end
+
+                -- Scan backpack for matching lucky blocks (using DisplayName attribute)
+                for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoOpenLuckyBlock then break end
-                    local tool = m.tool
-                    if not tool or not tool:IsA("Tool") then goto continue_tool end
 
-                    local last = recentlyOpened[tool] or 0
-                    if tick() - last < 1.5 then goto continue_tool end
+                    if tool:IsA("Tool") then
+                        -- Match by DisplayName attribute (fallback to tool.Name)
+                        local displayName = tool:GetAttribute("DisplayName") or tool.Name
+                        -- Normalize: strip trailing " Block" if present
+                        local normalizedDisplay = displayName:gsub(" Block$", "")
+                        local normalizedTarget = autoOpenLuckyBlockTarget:gsub(" Block$", "")
 
-                    -- attempt to equip (guarded)
-                    if humanoid and humanoid.IsA and humanoid.IsA(humanoid, "Humanoid") then
-                        local suc, why = pcall(function() humanoid:EquipTool(tool) end)
-                        if not suc then
-                            warn("[XuanHub] EquipTool failed:", tostring(why))
-                        end
-                    end
+                        if normalizedDisplay == normalizedTarget then
+                            -- Equip tool (same as Auto Sell)
+                            humanoid:EquipTool(tool)
+                            task.wait(0.15) -- short wait so game registers the equip
 
-                    -- wait up to 3s for equip (longer timeout for flaky loads)
-                    local startT = tick()
-                    while tick() - startT < 3 do
-                        if not autoOpenLuckyBlock then break end
-                        if tool.Parent == player.Character then break end
-                        task.wait(0.05)
-                    end
+                            -- Random screen click to open (same as executor pattern)
+                            pcall(function()
+                                local cam = workspace.CurrentCamera
+                                if cam and vu then
+                                    -- Random position on screen (viewport size)
+                                    local vpSize = cam.ViewportSize
+                                    local randomX = math.random(vpSize.X * 0.3, vpSize.X * 0.7)
+                                    local randomY = math.random(vpSize.Y * 0.3, vpSize.Y * 0.7)
+                                    local randomPos = Vector2.new(randomX, randomY)
 
-                    if tool.Parent == player.Character then
-                        -- follow the same equip/hold pattern as Auto Sell: equip -> short wait -> try multiple open attempts
-                        task.wait(0.15) -- match Auto Sell's small wait so game registers the equip
-
-                        local opened = false
-                        for attempt = 1, 4 do
-                            if not autoOpenLuckyBlock then break end
-
-                            -- 1) try Tool:Activate()
-                            if tool and type(tool.Activate) == "function" then
-                                local okA, aerr = pcall(function() tool:Activate() end)
-                                if okA then
-                                    opened = true
-                                    print("[XuanHub] AutoOpen: Tool:Activate succeeded (attempt)", attempt, tool.Name)
-                                    break
-                                else
-                                    warn("[XuanHub] AutoOpen: Tool:Activate failed:", tostring(aerr))
-                                end
-                            end
-
-                            -- 2) try VirtualUser click
-                            local okV, verr = pcall(function()
-                                local cam = workspace and workspace.CurrentCamera
-                                local virtual = (typeof(vu) ~= "nil") and vu or game:GetService("VirtualUser")
-                                if virtual and type(virtual.Button1Down) == "function" then
-                                    virtual:Button1Down(Vector2.new(0, 0), cam and cam.CFrame)
-                                    task.wait(0.04)
-                                    virtual:Button1Up(Vector2.new(0, 0), cam and cam.CFrame)
-                                    return true
-                                end
-                                return false
-                            end)
-                            if okV and verr then
-                                opened = true
-                                print("[XuanHub] AutoOpen: VirtualUser click succeeded (attempt)", attempt, tool.Name)
-                                break
-                            elseif not okV then
-                                warn("[XuanHub] AutoOpen: VirtualUser attempt failed:", tostring(verr))
-                            end
-
-                            -- 3) try touch on Handle (fallback)
-                            local okT, terr = pcall(function()
-                                local h = tool:FindFirstChild("Handle")
-                                if h and h:IsA("BasePart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                                    firetouchinterest(player.Character.HumanoidRootPart, h, 0)
+                                    vu:Button1Down(randomPos, cam.CFrame)
                                     task.wait(0.05)
-                                    firetouchinterest(player.Character.HumanoidRootPart, h, 1)
-                                    return true
+                                    vu:Button1Up(randomPos, cam.CFrame)
                                 end
-                                return false
                             end)
-                            if okT and terr then
-                                opened = true
-                                print("[XuanHub] AutoOpen: touch fallback succeeded (attempt)", attempt, tool.Name)
-                                break
-                            elseif not okT then
-                                warn("[XuanHub] AutoOpen: touch fallback error:", tostring(terr))
-                            end
 
-                            task.wait(0.12)
+                            task.wait(0.2) -- cooldown between opens
+                            
+                            print("[XuanHub] Auto-opened Lucky Block:", displayName)
                         end
-
-                        -- keep the item equipped (track & hold like Auto Sell does)
-                        recentlyOpened[tool] = tick()
-
-                        if opened then
-                            WindUI:Notify({ Title = "Lucky Block", Content = "Opened: " .. tostring(m.display), Icon = "check", Duration = 2 })
-                            print("[XuanHub] AutoOpen: opened tool=", tool.Name, "display=", tostring(m.display))
-                        else
-                            WindUI:Notify({ Title = "Lucky Block", Content = "Attempted open (not confirmed): " .. tostring(m.display), Icon = "info", Duration = 3 })
-                            warn("[XuanHub] AutoOpen: attempts exhausted for tool=", tostring(tool and tool.Name))
-                        end
-
-                        task.wait(0.25)
-                    else
-                        warn("[XuanHub] equip timeout or equip failed for tool:", tostring(tool and tool.Name))
                     end
-                    ::continue_tool::
                 end
-            end, function(e) return debug.traceback(e) end)
-
-            if not ok then
-                warn("[XuanHub] AutoOpenLuckyBlock runtime error:\n", err)
-                pcall(function()
-                    WindUI:Notify({ Title = "AutoOpen", Content = "Error — check console (see traceback)", Icon = "alert-triangle", Duration = 4 })
-                end)
-            end
-
-            task.wait(0.8)
+            end)
+            task.wait(1)
         else
             task.wait(1)
         end
