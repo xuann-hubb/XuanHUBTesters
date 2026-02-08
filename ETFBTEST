@@ -668,18 +668,16 @@ task.spawn(function()
                 if not hrp then return end
                 local folder = workspace:FindFirstChild("ArcadeEventConsoles")
                 if not folder then return end
-                local children = folder:GetChildren()
-                for i = 2, math.min(20, #children) do
-                    if children[i] then
-                        local gameConsolePart = children[i]:FindFirstChild("Game Console")
+                
+                -- Collect from all children at once
+                for _, child in ipairs(folder:GetChildren()) do
+                    pcall(function()
+                        local gameConsolePart = child:FindFirstChild("Game Console")
                         if gameConsolePart and gameConsolePart:IsA("BasePart") then
-                            pcall(function() 
-                                firetouchinterest(hrp, gameConsolePart, 0)
-                                firetouchinterest(hrp, gameConsolePart, 1)
-                            end)
-                            task.wait(0.01)
+                            firetouchinterest(hrp, gameConsolePart, 0)
+                            firetouchinterest(hrp, gameConsolePart, 1)
                         end
-                    end
+                    end)
                 end
             end)
             task.wait(0.05)
@@ -698,18 +696,16 @@ task.spawn(function()
                 if not hrp then return end
                 local folder = workspace:FindFirstChild("ArcadeEventTickets")
                 if not folder then return end
-                local children = folder:GetChildren()
-                for i = 2, math.min(20, #children) do
-                    if children[i] then
-                        local ticketPart = children[i]:FindFirstChild("ticket")
+                
+                -- Collect from all children at once
+                for _, child in ipairs(folder:GetChildren()) do
+                    pcall(function()
+                        local ticketPart = child:FindFirstChild("ticket") or child:FindFirstChild("Ticket")
                         if ticketPart and ticketPart:IsA("BasePart") then
-                            pcall(function() 
-                                firetouchinterest(hrp, ticketPart, 0)
-                                firetouchinterest(hrp, ticketPart, 1)
-                            end)
-                            task.wait(0.01)
+                            firetouchinterest(hrp, ticketPart, 0)
+                            firetouchinterest(hrp, ticketPart, 1)
                         end
-                    end
+                    end)
                 end
             end)
             task.wait(0.05)
