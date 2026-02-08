@@ -243,8 +243,7 @@ local AboutTab = Window:Tab({
     Locked = false,
 })
 
--- Set Base tab as default
-BaseTab:Select()
+
 
 -- ================= FUNCTIONALITY LOGIC =================
 
@@ -2699,7 +2698,7 @@ AutoSection:Dropdown({
         "All",
         "Radioactive Block","UFO Block","Money Block","Jackpot Block","Alien Block","Admin Block",
         "Common Block","Uncommon Block","Rare Block","Epic Block","Legendary Block","Mythical Block",
-        "Cosmic Block","Secret Block","Celestial Block","Divine Block","Infinity Block"
+        "Cosmic Block","Secret Block","Celestial Block","Divine Block","Infinity Block","Arcade Block","Gamer Block"
     },
     Value = tostring(savedSettings.autoOpenLuckyBlockTarget or "Radioactive Block"),
     Multi = false,
@@ -3345,6 +3344,8 @@ else
     })
 end
 
+-- Set Base tab as default
+AboutTab:Select()
 -- ================= FINALIZE =================
 WindUI:Notify({
     Title = "Xuan Hub Loaded",
