@@ -575,18 +575,40 @@ local function _collectCoinsFromSources(opts)
     end
 end
 
--- Auto Collect UFO (now uses generic collector)
+-- Auto Collect UFO
 task.spawn(function()
     while scriptRunning do
         if autoCollectUFO then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                _collectCoinsFromSources({
-                    rootPart = hrp,
-                    folderCandidates = { "UFOEventParts", "UFQEventParts" },
-                    nameMatchers = { "ufo coin", "ufo" },
-                    delayBetween = 0.01,
-                })
+                local folder = workspace:FindFirstChild("UFOEventParts") or workspace:FindFirstChild("UFQEventParts")
+                if not hrp or not folder then return end
+                
+                for _, coin in ipairs(folder:GetChildren()) do
+                    if coin.Name:lower():find("coin") or coin.Name:lower():find("ufo") then
+                        -- prefer the 'Hitbox' or 'hitbox' part
+                        local hitboxPart = coin:FindFirstChild("Hitbox") or coin:FindFirstChild("hitbox")
+                        if hitboxPart and hitboxPart:IsA("BasePart") then
+                            pcall(function() 
+                                firetouchinterest(hrp, hitboxPart, 0)
+                                firetouchinterest(hrp, hitboxPart, 1)
+                            end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(coin:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                                    pcall(function() 
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
             end)
             task.wait(0.05)
         else
@@ -595,20 +617,39 @@ task.spawn(function()
     end
 end)
 
--- Auto Collect Radioactive (reuses the same collector logic)
+-- Auto Collect Radioactive
 task.spawn(function()
     while scriptRunning do
-        if autoCollectRadioactive then -- `autoCollectRadioactive` is toggled by the Auto Collect Radioactive UI
+        if autoCollectRadioactive then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                -- prefer the new shared-instances root, then fallback to common folder names
-                local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
-                if rms then
-                    -- search the shared root for coin-like parts
-                    _collectCoinsFromSources({ rootPart = hrp, rootModel = rms, nameMatchers = { "radioactive coin", "radioactive", "RadioactiveMap" }, delayBetween = 0.01 })
-                else
-                    -- fallback folder names (keeps compatibility)
-                    _collectCoinsFromSources({ rootPart = hrp, folderCandidates = { "RadioactiveEventParts", "RadioactiveCoins", "MapVariants" }, nameMatchers = { "radioactive" }, delayBetween = 0.01 })
+                local folder = workspace:FindFirstChild("RadioactiveEventParts")
+                if not hrp or not folder then return end
+                
+                for _, coin in ipairs(folder:GetChildren()) do
+                    if coin.Name:lower():find("coin") or coin.Name == "coins" then
+                        -- prefer the 'hitbox' part
+                        local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
+                        if hitboxPart and hitboxPart:IsA("BasePart") then
+                            pcall(function() 
+                                firetouchinterest(hrp, hitboxPart, 0)
+                                firetouchinterest(hrp, hitboxPart, 1)
+                            end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(coin:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                                    pcall(function() 
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
+                        end
+                    end
                 end
             end)
             task.wait(0.05)
@@ -665,19 +706,33 @@ task.spawn(function()
         if autoCollectGameConsole then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
                 local folder = workspace:FindFirstChild("ArcadeEventConsoles")
-                if not folder then return end
+                if not hrp or not folder then return end
                 
-                -- Collect from all children at once
-                for _, child in ipairs(folder:GetChildren()) do
-                    pcall(function()
-                        local gameConsolePart = child:FindFirstChild("Game Console")
-                        if gameConsolePart and gameConsolePart:IsA("BasePart") then
-                            firetouchinterest(hrp, gameConsolePart, 0)
-                            firetouchinterest(hrp, gameConsolePart, 1)
+                for _, gc in ipairs(folder:GetChildren()) do
+                    if gc.Name == "Game Console" or gc.Name:lower():find("console") then
+                        -- prefer the 'Game Console' part
+                        local consolePart = gc:FindFirstChild("Game Console")
+                        if consolePart and consolePart:IsA("BasePart") then
+                            pcall(function() 
+                                firetouchinterest(hrp, consolePart, 0)
+                                firetouchinterest(hrp, consolePart, 1)
+                            end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(gc:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("console") or d.Name:lower():find("game")) then
+                                    pcall(function() 
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
-                    end)
+                    end
                 end
             end)
             task.wait(0.05)
@@ -693,19 +748,33 @@ task.spawn(function()
         if autoCollectArcadeTicket then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
                 local folder = workspace:FindFirstChild("ArcadeEventTickets")
-                if not folder then return end
+                if not hrp or not folder then return end
                 
-                -- Collect from all children at once
-                for _, child in ipairs(folder:GetChildren()) do
-                    pcall(function()
-                        local ticketPart = child:FindFirstChild("ticket") or child:FindFirstChild("Ticket")
+                for _, tk in ipairs(folder:GetChildren()) do
+                    if tk.Name == "Ticket" or tk.Name:lower():find("ticket") then
+                        -- prefer the 'Ticket' part
+                        local ticketPart = tk:FindFirstChild("Ticket") or tk:FindFirstChild("ticket")
                         if ticketPart and ticketPart:IsA("BasePart") then
-                            firetouchinterest(hrp, ticketPart, 0)
-                            firetouchinterest(hrp, ticketPart, 1)
+                            pcall(function() 
+                                firetouchinterest(hrp, ticketPart, 0)
+                                firetouchinterest(hrp, ticketPart, 1)
+                            end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(tk:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("ticket")) then
+                                    pcall(function() 
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
-                    end)
+                    end
                 end
             end)
             task.wait(0.05)
