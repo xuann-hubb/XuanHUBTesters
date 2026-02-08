@@ -661,15 +661,11 @@ task.spawn(function()
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                local folder = workspace:FindFirstChild("ArcadeEventConsoles")
-                if not folder then return end
-                local gameConsole = folder:FindFirstChild("Game Console")
-                if not gameConsole then return end
-                local gameConsolePart = gameConsole:FindFirstChild("Game Console")
-                if gameConsolePart and gameConsolePart:IsA("BasePart") then
-                    pcall(function() firetouchinterest(hrp, gameConsolePart, 0) end)
+                local gameConsolePart = workspace.ArcadeEventConsoles["Game Console"]["Game Console"].TouchInterest
+                if gameConsolePart and gameConsolePart.Parent then
+                    pcall(function() firetouchinterest(hrp, gameConsolePart.Parent, 0) end)
                     task.wait()
-                    pcall(function() firetouchinterest(hrp, gameConsolePart, 1) end)
+                    pcall(function() firetouchinterest(hrp, gameConsolePart.Parent, 1) end)
                     task.wait(0.05)
                 end
             end)
