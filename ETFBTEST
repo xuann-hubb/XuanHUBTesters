@@ -585,7 +585,7 @@ task.spawn(function()
                 if not hrp or not folder then return end
                 
                 for _, coin in ipairs(folder:GetChildren()) do
-                    if coin.Name:lower():find("coin") or coin.Name:lower():find("ufo") then
+                    if coin.Name == "UFO Coin" or coin.Name:lower():find("coin") or coin.Name:lower():find("ufo") then
                         -- prefer the 'Hitbox' or 'hitbox' part
                         local hitboxPart = coin:FindFirstChild("Hitbox") or coin:FindFirstChild("hitbox")
                         if hitboxPart and hitboxPart:IsA("BasePart") then
@@ -627,7 +627,7 @@ task.spawn(function()
                 if not hrp or not folder then return end
                 
                 for _, coin in ipairs(folder:GetChildren()) do
-                    if coin.Name:lower():find("coin") or coin.Name == "coins" then
+                    if coin.Name == "Radioactive Coin" or coin.Name:lower():find("coin") or coin.Name == "coins" then
                         -- prefer the 'hitbox' part
                         local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
                         if hitboxPart and hitboxPart:IsA("BasePart") then
