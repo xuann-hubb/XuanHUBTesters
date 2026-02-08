@@ -191,6 +191,21 @@ end)
 
 -- ================= TABS =================
 
+-- Helper function for gradient text
+local function gradient(text, colorFrom, colorTo)
+    local result = ""
+    local len = #text
+    for i = 1, len do
+        local ratio = (i - 1) / math.max(len - 1, 1)
+        local r = colorFrom.R + (colorTo.R - colorFrom.R) * ratio
+        local g = colorFrom.G + (colorTo.G - colorFrom.G) * ratio
+        local b = colorFrom.B + (colorTo.B - colorFrom.B) * ratio
+        local color = Color3.new(r, g, b)
+        local hex = string.format("#%02x%02x%02x", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+        result = result .. string.format('<font color="%s">%s</font>', hex, text:sub(i, i))
+    end
+    return result
+end
 
 local BaseTab = Window:Tab({
     Title = "Main",
@@ -219,6 +234,12 @@ local TsunamiTab = Window:Tab({
 local MiscTab = Window:Tab({
     Title = "Settings",
     Icon = "settings",
+    Locked = false,
+})
+
+local AboutTab = Window:Tab({
+    Title = "About",
+    Icon = "lucide:notebook-text",
     Locked = false,
 })
 
@@ -3255,6 +3276,89 @@ task.spawn(function()
         Window:ToggleTransparency()
     end
 end)
+
+-- ================= ABOUT TAB =================
+local DiscordTitle = AboutTab:Paragraph({
+    Title = gradient("Discord", Color3.fromHex("#25fa00"), Color3.fromHex("#25fa00")),
+    TextXAlignment = "Center",
+    TextSize = 17,
+})
+
+AboutTab:Divider()
+
+local InviteCode = "kaydensdens"
+local DiscordAPI = ("https://discord.com/api/v10/invites/%s?with_counts=true&with_expiration=true"):format(InviteCode)
+
+local function GetDiscordData()
+    local success, result = pcall(function()
+        local response = WindUI.Creator.Request({
+            Url = DiscordAPI,
+            Method = "GET",
+            Headers = {
+                ["User-Agent"] = "RobloxBot/1.0",
+                ["Accept"] = "application/json"
+            }
+        })
+        return HttpService:JSONDecode(response.Body)
+    end)
+    return success, result
+end
+
+local success, result = GetDiscordData()
+
+if success and result and result.guild then
+    local DiscordInfo = AboutTab:Paragraph({
+        Title = result.guild.name or "Unknown Server",
+        Desc = string.format(
+            ' <font color="#52525b">•</font> Member Count : %d\n <font color="#16a34a">•</font> Online Count : %d',
+            result.approximate_member_count or 0,
+            result.approximate_presence_count or 0
+        ),
+        Image = string.format(
+            "https://cdn.discordapp.com/icons/%s/%s.png?size=1024",
+            result.guild.id,
+            result.guild.icon
+        ),
+        ImageSize = 42,
+    })
+
+    AboutTab:Button({
+        Title = "Update Info",
+        Callback = function()
+            local updated, updatedResult = GetDiscordData()
+            if updated and updatedResult and updatedResult.guild then
+                DiscordInfo:SetDesc(string.format(
+                    ' <font color="#52525b">•</font> Member Count : %d\n <font color="#16a34a">•</font> Online Count : %d',
+                    updatedResult.approximate_member_count or 0,
+                    updatedResult.approximate_presence_count or 0
+                ))
+            else
+                warn("Failed to update Discord data:", updatedResult)
+            end
+        end
+    })
+
+    AboutTab:Button({
+        Title = "Copy Discord Invite",
+        Callback = function()
+            if setclipboard then
+                setclipboard("https://discord.gg/" .. InviteCode)
+                WindUI:Notify({ Title = "Discord", Content = "Invite link copied!", Icon = "check", Duration = 2 })
+            else
+                warn("setclipboard() not available in this environment.")
+                WindUI:Notify({ Title = "Discord", Content = "Clipboard not supported", Icon = "alert-triangle", Duration = 2 })
+            end
+        end
+    })
+else
+    AboutTab:Paragraph({
+        Title = "Error fetching Discord Info",
+        Desc = HttpService:JSONEncode(result or {error = "Unknown error"}),
+        Image = "triangle-alert",
+        ImageSize = 26,
+        Color = "Red",
+    })
+end
 
 -- ================= FINALIZE =================
 WindUI:Notify({
