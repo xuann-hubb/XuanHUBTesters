@@ -2768,8 +2768,13 @@ local AutoCollectMoneyToggle = AutoSection:Toggle({
     end
 })
 
+AutoSection:Space()
+
+-- ================= LUCKY BLOCK SECTION =================
+local LuckyBlockSection = AutoTab:Section({ Title = "Lucky Block", Opened = true, })
+
 -- Auto Open Lucky Block (select & auto-open a lucky block from Backpack)
-AutoSection:Dropdown({
+LuckyBlockSection:Dropdown({
     Title = "Lucky Block to Open",
     Desc = "Select which Lucky Block to auto-open from your Backpack",
     Values = {
@@ -2789,7 +2794,7 @@ AutoSection:Dropdown({
     end,
 })
 
-AutoSection:Toggle({
+LuckyBlockSection:Toggle({
     Title = "Auto Open Lucky Block",
     Desc = "Automatically equip & open matching Lucky Blocks from your Backpack",
     Value = savedSettings.autoOpenLuckyBlock,
@@ -2801,7 +2806,7 @@ AutoSection:Toggle({
     end
 })
 
-AutoSection:Slider({
+LuckyBlockSection:Slider({
     Title = "Open delay (s)",
     Desc = "Delay after equipping before attempting to open the block",
     Step = 0.1,
@@ -3012,8 +3017,11 @@ local AutoRebirthToggle = AutoSection:Toggle({
 
 AutoSection:Space()
 
+-- ================= BRAINROT SECTION =================
+local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
+
 -- Auto Sell by Rarity Dropdown
-AutoSection:Dropdown({
+BrainrotSection:Dropdown({
     Title = "Select Rarities to Sell",
     Desc = "Choose which rarities to auto-sell",
     Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
@@ -3038,7 +3046,7 @@ AutoSection:Dropdown({
 })
 
 -- Auto Sell by Rarity Toggle
-AutoSection:Toggle({
+BrainrotSection:Toggle({
     Title = "Auto Sell by Rarity",
     Desc = "Automatically sell selected rarities",
     Value = savedSettings.autoSellByRarity,
