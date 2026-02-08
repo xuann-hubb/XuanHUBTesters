@@ -640,19 +640,17 @@ task.spawn(function()
         if autoCollectGameConsole then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
                 local folder = workspace:FindFirstChild("ArcadeEventConsoles")
-                if not hrp or not folder then return end
+                if not folder then return end
                 local gameConsole = folder:FindFirstChild("Game Console")
-                if gameConsole then
-                    -- touch all BasePart descendants with TouchInterest
-                    for _, d in ipairs(gameConsole:GetDescendants()) do
-                        if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
-                            pcall(function() firetouchinterest(hrp, d, 0) end)
-                            task.wait()
-                            pcall(function() firetouchinterest(hrp, d, 1) end)
-                            task.wait(0.05)
-                        end
-                    end
+                if not gameConsole then return end
+                local gameConsolePart = gameConsole:FindFirstChild("Game Console")
+                if gameConsolePart and gameConsolePart:IsA("BasePart") then
+                    pcall(function() firetouchinterest(hrp, gameConsolePart, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(hrp, gameConsolePart, 1) end)
+                    task.wait(0.05)
                 end
             end)
             task.wait(0.2)
@@ -668,28 +666,17 @@ task.spawn(function()
         if autoCollectArcadeTicket then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
                 local folder = workspace:FindFirstChild("ArcadeEventTickets")
-                if not hrp or not folder then return end
+                if not folder then return end
                 local ticket = folder:FindFirstChild("Ticket")
-                if ticket then
-                    -- navigate to Ticket.Ticket and touch it
-                    local ticketPart = ticket:FindFirstChild("Ticket")
-                    if ticketPart and ticketPart:IsA("BasePart") then
-                        pcall(function() firetouchinterest(hrp, ticketPart, 0) end)
-                        task.wait()
-                        pcall(function() firetouchinterest(hrp, ticketPart, 1) end)
-                        task.wait(0.05)
-                    else
-                        -- fallback: find any BasePart with TouchInterest under Ticket
-                        for _, d in ipairs(ticket:GetDescendants()) do
-                            if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
-                                pcall(function() firetouchinterest(hrp, d, 0) end)
-                                task.wait()
-                                pcall(function() firetouchinterest(hrp, d, 1) end)
-                                task.wait(0.05)
-                            end
-                        end
-                    end
+                if not ticket then return end
+                local ticketPart = ticket:FindFirstChild("Ticket")
+                if ticketPart and ticketPart:IsA("BasePart") then
+                    pcall(function() firetouchinterest(hrp, ticketPart, 0) end)
+                    task.wait()
+                    pcall(function() firetouchinterest(hrp, ticketPart, 1) end)
+                    task.wait(0.05)
                 end
             end)
             task.wait(0.2)
@@ -2688,6 +2675,7 @@ AutoSection:Dropdown({
     Title = "Lucky Block to Open",
     Desc = "Select which Lucky Block to auto-open from your Backpack",
     Values = {
+        "All",
         "Radioactive Block","UFO Block","Money Block","Jackpot Block","Alien Block","Admin Block",
         "Common Block","Uncommon Block","Rare Block","Epic Block","Legendary Block","Mythical Block",
         "Cosmic Block","Secret Block","Celestial Block","Divine Block","Infinity Block"
@@ -2786,24 +2774,6 @@ local function scanBackpackForLuckyBlock(target)
     return out
 end
 
--- UI: Scan Backpack now (reports matches in UI + console)
-AutoSection:Button({
-    Title = "Scan Lucky Block (Backpack)",
-    Desc = "Find tools in Backpack whose Attributes.DisplayName matches the dropdown",
-    Callback = function()
-        local matches = scanBackpackForLuckyBlock(autoOpenLuckyBlockTarget)
-        if not matches or #matches == 0 then
-            WindUI:Notify({ Title = "Auto Open", Content = "No matching Lucky Blocks found", Icon = "info", Duration = 3 })
-            print("[XuanHub] ScanLuckyBlock: no matches for", tostring(autoOpenLuckyBlockTarget))
-            return
-        end
-        WindUI:Notify({ Title = "Auto Open", Content = tostring(#matches) .. " match(es) — check console", Icon = "check", Duration = 4 })
-        for i, m in ipairs(matches) do
-            print(string.format("[XuanHub] Match %d: tool.Name=%s, DisplayName=%s, equipped=%s", i, tostring(m.name), tostring(m.display), tostring(m.equipped)))
-        end
-    end,
-})
-
 -- Console helper: scan Backpack for matching lucky block tools
 _G.XuanHub_ScanLuckyBlockBackpack = function(name)
     local ok, res = pcall(function() return scanBackpackForLuckyBlock(name or autoOpenLuckyBlockTarget) end)
@@ -2843,11 +2813,20 @@ task.spawn(function()
                     if tool:IsA("Tool") then
                         -- Match by DisplayName attribute (fallback to tool.Name)
                         local displayName = tool:GetAttribute("DisplayName") or tool.Name
-                        -- Normalize: strip trailing " Block" if present
-                        local normalizedDisplay = displayName:gsub(" Block$", "")
-                        local normalizedTarget = autoOpenLuckyBlockTarget:gsub(" Block$", "")
+                        local shouldOpen = false
 
-                        if normalizedDisplay == normalizedTarget then
+                        -- Check if we should open this block
+                        if autoOpenLuckyBlockTarget == "All" then
+                            -- Open any tool that has "Block" in its display name
+                            shouldOpen = displayName:find("Block") ~= nil
+                        else
+                            -- Normalize: strip trailing " Block" if present
+                            local normalizedDisplay = displayName:gsub(" Block$", "")
+                            local normalizedTarget = autoOpenLuckyBlockTarget:gsub(" Block$", "")
+                            shouldOpen = normalizedDisplay == normalizedTarget
+                        end
+
+                        if shouldOpen then
                             -- Equip tool (same as Auto Sell)
                             humanoid:EquipTool(tool)
                             task.wait(0.15) -- short wait so game registers the equip
