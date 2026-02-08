@@ -3280,6 +3280,7 @@ end)
 -- ================= ABOUT TAB =================
 local DiscordTitle = AboutTab:Paragraph({
     Title = gradient("Discord", Color3.fromHex("#25fa00"), Color3.fromHex("#25fa00")),
+    Desc = "Join our Discord for updates, giveaways, questions, support and more!",
     TextXAlignment = "Center",
     TextSize = 17,
 })
@@ -3320,22 +3321,6 @@ if success and result and result.guild then
             result.guild.icon
         ),
         ImageSize = 42,
-    })
-
-    AboutTab:Button({
-        Title = "Update Info",
-        Callback = function()
-            local updated, updatedResult = GetDiscordData()
-            if updated and updatedResult and updatedResult.guild then
-                DiscordInfo:SetDesc(string.format(
-                    ' <font color="#52525b">•</font> Member Count : %d\n <font color="#16a34a">•</font> Online Count : %d',
-                    updatedResult.approximate_member_count or 0,
-                    updatedResult.approximate_presence_count or 0
-                ))
-            else
-                warn("Failed to update Discord data:", updatedResult)
-            end
-        end
     })
 
     AboutTab:Button({
