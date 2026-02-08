@@ -259,6 +259,7 @@ local active = false
 local spinning = false
 local autoObby = false
 local collectingMoney = false
+local autoCollectRadioactive = false
 local autoCollectUFO = false
 local autoCollectGoldBar = false
 local autoCollectGameConsole = false
@@ -539,9 +540,10 @@ local function _collectCoinsFromSources(opts)
             if ok and matchesName(cname) then
                 local hitbox = coin:FindFirstChild("Hitbox") or coin:FindFirstChildWhichIsA("BasePart")
                 if hitbox and hitbox:IsA("BasePart") then
-                    pcall(function() firetouchinterest(rootPart, hitbox, 0) end)
-                    task.wait()
-                    pcall(function() firetouchinterest(rootPart, hitbox, 1) end)
+                    pcall(function() 
+                        firetouchinterest(rootPart, hitbox, 0)
+                        firetouchinterest(rootPart, hitbox, 1)
+                    end)
                     task.wait(delayBetween)
                 end
             end
@@ -562,9 +564,10 @@ local function _collectCoinsFromSources(opts)
             if d:IsA("BasePart") then
                 local ok, nm = pcall(function() return d.Name end)
                 if ok and (matchesName(nm) or d:FindFirstChild("TouchInterest") or d:FindFirstChildOfClass("TouchTransmitter")) then
-                    pcall(function() firetouchinterest(rootPart, d, 0) end)
-                    task.wait()
-                    pcall(function() firetouchinterest(rootPart, d, 1) end)
+                    pcall(function() 
+                        firetouchinterest(rootPart, d, 0)
+                        firetouchinterest(rootPart, d, 1)
+                    end)
                     task.wait(delayBetween)
                 end
             end
@@ -582,10 +585,10 @@ task.spawn(function()
                     rootPart = hrp,
                     folderCandidates = { "UFOEventParts", "UFQEventParts" },
                     nameMatchers = { "ufo coin", "ufo" },
-                    delayBetween = 0.05,
+                    delayBetween = 0.01,
                 })
             end)
-            task.wait(0.2)
+            task.wait(0.05)
         else
             task.wait(0.5)
         end
@@ -595,20 +598,20 @@ end)
 -- Auto Collect Radioactive (reuses the same collector logic)
 task.spawn(function()
     while scriptRunning do
-        if active then -- `active` is toggled by the Auto Collect Radioactive UI
+        if autoCollectRadioactive then -- `autoCollectRadioactive` is toggled by the Auto Collect Radioactive UI
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 -- prefer the new shared-instances root, then fallback to common folder names
                 local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
                 if rms then
                     -- search the shared root for coin-like parts
-                    _collectCoinsFromSources({ rootPart = hrp, rootModel = rms, nameMatchers = { "radioactive coin", "radioactive", "RadioactiveMap" }, delayBetween = 0.05 })
+                    _collectCoinsFromSources({ rootPart = hrp, rootModel = rms, nameMatchers = { "radioactive coin", "radioactive", "RadioactiveMap" }, delayBetween = 0.01 })
                 else
                     -- fallback folder names (keeps compatibility)
-                    _collectCoinsFromSources({ rootPart = hrp, folderCandidates = { "RadioactiveEventParts", "RadioactiveCoins", "MapVariants" }, nameMatchers = { "radioactive" }, delayBetween = 0.05 })
+                    _collectCoinsFromSources({ rootPart = hrp, folderCandidates = { "RadioactiveEventParts", "RadioactiveCoins", "MapVariants" }, nameMatchers = { "radioactive" }, delayBetween = 0.01 })
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.05)
         else
             task.wait(0.5)
         end
@@ -628,18 +631,20 @@ task.spawn(function()
                         -- prefer the 'Main' part (some maps place the collectible under GoldBar.Main)
                         local mainPart = gb:FindFirstChild("Main")
                         if mainPart and mainPart:IsA("BasePart") then
-                            pcall(function() firetouchinterest(hrp, mainPart, 0) end)
-                            task.wait()
-                            pcall(function() firetouchinterest(hrp, mainPart, 1) end)
-                            task.wait(0.05)
+                            pcall(function() 
+                                firetouchinterest(hrp, mainPart, 0)
+                                firetouchinterest(hrp, mainPart, 1)
+                            end)
+                            task.wait(0.01)
                         else
                             -- fallback: find any BasePart descendant (or TouchInterest owner)
                             for _, d in ipairs(gb:GetDescendants()) do
                                 if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("main") or d.Name:lower():find("gold")) then
-                                    pcall(function() firetouchinterest(hrp, d, 0) end)
-                                    task.wait()
-                                    pcall(function() firetouchinterest(hrp, d, 1) end)
-                                    task.wait(0.05)
+                                    pcall(function() 
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
                                     break
                                 end
                             end
@@ -647,7 +652,7 @@ task.spawn(function()
                     end
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.05)
         else
             task.wait(0.5)
         end
@@ -663,13 +668,14 @@ task.spawn(function()
                 if not hrp then return end
                 local gameConsolePart = workspace.ArcadeEventConsoles["Game Console"]["Game Console"].TouchInterest
                 if gameConsolePart and gameConsolePart.Parent then
-                    pcall(function() firetouchinterest(hrp, gameConsolePart.Parent, 0) end)
-                    task.wait()
-                    pcall(function() firetouchinterest(hrp, gameConsolePart.Parent, 1) end)
-                    task.wait(0.05)
+                    pcall(function() 
+                        firetouchinterest(hrp, gameConsolePart.Parent, 0)
+                        firetouchinterest(hrp, gameConsolePart.Parent, 1)
+                    end)
+                    task.wait(0.01)
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.05)
         else
             task.wait(0.5)
         end
@@ -689,13 +695,14 @@ task.spawn(function()
                 if not ticket then return end
                 local ticketPart = ticket:FindFirstChild("Ticket")
                 if ticketPart and ticketPart:IsA("BasePart") then
-                    pcall(function() firetouchinterest(hrp, ticketPart, 0) end)
-                    task.wait()
-                    pcall(function() firetouchinterest(hrp, ticketPart, 1) end)
-                    task.wait(0.05)
+                    pcall(function() 
+                        firetouchinterest(hrp, ticketPart, 0)
+                        firetouchinterest(hrp, ticketPart, 1)
+                    end)
+                    task.wait(0.01)
                 end
             end)
-            task.wait(0.2)
+            task.wait(0.05)
         else
             task.wait(0.5)
         end
@@ -2493,7 +2500,7 @@ RadioactiveSection:Toggle({
     Desc = "Automatically Collect Radioactive Coins",
     Value = savedSettings.autoCollectRadioactive,
     Callback = function(state)
-        active = state
+        autoCollectRadioactive = state
         savedSettings.autoCollectRadioactive = state
         saveSettings(savedSettings)
     end
