@@ -143,6 +143,7 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
+ 
 })
 
 
@@ -3209,7 +3210,7 @@ table.sort(allBrainrotNames)
 
 BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
-    Desc = "Multi-select brainrot names (labeled with [Rarity])",
+    Desc = "Choose which brainrot you want to sell",
     Values = allBrainrotNames,
     Value = {},
     Multi = true,
