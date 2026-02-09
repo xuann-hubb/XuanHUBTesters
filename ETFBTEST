@@ -3127,48 +3127,74 @@ BrainrotSection:Toggle({
 
 BrainrotSection:Space()
 
--- Auto Sell by Name (Rarity selector + Name multi-select)
-local BrainrotNameDropdown = nil
+-- Auto Sell by Name - Build dropdown with all brainrots labeled by rarity
+local allBrainrotNames = {}
+local brainrotToRarityMap = {}
 
-local rarityDropdown = BrainrotSection:Dropdown({
-    Title = "Select Rarity to View Names",
-    Desc = "Choose a rarity to see available brainrot names",
-    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
-    Value = "Common",
+for rarity, names in pairs(BrainrotsByRarity) do
+    for _, name in ipairs(names) do
+        local labeledName = "[" .. rarity .. "] " .. name
+        table.insert(allBrainrotNames, labeledName)
+        brainrotToRarityMap[labeledName] = rarity
+    end
+end
+
+-- Sort alphabetically
+table.sort(allBrainrotNames)
+
+BrainrotSection:Dropdown({
+    Title = "Select Rarity to Filter",
+    Desc = "Choose a rarity to filter the dropdown below",
+    Values = { "All", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
+    Value = "All",
     Multi = false,
     AllowNone = false,
     Callback = function(selected)
         selectedRarityForNames = selected
-        local names = BrainrotsByRarity[selected] or {}
-        
-        -- Update the name dropdown values
-        if BrainrotNameDropdown and BrainrotNameDropdown.SetValues then
-            BrainrotNameDropdown:SetValues(names)
+        local count = 0
+        if selected == "All" then
+            count = #allBrainrotNames
+        else
+            for _, name in ipairs(BrainrotsByRarity[selected] or {}) do
+                count = count + 1
+            end
         end
         
         WindUI:Notify({
-            Title = "Brainrot Names",
-            Content = selected .. " rarity selected (" .. #names .. " brainrots available)",
+            Title = "Brainrot Filter",
+            Content = selected .. " selected (" .. count .. " brainrots)",
             Icon = "info",
             Duration = 2,
         })
     end
 })
 
+BrainrotSection:Paragraph({
+    Title = "Instructions",
+    Desc = "All brainrots are labeled with [Rarity]. Scroll through the dropdown to find the ones you want to sell.",
+})
 
-BrainrotNameDropdown = BrainrotSection:Dropdown({
+BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
-    Desc = "Multi-select brainrot names from the selected rarity",
-    Values = BrainrotsByRarity["Common"] or {},
+    Desc = "Multi-select brainrot names (labeled with [Rarity])",
+    Values = allBrainrotNames,
     Value = {},
     Multi = true,
     AllowNone = true,
     Callback = function(selected)
-        sellBrainrotNames = selected
-        if #selected > 0 then
+        -- Remove the [Rarity] prefix from selected names
+        sellBrainrotNames = {}
+        for _, labeledName in ipairs(selected) do
+            local name = labeledName:match("%] (.+)$")
+            if name then
+                table.insert(sellBrainrotNames, name)
+            end
+        end
+        
+        if #sellBrainrotNames > 0 then
             WindUI:Notify({
                 Title = "Auto Sell by Name",
-                Content = "Selected " .. #selected .. " brainrot(s) to sell",
+                Content = "Selected " .. #sellBrainrotNames .. " brainrot(s) to sell",
                 Icon = "check",
                 Duration = 2,
             })
