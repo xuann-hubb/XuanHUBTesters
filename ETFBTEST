@@ -304,6 +304,13 @@ local autoOpenLuckyBlockDelay = 0.6
 local autoSellByRarity = false
 local sellRarities = {}
 
+-- Auto Sell by Name state
+local autoSellByName = false
+local sellBrainrotNames = {}
+local selectedRarityForNames = "Common"
+
+
+
 -- Sell All confirmation
 local lastSellAllClick = 0
 
@@ -1131,22 +1138,22 @@ task.spawn(function()
     end
 end)
 
+-- Brainrot names by rarity (global table)
+local BrainrotsByRarity = {
+    Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
+    Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
+    Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
+    Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
+    Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
+    Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
+    Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh" },
+    Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini" },
+    Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini" },
+    Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero" },
+}
+
 -- Auto Sell by Rarity Loop
 task.spawn(function()
-    -- Brainrot names by rarity (hardcoded list)
-    local BrainrotsByRarity = {
-        Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
-        Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
-        Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
-        Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
-        Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
-        Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
-        Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh" },
-        Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini" },
-        Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini" },
-        Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero" },
-    }
-
     while scriptRunning do
         if autoSellByRarity and #sellRarities > 0 then
             pcall(function()
@@ -1182,6 +1189,47 @@ task.spawn(function()
                             pcall(function()
                                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
                                     :WaitForChild("SellTool"):InvokeServer()
+                            end)
+                            task.wait(0.2)
+                        end
+                    end
+                end
+            end)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Auto Sell by Name Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSellByName and #sellBrainrotNames > 0 then
+            pcall(function()
+                local backpack = player:FindFirstChild("Backpack")
+                local character = player.Character
+                if not backpack or not character then return end
+
+                local humanoid = character:FindFirstChild("Humanoid")
+                if not humanoid then return end
+
+                -- Build set of brainrot names to sell
+                local namesToSell = {}
+                for _, name in ipairs(sellBrainrotNames) do
+                    namesToSell[name] = true
+                end
+
+                for _, tool in ipairs(backpack:GetChildren()) do
+                    if not autoSellByName then break end
+
+                    if tool:IsA("Tool") then
+                        local brainrotName = tool:GetAttribute("BrainrotName")
+                        if brainrotName and namesToSell[brainrotName] then
+                            humanoid:EquipTool(tool)
+                            task.wait(0.1)
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/ToolSell.Sell"):InvokeServer()
                             end)
                             task.wait(0.2)
                         end
@@ -3076,6 +3124,94 @@ BrainrotSection:Toggle({
         end
     end
 })
+
+BrainrotSection:Space()
+
+-- Auto Sell by Name (Rarity selector + Name multi-select)
+local BrainrotNameDropdown = nil
+
+BrainrotSection:Dropdown({
+    Title = "Select Rarity to View Names",
+    Desc = "Choose a rarity to see available brainrot names",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
+    Value = "Common",
+    Multi = false,
+    AllowNone = false,
+    Callback = function(selected)
+        selectedRarityForNames = selected
+        -- Update the name dropdown with brainrots from this rarity
+        if BrainrotNameDropdown then
+            local names = BrainrotsByRarity[selected] or {}
+            -- Note: WindUI doesn't support dynamic dropdown updates, so notify user
+            WindUI:Notify({
+                Title = "Brainrot Names",
+                Content = selected .. " has " .. #names .. " brainrots. Check dropdown below.",
+                Icon = "info",
+                Duration = 3,
+            })
+        end
+    end
+})
+
+BrainrotSection:Paragraph({
+    Title = "Instructions",
+    Desc = "1. Select a rarity above\n2. Select brainrot names below\n3. Enable Auto Sell by Name toggle",
+})
+
+-- Helper function to get all brainrot names for current rarity
+local function getCurrentRarityNames()
+    return BrainrotsByRarity[selectedRarityForNames] or {}
+end
+
+BrainrotNameDropdown = BrainrotSection:Dropdown({
+    Title = "Select Brainrot Names to Sell",
+    Desc = "Multi-select brainrot names from the selected rarity",
+    Values = getCurrentRarityNames(),
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        sellBrainrotNames = selected
+        if #selected > 0 then
+            WindUI:Notify({
+                Title = "Auto Sell by Name",
+                Content = "Selected " .. #selected .. " brainrot(s) to sell",
+                Icon = "check",
+                Duration = 2,
+            })
+        end
+    end
+})
+
+BrainrotSection:Toggle({
+    Title = "Auto Sell by Name",
+    Desc = "Automatically sell selected brainrot names",
+    Value = false,
+    Callback = function(state)
+        autoSellByName = state
+
+        if state then
+            if #sellBrainrotNames == 0 then
+                WindUI:Notify({
+                    Title = "Auto Sell by Name",
+                    Content = "Please select brainrot names first!",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+                autoSellByName = false
+            else
+                WindUI:Notify({
+                    Title = "Auto Sell by Name",
+                    Content = "Auto Sell by Name enabled",
+                    Icon = "check",
+                    Duration = 3,
+                })
+            end
+        end
+    end
+})
+
+
 
 -- ================= MISC TAB =================
 local UISection = MiscTab:Section({
