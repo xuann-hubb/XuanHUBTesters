@@ -3265,29 +3265,25 @@ BrainrotSection:Toggle({
 
 BrainrotSection:Space()
 
--- Auto Upgrade Brainrot
+-- Auto Upgrade Brainrot - Scan base first to populate dropdown
+brainrotSlotData = scanBaseBrainrots()
+local initialBrainrotLabels = {}
+for _, data in ipairs(brainrotSlotData) do
+    table.insert(initialBrainrotLabels, data.label)
+end
+
 BrainrotSection:Button({
     Title = "Refresh Base Brainrots",
-    Desc = "Scan your base and update the dropdown below",
+    Desc = "Re-scan your base and update the list",
     Callback = function()
         brainrotSlotData = scanBaseBrainrots()
         
         if #brainrotSlotData > 0 then
-            -- Update dropdown values
-            local labels = {}
-            for _, data in ipairs(brainrotSlotData) do
-                table.insert(labels, data.label)
-            end
-            
-            if BrainrotUpgradeDropdown and BrainrotUpgradeDropdown.SetValues then
-                BrainrotUpgradeDropdown:SetValues(labels)
-            end
-            
             WindUI:Notify({
                 Title = "Base Scan",
-                Content = "Found " .. #brainrotSlotData .. " brainrot(s) in your base",
-                Icon = "check",
-                Duration = 3,
+                Content = "Found " .. #brainrotSlotData .. " brainrot(s). Restart script to update dropdown.",
+                Icon = "info",
+                Duration = 4,
             })
         else
             WindUI:Notify({
@@ -3302,8 +3298,8 @@ BrainrotSection:Button({
 
 BrainrotUpgradeDropdown = BrainrotSection:Dropdown({
     Title = "Select Brainrots to Upgrade",
-    Desc = "Multi-select brainrots from your base (click Refresh first)",
-    Values = {},
+    Desc = "Multi-select brainrots from your base",
+    Values = initialBrainrotLabels,
     Value = {},
     Multi = true,
     AllowNone = true,
