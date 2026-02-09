@@ -3075,13 +3075,11 @@ BrainrotSection:Dropdown({
     Title = "Select Rarities to Sell",
     Desc = "Choose which rarities to auto-sell",
     Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
-    Value = savedSettings.sellRarities or {},
+    Value = {},
     Multi = true,
     AllowNone = true,
     Callback = function(selected)
         sellRarities = selected
-        savedSettings.sellRarities = selected
-        saveSettings(savedSettings)
 
         if #selected > 0 then
             local rarityList = table.concat(selected, ", ")
@@ -3099,11 +3097,9 @@ BrainrotSection:Dropdown({
 BrainrotSection:Toggle({
     Title = "Auto Sell by Rarity",
     Desc = "Automatically sell selected rarities",
-    Value = savedSettings.autoSellByRarity,
+    Value = false,
     Callback = function(state)
         autoSellByRarity = state
-        savedSettings.autoSellByRarity = state
-        saveSettings(savedSettings)
 
         if state then
             if #sellRarities == 0 then
@@ -3145,7 +3141,7 @@ table.sort(allBrainrotNames)
 
 BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
-    Desc = "Choos what brainrot you want to sell",
+    Desc = "Multi-select brainrot names (labeled with [Rarity])",
     Values = allBrainrotNames,
     Value = {},
     Multi = true,
@@ -3372,12 +3368,6 @@ task.spawn(function()
         autoRebirth = true
     end
 
-    -- Apply Auto Sell by Rarity
-    if savedSettings.autoSellByRarity then
-        autoSellByRarity = true
-        sellRarities = savedSettings.sellRarities or {}
-    end
-
     -- Apply Auto Obby
     if savedSettings.autoObby then
         autoObby = true
@@ -3421,12 +3411,6 @@ task.spawn(function()
     -- Apply Auto Rejoin after Money Obby
     if savedSettings.autoRejoinAfterMoneyObby then
         autoRejoinAfterMoneyObby = true
-    end
-
-    -- Apply Auto Sell by Rarity
-    if savedSettings.autoSellByRarity then
-        autoSellByRarity = true
-        sellRarities = savedSettings.sellRarities or {}
     end
 
     -- Apply Auto Spin Money Wheel
