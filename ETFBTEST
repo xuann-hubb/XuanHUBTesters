@@ -136,6 +136,7 @@ local Window = WindUI:CreateWindow({
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
+    HideSearchBar = false,
     OutlineThickness = 3,
     Resizable = true,
     Transparent = true,
