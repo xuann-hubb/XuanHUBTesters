@@ -3265,25 +3265,49 @@ BrainrotSection:Toggle({
 
 BrainrotSection:Space()
 
--- Auto Upgrade Brainrot - Scan base first to populate dropdown
-brainrotSlotData = scanBaseBrainrots()
-local initialBrainrotLabels = {}
-for _, data in ipairs(brainrotSlotData) do
-    table.insert(initialBrainrotLabels, data.label)
+-- Auto Upgrade Brainrot - Helper functions for dynamic dropdown refresh
+local function getBrainrotOptions()
+    local tempData = scanBaseBrainrots()
+    brainrotSlotData = tempData -- Update global cache
+    local labels = {}
+    for _, data in ipairs(tempData) do
+        table.insert(labels, data.label)
+    end
+    return labels
 end
+
+local function refreshBrainrotDropdown(dropdown)
+    local newLabels = getBrainrotOptions()
+    dropdown:Refresh(newLabels)
+    
+    -- Clear selection if previously selected items no longer exist
+    local validTargets = {}
+    for _, target in ipairs(upgradeBrainrotTargets) do
+        for _, label in ipairs(newLabels) do
+            if label == target then
+                table.insert(validTargets, target)
+                break
+            end
+        end
+    end
+    upgradeBrainrotTargets = validTargets
+end
+
+-- Initial scan
+local initialBrainrotLabels = getBrainrotOptions()
 
 BrainrotSection:Button({
     Title = "Refresh Base Brainrots",
-    Desc = "Re-scan your base and update the list",
+    Desc = "Re-scan your base and update the dropdown",
     Callback = function()
-        brainrotSlotData = scanBaseBrainrots()
+        refreshBrainrotDropdown(BrainrotUpgradeDropdown)
         
         if #brainrotSlotData > 0 then
             WindUI:Notify({
                 Title = "Base Scan",
-                Content = "Found " .. #brainrotSlotData .. " brainrot(s). Restart script to update dropdown.",
-                Icon = "info",
-                Duration = 4,
+                Content = "Found " .. #brainrotSlotData .. " brainrot(s) in your base",
+                Icon = "check",
+                Duration = 3,
             })
         else
             WindUI:Notify({
@@ -3690,30 +3714,6 @@ end
 
 -- Set Base tab as default
 AboutTab:Select()
-
--- Auto-scan base brainrots on load
-task.spawn(function()
-    task.wait(1) -- Wait for workspace to fully load
-    brainrotSlotData = scanBaseBrainrots()
-    
-    if #brainrotSlotData > 0 then
-        local labels = {}
-        for _, data in ipairs(brainrotSlotData) do
-            table.insert(labels, data.label)
-        end
-        
-        if BrainrotUpgradeDropdown and BrainrotUpgradeDropdown.SetValues then
-            BrainrotUpgradeDropdown:SetValues(labels)
-        end
-        
-        WindUI:Notify({
-            Title = "Base Auto-Scan",
-            Content = "Found " .. #brainrotSlotData .. " brainrot(s) in your base",
-            Icon = "info",
-            Duration = 3,
-        })
-    end
-end)
 
 -- ================= FINALIZE =================
 WindUI:Notify({
