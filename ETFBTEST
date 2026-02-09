@@ -143,8 +143,6 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
-
-
 })
 
 
@@ -311,7 +309,11 @@ local autoSellByName = false
 local sellBrainrotNames = {}
 local selectedRarityForNames = "Common"
 
-
+-- Auto Upgrade Brainrot state
+local autoUpgradeBrainrot = false
+local upgradeBrainrotTargets = {} -- array of selected brainrot level entries
+local brainrotSlotData = {} -- cached slot data: {label, baseName, slotNum}
+local BrainrotUpgradeDropdown = nil
 
 -- Sell All confirmation
 local lastSellAllClick = 0
@@ -1235,6 +1237,75 @@ task.spawn(function()
                                     :WaitForChild("SellTool"):InvokeServer()
                             end)
                             task.wait(0.2)
+                        end
+                    end
+                end
+            end)
+            task.wait(1)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+-- Function to scan player's base for brainrot slots
+local function scanBaseBrainrots()
+    local foundBrainrots = {}
+    pcall(function()
+        local bases = workspace:FindFirstChild("Bases")
+        if not bases then return end
+
+        -- Find player's base by checking for ownership or matching name patterns
+        for _, base in ipairs(bases:GetChildren()) do
+            -- Scan slots 1-40 for brainrots
+            for i = 1, 40 do
+                local slotName = "slot " .. i .. " brainrot"
+                local slot = base:FindFirstChild(slotName)
+                if slot then
+                    local brainrotName = slot:GetAttribute("BrainrotName")
+                    local level = slot:GetAttribute("Level")
+                    
+                    if brainrotName and level then
+                        local label = "Level " .. level .. " " .. brainrotName .. " (Slot " .. i .. ")"
+                        table.insert(foundBrainrots, {
+                            label = label,
+                            baseName = base.Name,
+                            slotNum = tostring(i)
+                        })
+                    end
+                end
+            end
+            -- Only scan first base found (should be player's base)
+            if #foundBrainrots > 0 then
+                break
+            end
+        end
+    end)
+    return foundBrainrots
+end
+
+-- Auto Upgrade Brainrot Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoUpgradeBrainrot and #upgradeBrainrotTargets > 0 then
+            pcall(function()
+                for _, entry in ipairs(upgradeBrainrotTargets) do
+                    if not autoUpgradeBrainrot then break end
+                    
+                    -- Find the matching slot data
+                    for _, slotData in ipairs(brainrotSlotData) do
+                        if slotData.label == entry then
+                            local args = {
+                                "Upgrade Brainrot",
+                                slotData.baseName,
+                                slotData.slotNum
+                            }
+                            pcall(function()
+                                game:GetService("ReplicatedStorage"):WaitForChild("Packages")
+                                    :WaitForChild("Net"):WaitForChild("RF/Plot.PlotAction"):InvokeServer(unpack(args))
+                            end)
+                            task.wait(0.1)
+                            break
                         end
                     end
                 end
@@ -3143,7 +3214,7 @@ table.sort(allBrainrotNames)
 
 BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
-    Desc = "Choose which brainrot you want to sell",
+    Desc = "Multi-select brainrot names (labeled with [Rarity])",
     Values = allBrainrotNames,
     Value = {},
     Multi = true,
@@ -3189,6 +3260,91 @@ BrainrotSection:Toggle({
                 WindUI:Notify({
                     Title = "Auto Sell by Name",
                     Content = "Auto Sell by Name enabled",
+                    Icon = "check",
+                    Duration = 3,
+                })
+            end
+        end
+    end
+})
+
+BrainrotSection:Space()
+
+-- Auto Upgrade Brainrot
+BrainrotSection:Button({
+    Title = "Refresh Base Brainrots",
+    Desc = "Scan your base and update the dropdown below",
+    Callback = function()
+        brainrotSlotData = scanBaseBrainrots()
+        
+        if #brainrotSlotData > 0 then
+            -- Update dropdown values
+            local labels = {}
+            for _, data in ipairs(brainrotSlotData) do
+                table.insert(labels, data.label)
+            end
+            
+            if BrainrotUpgradeDropdown and BrainrotUpgradeDropdown.SetValues then
+                BrainrotUpgradeDropdown:SetValues(labels)
+            end
+            
+            WindUI:Notify({
+                Title = "Base Scan",
+                Content = "Found " .. #brainrotSlotData .. " brainrot(s) in your base",
+                Icon = "check",
+                Duration = 3,
+            })
+        else
+            WindUI:Notify({
+                Title = "Base Scan",
+                Content = "No brainrots found. Make sure you have brainrots placed in slots.",
+                Icon = "alert-triangle",
+                Duration = 3,
+            })
+        end
+    end
+})
+
+BrainrotUpgradeDropdown = BrainrotSection:Dropdown({
+    Title = "Select Brainrots to Upgrade",
+    Desc = "Multi-select brainrots from your base (click Refresh first)",
+    Values = {},
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    Callback = function(selected)
+        upgradeBrainrotTargets = selected
+        if #selected > 0 then
+            WindUI:Notify({
+                Title = "Auto Upgrade",
+                Content = "Selected " .. #selected .. " brainrot(s) to upgrade",
+                Icon = "check",
+                Duration = 2,
+            })
+        end
+    end
+})
+
+BrainrotSection:Toggle({
+    Title = "Auto Upgrade Brainrot",
+    Desc = "Automatically upgrade selected brainrots",
+    Value = false,
+    Callback = function(state)
+        autoUpgradeBrainrot = state
+
+        if state then
+            if #upgradeBrainrotTargets == 0 then
+                WindUI:Notify({
+                    Title = "Auto Upgrade",
+                    Content = "Please refresh and select brainrots first!",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+                autoUpgradeBrainrot = false
+            else
+                WindUI:Notify({
+                    Title = "Auto Upgrade",
+                    Content = "Auto Upgrade enabled for " .. #upgradeBrainrotTargets .. " brainrot(s)",
                     Icon = "check",
                     Duration = 3,
                 })
