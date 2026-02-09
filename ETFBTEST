@@ -1252,32 +1252,27 @@ end)
 local function scanBaseBrainrots()
     local foundBrainrots = {}
     pcall(function()
-        local bases = workspace:FindFirstChild("Bases")
-        if not bases then return end
+        -- Use findMyBase() to get the player's base
+        local myBase = findMyBase()
+        if not myBase then return end
 
-        -- Find player's base by checking for ownership or matching name patterns
-        for _, base in ipairs(bases:GetChildren()) do
-            -- Scan slots 1-40 for brainrots
-            for i = 1, 40 do
-                local slotName = "slot " .. i .. " brainrot"
-                local slot = base:FindFirstChild(slotName)
-                if slot then
-                    local brainrotName = slot:GetAttribute("BrainrotName")
-                    local level = slot:GetAttribute("Level")
-                    
-                    if brainrotName and level then
-                        local label = "Level " .. level .. " " .. brainrotName .. " (Slot " .. i .. ")"
-                        table.insert(foundBrainrots, {
-                            label = label,
-                            baseName = base.Name,
-                            slotNum = tostring(i)
-                        })
-                    end
+        -- Scan slots 1-40 for brainrots
+        for i = 1, 40 do
+            local slotName = "slot " .. i .. " brainrot"
+            local slot = myBase:FindFirstChild(slotName)
+            if slot then
+                local brainrotName = slot:GetAttribute("BrainrotName")
+                local level = slot:GetAttribute("Level")
+                
+                -- Only include slots with non-empty BrainrotName
+                if brainrotName and brainrotName ~= "" and level then
+                    local label = "Level " .. level .. " " .. brainrotName .. " (Slot " .. i .. ")"
+                    table.insert(foundBrainrots, {
+                        label = label,
+                        baseName = myBase.Name,
+                        slotNum = tostring(i)
+                    })
                 end
-            end
-            -- Only scan first base found (should be player's base)
-            if #foundBrainrots > 0 then
-                break
             end
         end
     end)
@@ -3699,6 +3694,31 @@ end
 
 -- Set Base tab as default
 AboutTab:Select()
+
+-- Auto-scan base brainrots on load
+task.spawn(function()
+    task.wait(1) -- Wait for workspace to fully load
+    brainrotSlotData = scanBaseBrainrots()
+    
+    if #brainrotSlotData > 0 then
+        local labels = {}
+        for _, data in ipairs(brainrotSlotData) do
+            table.insert(labels, data.label)
+        end
+        
+        if BrainrotUpgradeDropdown and BrainrotUpgradeDropdown.SetValues then
+            BrainrotUpgradeDropdown:SetValues(labels)
+        end
+        
+        WindUI:Notify({
+            Title = "Base Auto-Scan",
+            Content = "Found " .. #brainrotSlotData .. " brainrot(s) in your base",
+            Icon = "info",
+            Duration = 3,
+        })
+    end
+end)
+
 -- ================= FINALIZE =================
 WindUI:Notify({
     Title = "Xuan Hub Loaded",
