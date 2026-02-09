@@ -3130,7 +3130,7 @@ BrainrotSection:Space()
 -- Auto Sell by Name (Rarity selector + Name multi-select)
 local BrainrotNameDropdown = nil
 
-BrainrotSection:Dropdown({
+local rarityDropdown = BrainrotSection:Dropdown({
     Title = "Select Rarity to View Names",
     Desc = "Choose a rarity to see available brainrot names",
     Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
@@ -3139,34 +3139,27 @@ BrainrotSection:Dropdown({
     AllowNone = false,
     Callback = function(selected)
         selectedRarityForNames = selected
-        -- Update the name dropdown with brainrots from this rarity
-        if BrainrotNameDropdown then
-            local names = BrainrotsByRarity[selected] or {}
-            -- Note: WindUI doesn't support dynamic dropdown updates, so notify user
-            WindUI:Notify({
-                Title = "Brainrot Names",
-                Content = selected .. " has " .. #names .. " brainrots. Check dropdown below.",
-                Icon = "info",
-                Duration = 3,
-            })
+        local names = BrainrotsByRarity[selected] or {}
+        
+        -- Update the name dropdown values
+        if BrainrotNameDropdown and BrainrotNameDropdown.SetValues then
+            BrainrotNameDropdown:SetValues(names)
         end
+        
+        WindUI:Notify({
+            Title = "Brainrot Names",
+            Content = selected .. " rarity selected (" .. #names .. " brainrots available)",
+            Icon = "info",
+            Duration = 2,
+        })
     end
 })
 
-BrainrotSection:Paragraph({
-    Title = "Instructions",
-    Desc = "1. Select a rarity above\n2. Select brainrot names below\n3. Enable Auto Sell by Name toggle",
-})
-
--- Helper function to get all brainrot names for current rarity
-local function getCurrentRarityNames()
-    return BrainrotsByRarity[selectedRarityForNames] or {}
-end
 
 BrainrotNameDropdown = BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
     Desc = "Multi-select brainrot names from the selected rarity",
-    Values = getCurrentRarityNames(),
+    Values = BrainrotsByRarity["Common"] or {},
     Value = {},
     Multi = true,
     AllowNone = true,
