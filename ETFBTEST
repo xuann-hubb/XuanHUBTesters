@@ -19,7 +19,7 @@ local WindUI = loadstring(game:HttpGet(
 ))()
 
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/keysystem"))()
+local newpandadevelopment = loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/keysystem"))()
 
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
