@@ -18,63 +18,96 @@ local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
 ))()
 
+-- ================= key system =================
+local BaseURL = "https://new.pandadevelopment.net/api/v1"
+local Client_ServiceID = "YOUR_SERVICE_ID" -- <- Change this to your service ID
 
 WindUI.Services.newpandadevelopment = {
     Name = "New Panda Development",
     Icon = "key",
-    Args = { "ServiceId" },
+    Args = { "ServiceID" },
 
-    New = function(ServiceId)
-        local hwid = gethwid or function() return Players.LocalPlayer.UserId end
-        local frequest = request or http_request or syn_request
+    New = function(ServiceID)
+        -- Use ServiceID if provided
+        local ServiceIDToUse = ServiceID or Client_ServiceID
 
-        local function validateKey(key)
-            if not key or key == "" then return false, "Invalid key" end
+        -- Get Hardware ID
+        local function getHardwareId()
+            local success, hwid = pcall(gethwid)
+            if success and hwid then return hwid end
 
-            local url = "https://new.pandadevelopment.net/v2_validation?key="
-                .. tostring(key)
-                .. "&service=" .. tostring(ServiceId)
-                .. "&hwid=" .. tostring(hwid())
-
-            local success, response = pcall(function()
-                return frequest({
-                    Url = url,
-                    Method = "GET",
-                    Headers = { ["User-Agent"] = "Roblox/Exploit" }
-                })
-            end)
-
-            if not success or not response or not response.Success then
-                return false, "HTTP request failed"
-            end
-
-            local decodeSuccess, data = pcall(function()
-                return HttpService:JSONDecode(response.Body)
-            end)
-
-            if not decodeSuccess or not data then
-                return false, "JSON decode error"
-            end
-
-            if data.V2_Authentication == "success" then
-                return true, "Authenticated"
-            end
-
-            local reason = (data.Key_Information and data.Key_Information.Notes) or "Authentication failed"
-            return false, reason
+            local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
+            local clientId = tostring(RbxAnalyticsService:GetClientId())
+            return clientId:gsub("-", "")
         end
 
+        -- HTTP POST Request wrapper
+        local function makeRequest(endpoint, body)
+            local url = BaseURL .. endpoint
+            local jsonBody = HttpService:JSONEncode(body)
+
+            local response = request({
+                Url = url,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = jsonBody
+            })
+
+            if response and response.Body then
+                return HttpService:JSONDecode(response.Body)
+            end
+
+            return nil
+        end
+
+        -- Validate a key
+        local function validateKey(key, Premium_Verification)
+            if not key or key == "" then return false, "Invalid key" end
+
+            local hwid = getHardwareId()
+            local result = makeRequest("/keys/validate", {
+                ServiceID = ServiceIDToUse,
+                HWID = hwid,
+                Key = key
+            })
+
+            if not result then
+                return false, "Failed to connect to server"
+            end
+
+            local isAuthenticated = result.Authenticated_Status == "Success"
+            local isPremium = result.Key_Premium or false
+            local isValid = isAuthenticated
+            local message = result.Note or (isAuthenticated and "Key validated!" or "Invalid key")
+
+            if Premium_Verification and isAuthenticated and not isPremium then
+                isValid = false
+                message = "Premium key required"
+            end
+
+            return isValid, message, isPremium, result.Expire_Date
+        end
+
+        -- Get Key URL
+        local function getKeyURL()
+            local hwid = getHardwareId()
+            return "https://new.pandadevelopment.net/getkey/" .. ServiceIDToUse .. "?hwid=" .. hwid
+        end
+
+        -- Copy Key URL to clipboard
         local function copyLink()
-            return setclipboard(
-                "https://new.pandadevelopment.net/getkey?service="
-                .. tostring(ServiceId)
-                .. "&hwid=" .. tostring(hwid())
-            )
+            local url = getKeyURL()
+            if setclipboard then
+                setclipboard(url)
+                print("Key URL copied to clipboard: " .. url)
+            end
+            return url
         end
 
         return {
             Verify = validateKey,
-            Copy = copyLink
+            Copy = copyLink,
+            GetLink = getKeyURL
         }
     end
 }
