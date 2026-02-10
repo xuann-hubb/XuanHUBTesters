@@ -18,6 +18,9 @@ local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
 ))()
 
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/keysystem"))()
+
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
@@ -152,7 +155,7 @@ local Window = WindUI:CreateWindow({
             {
                 Title = "Get key here",
                 Desc = "Click to copy.",
-               Type = "pandadevelopment", 
+               Type = "newpandadevelopment", 
                 ServiceId = "xuanketsyste",
             },
         },
