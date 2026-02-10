@@ -145,20 +145,18 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
-    KeySystem = {
-    Note = "Key System for Xuan Hub.",
-    SaveKey = true,
-    API = {
-        {
-            Title = "Junkie Development",
-            Desc = "Click to copy.",
-            Type = "junkiedevelopment",
-            ApiKey = "1014215",
-            Provider = "XuanProvider",
-            ServiceId = 'XuanService",
+   KeySystem = {
+        Note = "Key System for Xuan Hub.",
+        SaveKey = true,
+        API = {
+            {
+                Title = "Get key here",
+                Desc = "Click to copy.",
+               Type = "pandadevelopment", 
+                ServiceId = "ba17eeca-8cb0-4935-b70d-7354daf7f327",
+            },
         },
     },
-}
  
 })
 
