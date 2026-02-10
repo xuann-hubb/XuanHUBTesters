@@ -40,6 +40,102 @@ WindUI:AddTheme({
     Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
 })
 
+WindUI.Services.xuanjunkiedev = {
+    Name = "Junkie Development",
+    Icon = "bug-off",
+    Args = { "ServiceId", "ApiKey", "Provider" },
+    New = function(ServiceId, ApiKey, Provider)
+        JunkieProtected.API_KEY = ApiKey
+        JunkieProtected.PROVIDER = Provider
+        JunkieProtected.SERVICE_ID = ServiceId
+
+        local function ValidateKey(key)
+            if not key or key == "" then
+                WindUI:Notify({
+                    Title = "Key System",
+                    Content = "No key provided! Please enter a key.",
+                    Icon = "alert-triangle",
+                    Duration = 3,
+                })
+                game.Players.LocalPlayer:Kick("No key provided. Please get a key.")
+                return false
+            end
+
+            local keylessCheck = JunkieProtected.IsKeylessMode()
+            if keylessCheck and keylessCheck.keyless_mode then
+                WindUI:Notify({
+                    Title = "Key System",
+                    Content = "Keyless mode enabled - Starting script...",
+                    Icon = "check",
+                    Duration = 3,
+                })
+                return true
+            end
+
+            local result = JunkieProtected.ValidateKey({ Key = key })
+            if result == "valid" then
+
+                WindUI:Notify({
+                    Title = "Key System",
+                    Content = "Key is valid! Starting script...",
+                    Icon = "check",
+                    Duration = 3,
+                })
+                load()
+                
+                if _G.JD_IsPremium then
+                   
+                    WindUI:Notify({
+                        Title = "Premium User",
+                        Content = "Premium user detected!",
+                        Icon = "star",
+                        Duration = 4,
+                    })
+                else
+                   
+                    WindUI:Notify({
+                        Title = "Key System",
+                        Content = " Standard user",
+                        Icon = "user",
+                        Duration = 3,
+                    })
+                end
+                
+                return true
+            else
+                local keyLink = JunkieProtected.GetKeyLink()
+           
+                WindUI:Notify({
+                    Title = "Key System",
+                    Content = " Invalid key! Get one from Discord.",
+                    Icon = "x",
+                    Duration = 4,
+                })
+                game.Players.LocalPlayer:Kick("Invalid key. Get one from: " .. keyLink)
+                return false
+            end
+        end
+
+        local function copyLink()
+            local link = JunkieProtected.GetKeyLink()
+            WindUI:Notify({
+                Title = "Key Link",
+                Content = "Key link copied to clipboard!",
+                Icon = "clipboard",
+                Duration = 3,
+            })
+            if setclipboard then
+                setclipboard(link)
+            end
+        end
+
+        return {
+            Verify = ValidateKey,
+            Copy = copyLink
+        }
+    end
+}
+
 -- ================= SETTINGS PERSISTENCE =================
 local settingsFileName = "XuanHubConfig_ETFB.json"
 local defaultSettings = {
@@ -148,7 +244,7 @@ KeySystem = {
     SaveKey = true,
     API = {
         {
-            Type = "junkiedevelopment",
+            Type = "xuanjunkiedev",
             ServiceId = "XuanService",
             ApiKey = "05e58d71-071a-4bdc-b205-7276bc0e3324",
             Provider = "XuanProvider",
