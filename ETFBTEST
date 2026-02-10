@@ -155,9 +155,9 @@ KeySystem = {
             Title = "Junkie Development",
             Desc = "Click to copy.",
             Type = "junkiedev",
-            ServiceId = 11004,
+            ServiceId = "XuanService",
             ApiKey = "05e58d71-071a-4bdc-b205-7276bc0e3324",
-            Provider = 5087,
+            Provider = "XuanProvider",
             
         },
     },
