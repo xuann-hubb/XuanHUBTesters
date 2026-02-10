@@ -247,7 +247,7 @@ local Window = WindUI:CreateWindow({
                 Title = "Get key here",
                 Desc = "Click to copy.",
                Type = "newpandadevelopment", 
-                ServiceId = "xuanketsyste",
+                ServiceID = "xuanketsyste",
             },
         },
     },
