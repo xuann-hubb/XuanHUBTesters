@@ -19,7 +19,65 @@ local WindUI = loadstring(game:HttpGet(
 ))()
 
 
-local newpandadevelopment = loadstring(game:HttpGet("https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/keysystem"))()
+WindUI.Services.newpandadevelopment = {
+    Name = "New Panda Development",
+    Icon = "key",
+    Args = { "ServiceId" },
+
+    New = function(ServiceId)
+        local hwid = gethwid or function() return Players.LocalPlayer.UserId end
+        local frequest = request or http_request or syn_request
+
+        local function validateKey(key)
+            if not key or key == "" then return false, "Invalid key" end
+
+            local url = "https://new.pandadevelopment.net/v2_validation?key="
+                .. tostring(key)
+                .. "&service=" .. tostring(ServiceId)
+                .. "&hwid=" .. tostring(hwid())
+
+            local success, response = pcall(function()
+                return frequest({
+                    Url = url,
+                    Method = "GET",
+                    Headers = { ["User-Agent"] = "Roblox/Exploit" }
+                })
+            end)
+
+            if not success or not response or not response.Success then
+                return false, "HTTP request failed"
+            end
+
+            local decodeSuccess, data = pcall(function()
+                return HttpService:JSONDecode(response.Body)
+            end)
+
+            if not decodeSuccess or not data then
+                return false, "JSON decode error"
+            end
+
+            if data.V2_Authentication == "success" then
+                return true, "Authenticated"
+            end
+
+            local reason = (data.Key_Information and data.Key_Information.Notes) or "Authentication failed"
+            return false, reason
+        end
+
+        local function copyLink()
+            return setclipboard(
+                "https://new.pandadevelopment.net/getkey?service="
+                .. tostring(ServiceId)
+                .. "&hwid=" .. tostring(hwid())
+            )
+        end
+
+        return {
+            Verify = validateKey,
+            Copy = copyLink
+        }
+    end
+}
 
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
