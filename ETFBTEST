@@ -18,6 +18,9 @@ local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
 ))()
 
+local xuanjunkiedev = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/keysystem"
+))()
 
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
@@ -151,7 +154,7 @@ KeySystem = {
         {
             Title = "Junkie Development",
             Desc = "Click to copy.",
-            Type = "junkiedevelopment",
+            Type = "xuanjunkiedev",
             ServiceId = "XuanService",
             ApiKey = "05e58d71-071a-4bdc-b205-7276bc0e3324",
             Provider = "XuanProvider",
