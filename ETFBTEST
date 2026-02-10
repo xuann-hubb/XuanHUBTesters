@@ -45,9 +45,6 @@ WindUI.Services.xuanjunkiedev = {
     Icon = "bug-off",
     Args = { "ServiceId", "ApiKey", "Provider" },
     New = function(ServiceId, ApiKey, Provider)
-        JunkieProtected.API_KEY = ApiKey
-        JunkieProtected.PROVIDER = Provider
-        JunkieProtected.SERVICE_ID = ServiceId
 
         local function ValidateKey(key)
             if not key or key == "" then
