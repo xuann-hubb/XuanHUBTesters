@@ -17,7 +17,10 @@ local RunService = game:GetService("RunService")
 local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
 ))()
-
+-- ================= Keysystem =================
+local WindUI = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/xuan677128/XauuaannnHuuubbb/refs/heads/main/keysystem"
+))()
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
@@ -145,6 +148,20 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
+    KeySystem = {
+    Note = "Key System for Xuan Hub.",
+    SaveKey = true,
+    API = {
+        {
+            Title = "Junkie Development",
+            Desc = "Click to copy.",
+            Type = "xuanjunkiedev",
+            ApiKey = "1014215",
+            Provider = "XuanProvider",
+            ServiceId = 'XuanService",
+        },
+    },
+}
  
 })
 
