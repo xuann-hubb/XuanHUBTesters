@@ -88,6 +88,8 @@ local defaultSettings = {
     hitboxWidth = 70,
     -- Auto Sell by Rarity
     autoSellByRarity = false,
+    -- Auto Remove VIP Walls
+    autoRemoveVIPWalls = false,
     sellRarities = {},
 }
 
@@ -311,6 +313,9 @@ local sellRarities = {}
 local autoSellByName = false
 local sellBrainrotNames = {}
 local selectedRarityForNames = "Common"
+
+-- Auto Remove VIP Walls state
+local autoRemoveVIPWalls = false
 
 -- Auto Upgrade Brainrot state
 local autoUpgradeBrainrot = false
@@ -2043,213 +2048,6 @@ TsunamiSection:Button({
     end,
 })
 
--- ================= GO TO CELESTIALS SECTION =================
-local CelestialsSection = TsunamiTab:Section({ Title = "Go to Celestials", Opened = true })
-
--- State variables for Go to Celestials
-local goToCelestialsActive = false
-local celestialsSpeed = 500
-local celestialsZoneCF = CFrame.new(1627.62402, 37.375, 0)
-local celestialsZoneSize = Vector3.new(25.515625, 70.75, 260)
-local celestialsNoclipConn = nil
-local celestialsTouchLoopActive = false
-
-local CelestialsPoints = {
-    [0] = CFrame.new(122.78, 50, -37.03),
-    [1] = CFrame.new(122.780387, 4.190007, -37.039085),
-    [2] = CFrame.new(340.465179, 3.229981, -132.698471),
-    [3] = CFrame.new(476.623688, 3.229976, -136.101074),
-    [4] = CFrame.new(661.128113, 3.229976, -137.49559),
-    [5] = CFrame.new(943.427246, 3.229976, -136.574295),
-    [6] = CFrame.new(1315.06775, 3.229976, -137.78447),
-    [7] = CFrame.new(1886.96948, 3.229976, -137.550522),
-    [8] = CFrame.new(2450.84497, 3.229977, -134.240295),
-    [9] = CFrame.new(2597.69531, -2.820006, -93.964530)
-}
-
-local function getCelestialsActionStatus(targetPos)
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return "STOP" end
-    local myPos = hrp.Position
-    
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and v.Name:lower():find("wave") then
-            local wPos = v.Position
-            local rel = celestialsZoneCF:PointToObjectSpace(wPos)
-            if math.abs(rel.X) <= celestialsZoneSize.X/2 and math.abs(rel.Z) <= celestialsZoneSize.Z/2 then
-                return "STOP"
-            end
-            if (wPos - targetPos).Magnitude <= 65 or (wPos - myPos).Magnitude <= 55 then
-                return "FORCE_TP"
-            end
-        end
-    end
-    return "TWEEN"
-end
-
-local function startCelestialsTouchEffect(state)
-    celestialsTouchLoopActive = state
-    if state then
-        task.spawn(function()
-            while celestialsTouchLoopActive do
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local parts = workspace:GetPartBoundsInRadius(hrp.Position, 10)
-                    for _, part in ipairs(parts) do
-                        pcall(function() part.CanTouch = false end)
-                    end
-                end
-                task.wait(0.1)
-            end
-        end)
-    end
-end
-
-local function setCelestialsEnv(active)
-    if active then
-        pcall(function()
-            local walls = workspace:FindFirstChild("DefaultMap_SharedInstances")
-            if walls then
-                local vipWalls = walls:FindFirstChild("VIPWalls")
-                if vipWalls then
-                    for _, v in pairs(vipWalls:GetChildren()) do
-                        if v:IsA("BasePart") then
-                            v.Size = Vector3.new(0.001, 0.001, 0.001)
-                        end
-                    end
-                end
-            end
-        end)
-        startCelestialsTouchEffect(true)
-        celestialsNoclipConn = RunService.Stepped:Connect(function()
-            local char = player.Character
-            if char then
-                for _, p in pairs(char:GetDescendants()) do
-                    if p:IsA("BasePart") then
-                        pcall(function() p.CanCollide = false end)
-                    end
-                end
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    pcall(function() hum.PlatformStand = true end)
-                end
-            end
-        end)
-    else
-        if celestialsNoclipConn then
-            celestialsNoclipConn:Disconnect()
-            celestialsNoclipConn = nil
-        end
-        startCelestialsTouchEffect(false)
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                pcall(function() hum.PlatformStand = false end)
-            end
-        end
-    end
-end
-
-local function executeCelestialsMove(targetCF)
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    while goToCelestialsActive do
-        local targetPos = targetCF.Position
-        local curPos = hrp.Position
-        local status = getCelestialsActionStatus(targetPos)
-        local dist = (curPos - targetPos).Magnitude
-
-        pcall(function()
-            hrp.AssemblyLinearVelocity = Vector3.zero
-            hrp.AssemblyAngularVelocity = Vector3.zero
-        end)
-
-        if status == "STOP" then
-            task.wait(0.05)
-        elseif status == "FORCE_TP" or dist <= 25 then
-            pcall(function() hrp.CFrame = targetCF end)
-            break
-        else
-            local dt = task.wait()
-            local dir = Vector3.new(
-                targetPos.X - curPos.X,
-                0,
-                targetPos.Z - curPos.Z
-            )
-
-            if dir.Magnitude > 0 then
-                local newPos = curPos + dir.Unit * (celestialsSpeed * dt)
-                pcall(function()
-                    hrp.CFrame = CFrame.new(
-                        Vector3.new(newPos.X, curPos.Y, newPos.Z),
-                        targetPos
-                    )
-                end)
-            end
-
-            if dist <= 3 then
-                pcall(function() hrp.CFrame = targetCF end)
-                break
-            end
-        end
-    end
-end
-
-CelestialsSection:Toggle({
-    Title = "Auto Go to Celestials",
-    Desc = "Automatically move through points 1-9 to reach Celestials",
-    Value = false,
-    Callback = function(state)
-        goToCelestialsActive = state
-        
-        if state then
-            WindUI:Notify({
-                Title = "Go to Celestials",
-                Content = "Starting auto movement to Celestials...",
-                Icon = "navigation",
-                Duration = 3,
-            })
-            
-            task.spawn(function()
-                setCelestialsEnv(true)
-                for i = 1, 9 do
-                    if not goToCelestialsActive then break end
-                    executeCelestialsMove(CelestialsPoints[i])
-                end
-                setCelestialsEnv(false)
-                
-                if goToCelestialsActive then
-                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                    if hrp then
-                        pcall(function()
-                            hrp.Anchored = true
-                            task.wait(1)
-                            hrp.Anchored = false
-                        end)
-                    end
-                    
-                    WindUI:Notify({
-                        Title = "Go to Celestials",
-                        Content = "Reached destination!",
-                        Icon = "check",
-                        Duration = 3,
-                    })
-                end
-                
-                goToCelestialsActive = false
-            end)
-        else
-            WindUI:Notify({
-                Title = "Go to Celestials",
-                Content = "Auto movement stopped",
-                Icon = "info",
-                Duration = 2,
-            })
-        end
-    end
-})
 
 -- Background loop: behaves like "Smart Teleport to Last Gap" but stops at mapped gap index
 task.spawn(function()
@@ -2593,6 +2391,63 @@ VIPWallsSection:Button({
         end
     end
 })
+
+-- Auto Remove VIP Walls Toggle
+VIPWallsSection:Toggle({
+    Title = "Auto Remove VIP Walls",
+    Desc = "Automatically scan and remove VIP walls from all maps every 3 seconds",
+    Value = savedSettings.autoRemoveVIPWalls,
+    Callback = function(state)
+        autoRemoveVIPWalls = state
+        savedSettings.autoRemoveVIPWalls = state
+        saveSettings(savedSettings)
+        if state then
+            WindUI:Notify({ Title = "VIP Walls", Content = "Auto remove VIP walls enabled", Icon = "check", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "VIP Walls", Content = "Auto remove VIP walls disabled", Icon = "check", Duration = 3 })
+        end
+    end
+})
+
+-- Auto Remove VIP Walls Background Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoRemoveVIPWalls then
+            pcall(function()
+                local mapsToCheck = {
+                    { name = "DefaultMap_SharedInstances", displayName = "Default Map" },
+                    { name = "MarsMap_SharedInstances", displayName = "Mars Map" },
+                    { name = "RadioactiveMap_SharedInstances", displayName = "Radioactive Map" },
+                    { name = "MoneyMap_SharedInstances", displayName = "Money Map" },
+                    { name = "ArcadeMap_SharedInstances", displayName = "Arcade Map" },
+                }
+                
+                for _, mapInfo in ipairs(mapsToCheck) do
+                    local mapInstance = workspace:FindFirstChild(mapInfo.name)
+                    if mapInstance then
+                        local walls = mapInstance:FindFirstChild("VIPWalls")
+                        if walls then
+                            for _, v in pairs(walls:GetDescendants()) do
+                                if v:IsA("BasePart") then
+                                    v.CanCollide = false
+                                end
+                            end
+                            
+                            for _, v in pairs(walls:GetDescendants()) do
+                                if v:IsA("TouchTransmitter") then
+                                    v:Destroy()
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(3)
+        else
+            task.wait(1)
+        end
+    end
+end)
 
 -- Utilities section (visible)
 local UtilitiesSection = BaseTab:Section({ Title = "Utilities", Opened = true, })
