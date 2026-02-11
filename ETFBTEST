@@ -2043,12 +2043,6 @@ TsunamiSection:Button({
     end,
 })
 
--- Background loop: behaves like "Smart Teleport to Last Gap" but stops at mapped gap index
-task.spawn(function()
-    while scriptRunning do
-        if autoTeleportByRarity then
-            local ok, err = pcall(function()
-
 -- ================= GO TO CELESTIALS SECTION =================
 local CelestialsSection = TsunamiTab:Section({ Title = "Go to Celestials", Opened = true })
 
