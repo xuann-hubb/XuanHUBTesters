@@ -3851,10 +3851,10 @@ DefaultMachineSection:Dropdown({
     Values = AllBrainrotNames,
     Value = "",
     Multi = false,
-    AllowNone = false,
+    AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        machineBrainrot1 = option
+        machineBrainrot1 = option or ""
     end
 })
 
@@ -3865,10 +3865,10 @@ DefaultMachineSection:Dropdown({
     Values = AllBrainrotNames,
     Value = "",
     Multi = false,
-    AllowNone = false,
+    AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        machineBrainrot2 = option
+        machineBrainrot2 = option or ""
     end
 })
 
@@ -3879,10 +3879,10 @@ DefaultMachineSection:Dropdown({
     Values = AllBrainrotNames,
     Value = "",
     Multi = false,
-    AllowNone = false,
+    AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        machineBrainrot3 = option
+        machineBrainrot3 = option or ""
     end
 })
 
