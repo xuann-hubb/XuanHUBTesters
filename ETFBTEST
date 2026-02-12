@@ -332,9 +332,9 @@ local BrainrotUpgradeDropdown = nil
 -- Auto Machine state
 local autoMachine = false
 local machineTargetTime = "60:00"
-local machineBrainrot1 = "Noobini Cakenini"
-local machineBrainrot2 = "Noobini Cakenini"
-local machineBrainrot3 = "Noobini Cakenini"
+local machineBrainrot1 = ""
+local machineBrainrot2 = ""
+local machineBrainrot3 = ""
 
 -- Sell All confirmation
 local lastSellAllClick = 0
@@ -3831,6 +3831,7 @@ DefaultMachineSection:Input({
 
 -- All brainrot names for dropdowns
 local AllBrainrotNames = {
+    "",
     "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni",
     "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67",
     "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur",
@@ -3846,9 +3847,9 @@ local AllBrainrotNames = {
 -- Dropdown for Brainrot 1
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 1",
-    Desc = "Select first brainrot to fuse (leave as default to skip)",
+    Desc = "Select first brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
-    Value = "None",
+    Value = "",
     Multi = false,
     AllowNone = false,
     SearchBarEnabled = true,
@@ -3860,9 +3861,9 @@ DefaultMachineSection:Dropdown({
 -- Dropdown for Brainrot 2
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 2",
-    Desc = "Select second brainrot to fuse (leave as None to skip)",
+    Desc = "Select second brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
-    Value = "None",
+    Value = "",
     Multi = false,
     AllowNone = false,
     SearchBarEnabled = true,
@@ -3874,9 +3875,9 @@ DefaultMachineSection:Dropdown({
 -- Dropdown for Brainrot 3
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 3",
-    Desc = "Select third brainrot to fuse (leave as None to skip)",
+    Desc = "Select third brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
-    Value = "None",
+    Value = "",
     Multi = false,
     AllowNone = false,
     SearchBarEnabled = true,
@@ -3986,34 +3987,52 @@ task.spawn(function()
                         WindUI:Notify({ Title = "Auto Machine", Content = "Failed to teleport to machine", Icon = "alert-triangle", Duration = 3 })
                         autoMachine = false
                     else
-                        -- Step 2: Deposit Brainrot 1
-                        if not equipBrainrotTool(machineBrainrot1) then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 1 not found: " .. machineBrainrot1, Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
-                        elseif not depositBrainrot() then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 1", Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
-                        -- Step 3: Deposit Brainrot 2
-                        elseif not equipBrainrotTool(machineBrainrot2) then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 2 not found: " .. machineBrainrot2, Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
-                        elseif not depositBrainrot() then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 2", Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
-                        -- Step 4: Deposit Brainrot 3
-                        elseif not equipBrainrotTool(machineBrainrot3) then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 3 not found: " .. machineBrainrot3, Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
-                        elseif not depositBrainrot() then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 3", Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
-                        -- Step 5: Combine
-                        elseif not combineBrainrots() then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Failed to combine brainrots", Icon = "alert-triangle", Duration = 3 })
-                            autoMachine = false
+                        local depositSuccess = true
+                        
+                        -- Step 2: Deposit Brainrot 1 (if selected)
+                        if machineBrainrot1 ~= "" then
+                            if not equipBrainrotTool(machineBrainrot1) then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 1 not found: " .. machineBrainrot1, Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            elseif not depositBrainrot() then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 1", Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            end
+                        end
+                        
+                        -- Step 3: Deposit Brainrot 2 (if selected and previous steps succeeded)
+                        if depositSuccess and machineBrainrot2 ~= "" then
+                            if not equipBrainrotTool(machineBrainrot2) then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 2 not found: " .. machineBrainrot2, Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            elseif not depositBrainrot() then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 2", Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            end
+                        end
+                        
+                        -- Step 4: Deposit Brainrot 3 (if selected and previous steps succeeded)
+                        if depositSuccess and machineBrainrot3 ~= "" then
+                            if not equipBrainrotTool(machineBrainrot3) then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 3 not found: " .. machineBrainrot3, Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            elseif not depositBrainrot() then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 3", Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            end
+                        end
+                        
+                        -- Step 5: Combine (only if at least one brainrot was deposited successfully)
+                        if depositSuccess then
+                            if not combineBrainrots() then
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to combine brainrots", Icon = "alert-triangle", Duration = 3 })
+                                autoMachine = false
+                            else
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Fusion completed! Waiting 30s for cooldown...", Icon = "check", Duration = 3 })
+                                task.wait(30)
+                            end
                         else
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Fusion completed! Waiting 30s for cooldown...", Icon = "check", Duration = 3 })
-                            task.wait(30)
+                            autoMachine = false
                         end
                     end
                 end
