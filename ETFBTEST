@@ -331,11 +331,10 @@ local BrainrotUpgradeDropdown = nil
 
 -- Auto Machine state
 local autoMachine = false
-local machineTargetTime = "60.00"
+local machineTargetTime = "60:00"
 local machineBrainrot1 = "Noobini Cakenini"
 local machineBrainrot2 = "Noobini Cakenini"
 local machineBrainrot3 = "Noobini Cakenini"
-local machineLoopCount = 2
 
 -- Sell All confirmation
 local lastSellAllClick = 0
@@ -3815,11 +3814,18 @@ end)
 -- Input for target time
 DefaultMachineSection:Input({
     Title = "Target Time",
-    Desc = "When machine timer matches this time, start fusion",
-    Value = "60.00",
-    Placeholder = "Enter time (e.g., 60.00)",
+    Desc = "When machine timer matches this time, start fusion (format: MM:SS)",
+    Value = "60:00",
+    Placeholder = "Enter time (e.g., 60:00)",
     Callback = function(value)
-        machineTargetTime = value
+        -- Validate time format (should contain ':')
+        if value and value:match(":") then
+            machineTargetTime = value
+        else
+            -- Default to 60:00 if invalid format
+            machineTargetTime = "60:00"
+            WindUI:Notify({ Title = "Auto Machine", Content = "Invalid time format. Defaulted to 60:00", Icon = "alert-triangle", Duration = 3 })
+        end
     end
 })
 
@@ -3876,19 +3882,6 @@ DefaultMachineSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(option)
         machineBrainrot3 = option
-    end
-})
-
--- Dropdown for loop count
-DefaultMachineSection:Dropdown({
-    Title = "Fusion Loop Count",
-    Desc = "How many times to repeat the fusion process",
-    Values = {"2", "3", "4", "5", "6", "7", "8", "9", "10"},
-    Value = "2",
-    Multi = false,
-    AllowNone = false,
-    Callback = function(option)
-        machineLoopCount = tonumber(option) or 2
     end
 })
 
@@ -3986,58 +3979,43 @@ task.spawn(function()
             pcall(function()
                 -- Check if timer matches target time
                 if currentMachineTimer == machineTargetTime then
-                    WindUI:Notify({ Title = "Auto Machine", Content = "Timer matched! Starting fusion cycles...", Icon = "info", Duration = 3 })
+                    WindUI:Notify({ Title = "Auto Machine", Content = "Timer matched! Starting fusion...", Icon = "info", Duration = 3 })
                     
-                    -- Execute the fusion loop
-                    for loopIndex = 1, machineLoopCount do
-                        -- Step 1: Teleport to machine
-                        if not teleportToMachine() then
-                            WindUI:Notify({ Title = "Auto Machine", Content = "Failed to teleport to machine", Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        
+                    -- Step 1: Teleport to machine
+                    if not teleportToMachine() then
+                        WindUI:Notify({ Title = "Auto Machine", Content = "Failed to teleport to machine", Icon = "alert-triangle", Duration = 3 })
+                        autoMachine = false
+                    else
                         -- Step 2: Deposit Brainrot 1
                         if not equipBrainrotTool(machineBrainrot1) then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 1 not found: " .. machineBrainrot1, Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        if not depositBrainrot() then
+                            autoMachine = false
+                        elseif not depositBrainrot() then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 1", Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        
+                            autoMachine = false
                         -- Step 3: Deposit Brainrot 2
-                        if not equipBrainrotTool(machineBrainrot2) then
+                        elseif not equipBrainrotTool(machineBrainrot2) then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 2 not found: " .. machineBrainrot2, Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        if not depositBrainrot() then
+                            autoMachine = false
+                        elseif not depositBrainrot() then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 2", Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        
+                            autoMachine = false
                         -- Step 4: Deposit Brainrot 3
-                        if not equipBrainrotTool(machineBrainrot3) then
+                        elseif not equipBrainrotTool(machineBrainrot3) then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 3 not found: " .. machineBrainrot3, Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        if not depositBrainrot() then
+                            autoMachine = false
+                        elseif not depositBrainrot() then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 3", Icon = "alert-triangle", Duration = 3 })
-                            break
-                        end
-                        
+                            autoMachine = false
                         -- Step 5: Combine
-                        if not combineBrainrots() then
+                        elseif not combineBrainrots() then
                             WindUI:Notify({ Title = "Auto Machine", Content = "Failed to combine brainrots", Icon = "alert-triangle", Duration = 3 })
-                            break
+                            autoMachine = false
+                        else
+                            WindUI:Notify({ Title = "Auto Machine", Content = "Fusion completed! Waiting 30s for cooldown...", Icon = "check", Duration = 3 })
+                            task.wait(30)
                         end
-                        
-                        WindUI:Notify({ Title = "Auto Machine", Content = "Fusion cycle " .. loopIndex .. " of " .. machineLoopCount .. " completed", Icon = "check", Duration = 2 })
-                        task.wait(1)
                     end
-                    
-                    WindUI:Notify({ Title = "Auto Machine", Content = "All fusion cycles completed!", Icon = "check", Duration = 3 })
-                    autoMachine = false
                 end
             end)
             task.wait(1)
