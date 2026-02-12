@@ -3909,10 +3909,13 @@ local function getBrainrotNames()
     local names = { "" } -- Start with empty string for "None" option
     pcall(function()
         local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
-        for name, _ in pairs(BrainrotsData.BrainrotsName) do
-            table.insert(names, name)
+        -- BrainrotsNames is an array, use ipairs to iterate
+        if BrainrotsData.BrainrotsNames then
+            for _, name in ipairs(BrainrotsData.BrainrotsNames) do
+                table.insert(names, name)
+            end
+            table.sort(names)
         end
-        table.sort(names)
     end)
     -- If require fails, return just the empty string
     return names
