@@ -22,101 +22,6 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
-
--- ================= key system =================
-local BaseURL = "https://new.pandadevelopment.net/api/v1"
-local Client_ServiceID = "YOUR_SERVICE_ID" -- <- Change this to your service ID
-
-WindUI.Services.newpandadevelopment = {
-    Name = "New Panda Development",
-    Icon = "key",
-    Args = { "ServiceID" },
-
-    New = function(ServiceID)
-        -- Use ServiceID if provided
-        local ServiceIDToUse = ServiceID or Client_ServiceID
-
-        -- Get Hardware ID
-        local function getHardwareId()
-            local success, hwid = pcall(gethwid)
-            if success and hwid then return hwid end
-
-            local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
-            local clientId = tostring(RbxAnalyticsService:GetClientId())
-            return clientId:gsub("-", "")
-        end
-
-        -- HTTP POST Request wrapper
-        local function makeRequest(endpoint, body)
-            local url = BaseURL .. endpoint
-            local jsonBody = HttpService:JSONEncode(body)
-
-            local response = request({
-                Url = url,
-                Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = jsonBody
-            })
-
-            if response and response.Body then
-                return HttpService:JSONDecode(response.Body)
-            end
-
-            return nil
-        end
-
-        -- Validate a key
-        local function validateKey(key, Premium_Verification)
-            if not key or key == "" then return false, "Invalid key" end
-
-            local hwid = getHardwareId()
-            local result = makeRequest("/keys/validate", {
-                ServiceID = ServiceIDToUse,
-                HWID = hwid,
-                Key = key
-            })
-
-            if not result then
-                return false, "Failed to connect to server"
-            end
-
-            local isAuthenticated = result.Authenticated_Status == "Success"
-            local isPremium = result.Key_Premium or false
-            local isValid = isAuthenticated
-            local message = result.Note or (isAuthenticated and "Key validated!" or "Invalid key")
-
-            if Premium_Verification and isAuthenticated and not isPremium then
-                isValid = false
-                message = "Premium key required"
-            end
-
-            return isValid, message, isPremium, result.Expire_Date
-        end
-
-        -- Get Key URL
-        local function getKeyURL()
-            local hwid = getHardwareId()
-            return "https://new.pandadevelopment.net/getkey/" .. ServiceIDToUse .. "?hwid=" .. hwid
-        end
-
-        -- Copy Key URL to clipboard
-        local function copyLink()
-            local url = getKeyURL()
-            if setclipboard then
-                setclipboard(url)
-                print("Key URL copied to clipboard: " .. url)
-            end
-            return url
-        end
-
-        return {
-            Verify = validateKey,
-            Copy = copyLink,
-            GetLink = getKeyURL
-        }
-    end
-}
-
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
@@ -241,18 +146,6 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
-    KeySystem = {
-        Note = "Key System for Xuan Hub.",
-        SaveKey = true,
-        API = {
-            {
-                Title = "Get key here",
-                Desc = "Click to copy.",
-               Type = "newpandadevelopment", 
-                ServiceID = "xuanketsyste",
-            },
-        },
-    },
 
  
 })
@@ -347,6 +240,12 @@ local TsunamiTab = Window:Tab({
 local MiscTab = Window:Tab({
     Title = "Settings",
     Icon = "settings",
+    Locked = false,
+})
+
+local MachineTab = Window:Tab({
+    Title = "Machine",
+    Icon = "box",
     Locked = false,
 })
 
@@ -2502,7 +2401,7 @@ VIPWallsSection:Button({
 -- Auto Remove VIP Walls Toggle
 VIPWallsSection:Toggle({
     Title = "Auto Remove VIP Walls",
-    Desc = "Automatically remove Active VIP walls map",
+    Desc = "Automatically scan and remove VIP walls from all maps every 3 seconds",
     Value = savedSettings.autoRemoveVIPWalls,
     Callback = function(state)
         autoRemoveVIPWalls = state
@@ -3835,6 +3734,71 @@ task.spawn(function()
 
     if savedSettings.uiTransparency then
         Window:ToggleTransparency()
+    end
+end)
+
+-- ================= MACHINE TAB =================
+local DefaultMachineSection = MachineTab:Section({ Title = "Default Machine", Opened = true })
+
+-- Create paragraph for Machine Luck Timer
+local MachineLuckTimerParagraph = DefaultMachineSection:Paragraph({
+    Title = "Machine Luck Timer",
+    Desc = "Loading timer...",
+})
+
+-- Background loop to update Machine Luck Timer
+task.spawn(function()
+    while scriptRunning do
+        pcall(function()
+            local spawnMachines = workspace:FindFirstChild("SpawnMachines")
+            if spawnMachines then
+                local defaultMachine = spawnMachines:FindFirstChild("Default")
+                if defaultMachine then
+                    local main = defaultMachine:FindFirstChild("Main")
+                    if main then
+                        local billboard = main:FindFirstChild("Billboard")
+                        if billboard then
+                            local billboardGui = billboard:FindFirstChild("BillboardGui")
+                            if billboardGui then
+                                local frame = billboardGui:FindFirstChild("Frame")
+                                if frame then
+                                    local brainrots = frame:FindFirstChild("Brainrots")
+                                    if brainrots then
+                                        local afkLuckContainer = brainrots:FindFirstChild("AFKLuckContainer")
+                                        if afkLuckContainer then
+                                            local timeLabel = afkLuckContainer:FindFirstChild("TimeLabel")
+                                            if timeLabel and timeLabel:IsA("TextLabel") then
+                                                local timerText = timeLabel.Text
+                                                MachineLuckTimerParagraph:SetDesc("Current Timer: " .. timerText)
+                                            else
+                                                MachineLuckTimerParagraph:SetDesc("TimeLabel not found")
+                                            end
+                                        else
+                                            MachineLuckTimerParagraph:SetDesc("AFKLuckContainer not found")
+                                        end
+                                    else
+                                        MachineLuckTimerParagraph:SetDesc("Brainrots not found")
+                                    end
+                                else
+                                    MachineLuckTimerParagraph:SetDesc("Frame not found")
+                                end
+                            else
+                                MachineLuckTimerParagraph:SetDesc("BillboardGui not found")
+                            end
+                        else
+                            MachineLuckTimerParagraph:SetDesc("Billboard not found")
+                        end
+                    else
+                        MachineLuckTimerParagraph:SetDesc("Main not found")
+                    end
+                else
+                    MachineLuckTimerParagraph:SetDesc("Default machine not found")
+                end
+            else
+                MachineLuckTimerParagraph:SetDesc("SpawnMachines not found")
+            end
+        end)
+        task.wait(0.5)
     end
 end)
 
