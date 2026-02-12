@@ -22,8 +22,6 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
-
-
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
@@ -148,7 +146,6 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
-   
 
  
 })
@@ -2411,7 +2408,7 @@ VIPWallsSection:Button({
 -- Auto Remove VIP Walls Toggle
 VIPWallsSection:Toggle({
     Title = "Auto Remove VIP Walls",
-    Desc = "Automatically  remove VIP walls from all maps",
+    Desc = "Automatically scan and remove VIP walls from all maps every 3 seconds",
     Value = savedSettings.autoRemoveVIPWalls,
     Callback = function(state)
         autoRemoveVIPWalls = state
@@ -3849,9 +3846,9 @@ local AllBrainrotNames = {
 -- Dropdown for Brainrot 1
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 1",
-    Desc = "Select first brainrot to fuse",
+    Desc = "Select first brainrot to fuse (leave as default to skip)",
     Values = AllBrainrotNames,
-    Value = "Noobini Cakenini",
+    Value = "None",
     Multi = false,
     AllowNone = false,
     SearchBarEnabled = true,
@@ -3863,9 +3860,9 @@ DefaultMachineSection:Dropdown({
 -- Dropdown for Brainrot 2
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 2",
-    Desc = "Select second brainrot to fuse",
+    Desc = "Select second brainrot to fuse (leave as None to skip)",
     Values = AllBrainrotNames,
-    Value = "Noobini Cakenini",
+    Value = "None",
     Multi = false,
     AllowNone = false,
     SearchBarEnabled = true,
@@ -3877,9 +3874,9 @@ DefaultMachineSection:Dropdown({
 -- Dropdown for Brainrot 3
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 3",
-    Desc = "Select third brainrot to fuse",
+    Desc = "Select third brainrot to fuse (leave as None to skip)",
     Values = AllBrainrotNames,
-    Value = "Noobini Cakenini",
+    Value = "None",
     Multi = false,
     AllowNone = false,
     SearchBarEnabled = true,
