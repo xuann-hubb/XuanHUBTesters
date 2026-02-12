@@ -12,6 +12,7 @@ local player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 -- ================= LOAD WINDUI =================
 local WindUI = loadstring(game:HttpGet(
@@ -21,9 +22,6 @@ local WindUI = loadstring(game:HttpGet(
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
-
-
-
 
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
@@ -150,7 +148,7 @@ local Window = WindUI:CreateWindow({
         Enabled = true,
     },
 
- 
+
 })
 
 
@@ -210,7 +208,8 @@ local function gradient(text, colorFrom, colorTo)
         local g = colorFrom.G + (colorTo.G - colorFrom.G) * ratio
         local b = colorFrom.B + (colorTo.B - colorFrom.B) * ratio
         local color = Color3.new(r, g, b)
-        local hex = string.format("#%02x%02x%02x", math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255))
+        local hex = string.format("#%02x%02x%02x", math.floor(color.R * 255), math.floor(color.G * 255),
+            math.floor(color.B * 255))
         result = result .. string.format('<font color="%s">%s</font>', hex, text:sub(i, i))
     end
     return result
@@ -329,7 +328,7 @@ local autoRemoveVIPWalls = false
 -- Auto Upgrade Brainrot state
 local autoUpgradeBrainrot = false
 local upgradeBrainrotTargets = {} -- array of selected brainrot level entries
-local brainrotSlotData = {} -- cached slot data: {label, baseName, slotNum}
+local brainrotSlotData = {}       -- cached slot data: {label, baseName, slotNum}
 local BrainrotUpgradeDropdown = nil
 
 -- Auto Machine state
@@ -576,7 +575,7 @@ local function _collectCoinsFromSources(opts)
             if ok and matchesName(cname) then
                 local hitbox = coin:FindFirstChild("Hitbox") or coin:FindFirstChildWhichIsA("BasePart")
                 if hitbox and hitbox:IsA("BasePart") then
-                    pcall(function() 
+                    pcall(function()
                         firetouchinterest(rootPart, hitbox, 0)
                         firetouchinterest(rootPart, hitbox, 1)
                     end)
@@ -600,7 +599,7 @@ local function _collectCoinsFromSources(opts)
             if d:IsA("BasePart") then
                 local ok, nm = pcall(function() return d.Name end)
                 if ok and (matchesName(nm) or d:FindFirstChild("TouchInterest") or d:FindFirstChildOfClass("TouchTransmitter")) then
-                    pcall(function() 
+                    pcall(function()
                         firetouchinterest(rootPart, d, 0)
                         firetouchinterest(rootPart, d, 1)
                     end)
@@ -619,13 +618,13 @@ task.spawn(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local folder = workspace:FindFirstChild("UFOEventParts") or workspace:FindFirstChild("UFQEventParts")
                 if not hrp or not folder then return end
-                
+
                 for _, coin in ipairs(folder:GetChildren()) do
                     if coin.Name == "UFO Coin" or coin.Name:lower():find("coin") or coin.Name:lower():find("ufo") then
                         -- prefer the 'Hitbox' or 'hitbox' part
                         local hitboxPart = coin:FindFirstChild("Hitbox") or coin:FindFirstChild("hitbox")
                         if hitboxPart and hitboxPart:IsA("BasePart") then
-                            pcall(function() 
+                            pcall(function()
                                 firetouchinterest(hrp, hitboxPart, 0)
                                 firetouchinterest(hrp, hitboxPart, 1)
                             end)
@@ -634,7 +633,7 @@ task.spawn(function()
                             -- fallback: find any BasePart descendant (or TouchInterest owner)
                             for _, d in ipairs(coin:GetDescendants()) do
                                 if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
-                                    pcall(function() 
+                                    pcall(function()
                                         firetouchinterest(hrp, d, 0)
                                         firetouchinterest(hrp, d, 1)
                                     end)
@@ -661,13 +660,13 @@ task.spawn(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local folder = workspace:FindFirstChild("RadioactiveEventParts")
                 if not hrp or not folder then return end
-                
+
                 for _, coin in ipairs(folder:GetChildren()) do
                     if coin.Name == "Radioactive Coin" or coin.Name:lower():find("coin") or coin.Name == "coins" then
                         -- prefer the 'hitbox' part
                         local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
                         if hitboxPart and hitboxPart:IsA("BasePart") then
-                            pcall(function() 
+                            pcall(function()
                                 firetouchinterest(hrp, hitboxPart, 0)
                                 firetouchinterest(hrp, hitboxPart, 1)
                             end)
@@ -676,7 +675,7 @@ task.spawn(function()
                             -- fallback: find any BasePart descendant (or TouchInterest owner)
                             for _, d in ipairs(coin:GetDescendants()) do
                                 if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
-                                    pcall(function() 
+                                    pcall(function()
                                         firetouchinterest(hrp, d, 0)
                                         firetouchinterest(hrp, d, 1)
                                     end)
@@ -708,7 +707,7 @@ task.spawn(function()
                         -- prefer the 'Main' part (some maps place the collectible under GoldBar.Main)
                         local mainPart = gb:FindFirstChild("Main")
                         if mainPart and mainPart:IsA("BasePart") then
-                            pcall(function() 
+                            pcall(function()
                                 firetouchinterest(hrp, mainPart, 0)
                                 firetouchinterest(hrp, mainPart, 1)
                             end)
@@ -717,7 +716,7 @@ task.spawn(function()
                             -- fallback: find any BasePart descendant (or TouchInterest owner)
                             for _, d in ipairs(gb:GetDescendants()) do
                                 if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("main") or d.Name:lower():find("gold")) then
-                                    pcall(function() 
+                                    pcall(function()
                                         firetouchinterest(hrp, d, 0)
                                         firetouchinterest(hrp, d, 1)
                                     end)
@@ -744,13 +743,13 @@ task.spawn(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local folder = workspace:FindFirstChild("ArcadeEventConsoles")
                 if not hrp or not folder then return end
-                
+
                 for _, gc in ipairs(folder:GetChildren()) do
                     if gc.Name == "Game Console" or gc.Name:lower():find("console") then
                         -- prefer the 'Game Console' part
                         local consolePart = gc:FindFirstChild("Game Console")
                         if consolePart and consolePart:IsA("BasePart") then
-                            pcall(function() 
+                            pcall(function()
                                 firetouchinterest(hrp, consolePart, 0)
                                 firetouchinterest(hrp, consolePart, 1)
                             end)
@@ -759,7 +758,7 @@ task.spawn(function()
                             -- fallback: find any BasePart descendant (or TouchInterest owner)
                             for _, d in ipairs(gc:GetDescendants()) do
                                 if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("console") or d.Name:lower():find("game")) then
-                                    pcall(function() 
+                                    pcall(function()
                                         firetouchinterest(hrp, d, 0)
                                         firetouchinterest(hrp, d, 1)
                                     end)
@@ -786,13 +785,13 @@ task.spawn(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 local folder = workspace:FindFirstChild("ArcadeEventTickets")
                 if not hrp or not folder then return end
-                
+
                 for _, tk in ipairs(folder:GetChildren()) do
                     if tk.Name == "Ticket" or tk.Name:lower():find("ticket") then
                         -- prefer the 'Ticket' part
                         local ticketPart = tk:FindFirstChild("Ticket") or tk:FindFirstChild("ticket")
                         if ticketPart and ticketPart:IsA("BasePart") then
-                            pcall(function() 
+                            pcall(function()
                                 firetouchinterest(hrp, ticketPart, 0)
                                 firetouchinterest(hrp, ticketPart, 1)
                             end)
@@ -801,7 +800,7 @@ task.spawn(function()
                             -- fallback: find any BasePart descendant (or TouchInterest owner)
                             for _, d in ipairs(tk:GetDescendants()) do
                                 if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("ticket")) then
-                                    pcall(function() 
+                                    pcall(function()
                                         firetouchinterest(hrp, d, 0)
                                         firetouchinterest(hrp, d, 1)
                                     end)
@@ -826,7 +825,8 @@ task.spawn(function()
         if autoSpinArcadeWheel then
             pcall(function()
                 local args = { "Arcade", false }
-                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+                "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
             end)
             local delayValue = tonumber(savedSettings.spinDelay) or 0.5
             if delayValue <= 0 then delayValue = 0.5 end
@@ -952,7 +952,7 @@ task.spawn(function()
                                 task.wait(2)
 
                                 local targetPos = touchPart.Position or (obbyEnd:IsA("BasePart") and obbyEnd.Position) or
-                                (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
+                                    (obbyEnd:IsA("Model") and obbyEnd:GetPivot().Position)
                                 if targetPos then
                                     rootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 5, 0))
                                     task.wait(0.3)
@@ -1090,7 +1090,8 @@ task.spawn(function()
                 -- If user enabled auto-rejoin, rejoin now; otherwise keep the original 15-minute cooldown
                 if autoRejoinAfterMoneyObby then
                     pcall(function()
-                        WindUI:Notify({ Title = "Money Obby", Content = "Auto-rejoin enabled — rejoining...", Icon = "info", Duration = 2 })
+                        WindUI:Notify({ Title = "Money Obby", Content = "Auto-rejoin enabled — rejoining...", Icon =
+                        "info", Duration = 2 })
                         task.wait(0.6)
                         game:GetService("TeleportService"):Teleport(game.PlaceId, player)
                     end)
@@ -1166,20 +1167,6 @@ task.spawn(function()
     end
 end)
 
--- Brainrot names by rarity (global table)
-local BrainrotsByRarity = {
-    Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
-    Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
-    Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
-    Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
-    Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
-    Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
-    Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh" },
-    Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini" },
-    Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini" },
-    Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero" },
-}
-
 -- Auto Sell by Rarity Loop
 task.spawn(function()
     while scriptRunning do
@@ -1192,17 +1179,23 @@ task.spawn(function()
                 local humanoid = character:FindFirstChild("Humanoid")
                 if not humanoid then return end
 
-                -- Build list of brainrots to sell from selected rarities
+                -- Build list of brainrots to sell from selected rarities (dynamically from game data)
                 local brainrotsToSell = {}
-                for _, targetRarity in ipairs(sellRarities) do
-                    local rarityList = BrainrotsByRarity[targetRarity]
-                    if rarityList then
-                        for _, brainrotName in ipairs(rarityList) do
-                            brainrotsToSell[brainrotName] = true
+                pcall(function()
+                    local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+                    for rarity, brainrots in pairs(BrainrotsData.Chances) do
+                        -- Check if this rarity is in the sellRarities list
+                        for _, targetRarity in ipairs(sellRarities) do
+                            if rarity == targetRarity then
+                                -- Add all brainrots from this rarity to the sell list
+                                for brainrotName, _ in pairs(brainrots) do
+                                    brainrotsToSell[brainrotName] = true
+                                end
+                                break
+                            end
                         end
                     end
-                end
-
+                end)
 
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoSellByRarity then break end
@@ -1287,7 +1280,7 @@ local function scanBaseBrainrots()
             if slot then
                 local brainrotName = slot:GetAttribute("BrainrotName")
                 local level = slot:GetAttribute("Level")
-                
+
                 -- Only include slots with non-empty BrainrotName
                 if brainrotName and brainrotName ~= "" and level then
                     local label = "Level " .. level .. " " .. brainrotName .. " (Slot " .. i .. ")"
@@ -1310,7 +1303,7 @@ task.spawn(function()
             pcall(function()
                 for _, entry in ipairs(upgradeBrainrotTargets) do
                     if not autoUpgradeBrainrot then break end
-                    
+
                     -- Find the matching slot data
                     for _, slotData in ipairs(brainrotSlotData) do
                         if slotData.label == entry then
@@ -1676,7 +1669,7 @@ local function findGapsFolder()
     -- return the first existing 'Gaps' folder from known map locations
     -- expanded to include Mars, Money and Radioactive map variants
     local candidates = {
-       (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
+        (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
@@ -1724,10 +1717,13 @@ local function collectGapEntries(folder)
     for _, child in ipairs(folder:GetChildren()) do
         if child then
             -- attempt to find a usable BasePart for positioning
-            local part = (child:IsA("BasePart") and child) or (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+            local part = (child:IsA("BasePart") and child) or
+            (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
             if not part then
                 for _, d in ipairs(child:GetDescendants()) do
-                    if d:IsA("BasePart") then part = d; break end
+                    if d:IsA("BasePart") then
+                        part = d; break
+                    end
                 end
             end
             if part then
@@ -1741,7 +1737,9 @@ local function collectGapEntries(folder)
 
     -- If any entries have numeric indices, sort by that; otherwise sort by X (left→right)
     local hasNumbers = false
-    for _, e in ipairs(entries) do if e.idxRaw then hasNumbers = true; break end end
+    for _, e in ipairs(entries) do if e.idxRaw then
+            hasNumbers = true; break
+        end end
     if hasNumbers then
         table.sort(entries, function(a, b)
             return (a.idxRaw or 9999) < (b.idxRaw or 9999)
@@ -1875,8 +1873,13 @@ TsunamiSection:Button({
                             while not IsPathClear(targetPos) and _G.AutoTourActive do
                                 if not blockedNotified then
                                     pcall(function()
-                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
-                                        tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                        WindUI:Notify({
+                                            Title = "Teleport",
+                                            Content = "Gap blocked — waiting: " ..
+                                                tostring(e.name),
+                                            Icon = "alert-triangle",
+                                            Duration = 3
+                                        })
                                     end)
                                     print("[XuanHub] SmartTeleport: waiting for gap to clear:", e.name)
                                     blockedNotified = true
@@ -1886,8 +1889,13 @@ TsunamiSection:Button({
 
                             if blockedNotified and _G.AutoTourActive then
                                 pcall(function()
-                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
-                                    tostring(e.name), Icon = "check", Duration = 2 })
+                                    WindUI:Notify({
+                                        Title = "Teleport",
+                                        Content = "Gap is now clear: " ..
+                                            tostring(e.name),
+                                        Icon = "check",
+                                        Duration = 2
+                                    })
                                 end)
                                 print("[XuanHub] SmartTeleport: gap cleared:", e.name)
                             end
@@ -1962,8 +1970,13 @@ TsunamiSection:Button({
                             while not IsPathClear(targetPos) and _G.ReverseTourActive do
                                 if not blockedNotified then
                                     pcall(function()
-                                        WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
-                                        tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                        WindUI:Notify({
+                                            Title = "Teleport",
+                                            Content = "Gap blocked — waiting: " ..
+                                                tostring(e.name),
+                                            Icon = "alert-triangle",
+                                            Duration = 3
+                                        })
                                     end)
                                     print("[XuanHub] SmartTeleport (reverse): waiting for gap to clear:", e.name)
                                     blockedNotified = true
@@ -1973,8 +1986,13 @@ TsunamiSection:Button({
 
                             if blockedNotified and _G.ReverseTourActive then
                                 pcall(function()
-                                    WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
-                                    tostring(e.name), Icon = "check", Duration = 2 })
+                                    WindUI:Notify({
+                                        Title = "Teleport",
+                                        Content = "Gap is now clear: " ..
+                                            tostring(e.name),
+                                        Icon = "check",
+                                        Duration = 2
+                                    })
                                 end)
                                 print("[XuanHub] SmartTeleport (reverse): gap cleared:", e.name)
                             end
@@ -2047,9 +2065,15 @@ TsunamiSection:Button({
     Callback = function()
         -- disable all teleporting flags (short-circuit running loops)
         local stopped = {}
-        if autoTeleportByRarity then autoTeleportByRarity = false; savedSettings.autoTeleportByRarity = false; table.insert(stopped, "rarity") end
-        if _G.AutoTourActive then _G.AutoTourActive = false; table.insert(stopped, "auto-tour") end
-        if _G.ReverseTourActive then _G.ReverseTourActive = false; table.insert(stopped, "reverse-tour") end
+        if autoTeleportByRarity then
+            autoTeleportByRarity = false; savedSettings.autoTeleportByRarity = false; table.insert(stopped, "rarity")
+        end
+        if _G.AutoTourActive then
+            _G.AutoTourActive = false; table.insert(stopped, "auto-tour")
+        end
+        if _G.ReverseTourActive then
+            _G.ReverseTourActive = false; table.insert(stopped, "reverse-tour")
+        end
 
         -- persist and update UI status
         pcall(function() saveSettings(savedSettings) end)
@@ -2059,7 +2083,8 @@ TsunamiSection:Button({
         pcall(function() if type(_G.XuanHub_ToggleTeleportByRarity) == "function" then _G.XuanHub_ToggleTeleportByRarity() end end)
 
         -- unified notification
-        local msg = (#stopped > 0) and ("Stopped: " .. table.concat(stopped, ", ")) or "No teleport operations were active"
+        local msg = (#stopped > 0) and ("Stopped: " .. table.concat(stopped, ", ")) or
+        "No teleport operations were active"
         WindUI:Notify({ Title = "Teleport", Content = msg, Icon = "info", Duration = 3 })
     end,
 })
@@ -2101,8 +2126,13 @@ task.spawn(function()
                 -- clamp target to available range
                 local maxIdx = entries[#entries].idx
                 if targetIdx > maxIdx then
-                    WindUI:Notify({ Title = "Teleport", Content = "Target gap out of range: " .. tostring(targetIdx), Icon =
-                    "alert-triangle", Duration = 3 })
+                    WindUI:Notify({
+                        Title = "Teleport",
+                        Content = "Target gap out of range: " .. tostring(targetIdx),
+                        Icon =
+                        "alert-triangle",
+                        Duration = 3
+                    })
                     autoTeleportByRarity = false
                     TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
                     return
@@ -2112,8 +2142,13 @@ task.spawn(function()
                 while autoTeleportByRarity do
                     local currentPosIndex = GetNearestGapIndex()
                     if currentPosIndex >= targetIdx then
-                        WindUI:Notify({ Title = "Teleport", Content = "Reached target gap (" ..
-                        tostring(targetRarity) .. ")", Icon = "check", Duration = 2 })
+                        WindUI:Notify({
+                            Title = "Teleport",
+                            Content = "Reached target gap (" ..
+                                tostring(targetRarity) .. ")",
+                            Icon = "check",
+                            Duration = 2
+                        })
                         autoTeleportByRarity = false
                         savedSettings.autoTeleportByRarity = false
                         saveSettings(savedSettings)
@@ -2138,8 +2173,13 @@ task.spawn(function()
                                 while not IsPathClear(targetPos) and autoTeleportByRarity do
                                     if not blockedNotified then
                                         pcall(function()
-                                            WindUI:Notify({ Title = "Teleport", Content = "Gap blocked — waiting: " ..
-                                            tostring(e.name), Icon = "alert-triangle", Duration = 3 })
+                                            WindUI:Notify({
+                                                Title = "Teleport",
+                                                Content = "Gap blocked — waiting: " ..
+                                                    tostring(e.name),
+                                                Icon = "alert-triangle",
+                                                Duration = 3
+                                            })
                                         end)
                                         print("[XuanHub] TeleportByRarity: waiting for gap to clear:", e.name)
                                         blockedNotified = true
@@ -2149,8 +2189,13 @@ task.spawn(function()
 
                                 if blockedNotified and autoTeleportByRarity then
                                     pcall(function()
-                                        WindUI:Notify({ Title = "Teleport", Content = "Gap is now clear: " ..
-                                        tostring(e.name), Icon = "check", Duration = 2 })
+                                        WindUI:Notify({
+                                            Title = "Teleport",
+                                            Content = "Gap is now clear: " ..
+                                                tostring(e.name),
+                                            Icon = "check",
+                                            Duration = 2
+                                        })
                                     end)
                                     print("[XuanHub] TeleportByRarity: gap cleared:", e.name)
                                 end
@@ -2431,13 +2476,13 @@ task.spawn(function()
         if autoRemoveVIPWalls then
             pcall(function()
                 local mapsToCheck = {
-                    { name = "DefaultMap_SharedInstances", displayName = "Default Map" },
-                    { name = "MarsMap_SharedInstances", displayName = "Mars Map" },
+                    { name = "DefaultMap_SharedInstances",     displayName = "Default Map" },
+                    { name = "MarsMap_SharedInstances",        displayName = "Mars Map" },
                     { name = "RadioactiveMap_SharedInstances", displayName = "Radioactive Map" },
-                    { name = "MoneyMap_SharedInstances", displayName = "Money Map" },
-                    { name = "ArcadeMap_SharedInstances", displayName = "Arcade Map" },
+                    { name = "MoneyMap_SharedInstances",       displayName = "Money Map" },
+                    { name = "ArcadeMap_SharedInstances",      displayName = "Arcade Map" },
                 }
-                
+
                 for _, mapInfo in ipairs(mapsToCheck) do
                     local mapInstance = workspace:FindFirstChild(mapInfo.name)
                     if mapInstance then
@@ -2448,7 +2493,7 @@ task.spawn(function()
                                     v.CanCollide = false
                                 end
                             end
-                            
+
                             for _, v in pairs(walls:GetDescendants()) do
                                 if v:IsA("TouchTransmitter") then
                                     v:Destroy()
@@ -2723,7 +2768,8 @@ local SellAllBtn = UpgBase:Button({
                     Variant = "Primary",
                     Callback = function()
                         pcall(function()
-                            local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("SellAll"):InvokeServer()
+                            local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
+                            :WaitForChild("SellAll"):InvokeServer()
                             if result == false or result == nil then
                                 WindUI:Notify({
                                     Title = "Sold",
@@ -2914,7 +2960,8 @@ MoneySection:Toggle({
         autoRejoinAfterMoneyObby = state
         savedSettings.autoRejoinAfterMoneyObby = state
         saveSettings(savedSettings)
-        WindUI:Notify({ Title = "Money Obby", Content = (state and "Auto-rejoin enabled" or "Auto-rejoin disabled"), Icon = "info", Duration = 2 })
+        WindUI:Notify({ Title = "Money Obby", Content = (state and "Auto-rejoin enabled" or "Auto-rejoin disabled"), Icon =
+        "info", Duration = 2 })
     end
 })
 
@@ -2995,9 +3042,10 @@ LuckyBlockSection:Dropdown({
     Desc = "Select which Lucky Block to auto-open from your Backpack",
     Values = {
         "All",
-        "Radioactive Block","UFO Block","Money Block","Jackpot Block","Alien Block","Admin Block",
-        "Common Block","Uncommon Block","Rare Block","Epic Block","Legendary Block","Mythical Block",
-        "Cosmic Block","Secret Block","Celestial Block","Divine Block","Infinity Block","Arcade Block","Gamer Block"
+        "Radioactive Block", "UFO Block", "Money Block", "Jackpot Block", "Alien Block", "Admin Block",
+        "Common Block", "Uncommon Block", "Rare Block", "Epic Block", "Legendary Block", "Mythical Block",
+        "Cosmic Block", "Secret Block", "Celestial Block", "Divine Block", "Infinity Block", "Arcade Block",
+        "Gamer Block"
     },
     Value = tostring(savedSettings.autoOpenLuckyBlockTarget or "Radioactive Block"),
     Multi = false,
@@ -3168,7 +3216,7 @@ task.spawn(function()
                             end)
 
                             task.wait(0.2) -- cooldown between opens
-                            
+
                             print("[XuanHub] Auto-opened Lucky Block:", displayName)
                         end
                     end
@@ -3238,11 +3286,24 @@ AutoSection:Space()
 -- ================= BRAINROT SECTION =================
 local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
 
+-- Get rarities dynamically from game data
+local function getRarities()
+    local rarities = {}
+    pcall(function()
+        local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+        for rarity, _ in pairs(BrainrotsData.Chances) do
+            table.insert(rarities, rarity)
+        end
+        table.sort(rarities)
+    end)
+    return rarities
+ end
+
 -- Auto Sell by Rarity Dropdown
 BrainrotSection:Dropdown({
     Title = "Select Rarities to Sell",
     Desc = "Choose which rarities to auto-sell",
-    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Celestial", "Secret", "Divine" },
+    Values = getRarities(),
     Value = {},
     Multi = true,
     AllowNone = true,
@@ -3293,25 +3354,35 @@ BrainrotSection:Toggle({
 
 BrainrotSection:Space()
 
--- Auto Sell by Name - Build dropdown with all brainrots labeled by rarity
-local allBrainrotNames = {}
-local brainrotToRarityMap = {}
-
-for rarity, names in pairs(BrainrotsByRarity) do
-    for _, name in ipairs(names) do
-        local labeledName = "[" .. rarity .. "] " .. name
-        table.insert(allBrainrotNames, labeledName)
-        brainrotToRarityMap[labeledName] = rarity
-    end
+-- Auto Sell by Name - Build dropdown dynamically from game data
+local function getBrainrotNamesWithRarity()
+    local allBrainrotNames = {}
+    local brainrotToRarityMap = {}
+    
+    pcall(function()
+        local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+        -- Iterate through Chances table to get rarity and brainrot names
+        for rarity, brainrots in pairs(BrainrotsData.Chances) do
+            for name, _ in pairs(brainrots) do
+                -- Exclude the float value, just use rarity and name
+                local labeledName = "[" .. rarity .. "] " .. name
+                table.insert(allBrainrotNames, labeledName)
+                brainrotToRarityMap[labeledName] = rarity
+            end
+        end
+        table.sort(allBrainrotNames)
+    end)
+    
+    return allBrainrotNames, brainrotToRarityMap
 end
 
--- Sort alphabetically
-table.sort(allBrainrotNames)
+-- Get all brainrot names dynamically
+local allBrainrotNamesForSell, brainrotToRarityMap = getBrainrotNamesWithRarity()
 
 BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
     Desc = "Choose which brainrot you want to sell",
-    Values = allBrainrotNames,
+    Values = allBrainrotNamesForSell,
     Value = {},
     Multi = true,
     AllowNone = true,
@@ -3325,7 +3396,7 @@ BrainrotSection:Dropdown({
                 table.insert(sellBrainrotNames, name)
             end
         end
-        
+
         if #sellBrainrotNames > 0 then
             WindUI:Notify({
                 Title = "Auto Sell by Name",
@@ -3381,7 +3452,7 @@ end
 local function refreshBrainrotDropdown(dropdown)
     local newLabels = getBrainrotOptions()
     dropdown:Refresh(newLabels)
-    
+
     -- Clear selection if previously selected items no longer exist
     local validTargets = {}
     for _, target in ipairs(upgradeBrainrotTargets) do
@@ -3403,7 +3474,7 @@ BrainrotSection:Button({
     Desc = "Re-scan your base and update the dropdown",
     Callback = function()
         refreshBrainrotDropdown(BrainrotUpgradeDropdown)
-        
+
         if #brainrotSlotData > 0 then
             WindUI:Notify({
                 Title = "Base Scan",
@@ -3827,25 +3898,28 @@ DefaultMachineSection:Input({
         else
             -- Default to 60:00 if invalid format
             machineTargetTime = "60:00"
-            WindUI:Notify({ Title = "Auto Machine", Content = "Invalid time format. Defaulted to 60:00", Icon = "alert-triangle", Duration = 3 })
+            WindUI:Notify({ Title = "Auto Machine", Content = "Invalid time format. Defaulted to 60:00", Icon =
+            "alert-triangle", Duration = 3 })
         end
     end
 })
 
--- All brainrot names for dropdowns
-local AllBrainrotNames = {
-    "",
-    "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni",
-    "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67",
-    "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur",
-    "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic",
-    "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci",
-    "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno",
-    "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh",
-    "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini",
-    "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini",
-    "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero"
-}
+-- Function to get brainrot names dynamically from game data
+local function getBrainrotNames()
+    local names = { "" } -- Start with empty string for "None" option
+    pcall(function()
+        local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+        for name, _ in pairs(BrainrotsData.BrainrotsName) do
+            table.insert(names, name)
+        end
+        table.sort(names)
+    end)
+    -- If require fails, return just the empty string
+    return names
+end
+
+-- Get all brainrot names dynamically
+local AllBrainrotNames = getBrainrotNames()
 
 -- Dropdown for Brainrot 1
 DefaultMachineSection:Dropdown({
@@ -3909,10 +3983,10 @@ local function equipBrainrotTool(brainrotName)
     local backpack = player:FindFirstChild("Backpack")
     local character = player.Character
     if not backpack or not character then return false end
-    
+
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoid then return false end
-    
+
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") then
             local toolBrainrotName = tool:GetAttribute("BrainrotName")
@@ -3928,15 +4002,17 @@ end
 
 -- Helper function to deposit brainrot
 local function depositBrainrot()
-    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and workspace.SpawnMachines:FindFirstChild("Default")
+    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
+    workspace.SpawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
-    
+
     local args = {
         "Deposit",
         defaultMachine
     }
     local ok = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -3944,15 +4020,17 @@ end
 
 -- Helper function to combine brainrots
 local function combineBrainrots()
-    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and workspace.SpawnMachines:FindFirstChild("Default")
+    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
+    workspace.SpawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
-    
+
     local args = {
         "Combine",
         defaultMachine
     }
     local ok = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -3960,15 +4038,16 @@ end
 
 -- Helper function to teleport to machine
 local function teleportToMachine()
-    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and workspace.SpawnMachines:FindFirstChild("Default")
+    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
+    workspace.SpawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
-    
+
     local targetPart = defaultMachine:GetChildren()[18]
     if not targetPart or not targetPart:IsA("BasePart") then return false end
-    
+
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
-    
+
     pcall(function()
         hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
     end)
@@ -3984,54 +4063,63 @@ task.spawn(function()
                 -- Check if timer matches target time
                 if currentMachineTimer == machineTargetTime then
                     WindUI:Notify({ Title = "Auto Machine", Content = "Timer matched! Starting fusion...", Icon = "info", Duration = 3 })
-                    
+
                     -- Step 1: Teleport to machine
                     if not teleportToMachine() then
-                        WindUI:Notify({ Title = "Auto Machine", Content = "Failed to teleport to machine", Icon = "alert-triangle", Duration = 3 })
+                        WindUI:Notify({ Title = "Auto Machine", Content = "Failed to teleport to machine", Icon =
+                        "alert-triangle", Duration = 3 })
                         autoMachine = false
                     else
                         local depositSuccess = true
-                        
+
                         -- Step 2: Deposit Brainrot 1 (if selected)
                         if machineBrainrot1 ~= "" then
                             if not equipBrainrotTool(machineBrainrot1) then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 1 not found: " .. machineBrainrot1, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 1 not found: " ..
+                                machineBrainrot1, Icon = "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             elseif not depositBrainrot() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 1", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 1", Icon =
+                                "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             end
                         end
-                        
+
                         -- Step 3: Deposit Brainrot 2 (if selected and previous steps succeeded)
                         if depositSuccess and machineBrainrot2 ~= "" then
                             if not equipBrainrotTool(machineBrainrot2) then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 2 not found: " .. machineBrainrot2, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 2 not found: " ..
+                                machineBrainrot2, Icon = "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             elseif not depositBrainrot() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 2", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 2", Icon =
+                                "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             end
                         end
-                        
+
                         -- Step 4: Deposit Brainrot 3 (if selected and previous steps succeeded)
                         if depositSuccess and machineBrainrot3 ~= "" then
                             if not equipBrainrotTool(machineBrainrot3) then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 3 not found: " .. machineBrainrot3, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 3 not found: " ..
+                                machineBrainrot3, Icon = "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             elseif not depositBrainrot() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 3", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 3", Icon =
+                                "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             end
                         end
-                        
+
                         -- Step 5: Combine (only if at least one brainrot was deposited successfully)
                         if depositSuccess then
                             if not combineBrainrots() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to combine brainrots", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to combine brainrots", Icon =
+                                "alert-triangle", Duration = 3 })
                                 autoMachine = false
                             else
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Fusion completed! Waiting 30s for cooldown...", Icon = "check", Duration = 3 })
+                                WindUI:Notify({ Title = "Auto Machine", Content =
+                                "Fusion completed! Waiting 30s for cooldown...", Icon = "check", Duration = 3 })
                                 task.wait(30)
                             end
                         else
@@ -4108,7 +4196,7 @@ if success and result and result.guild then
 else
     AboutTab:Paragraph({
         Title = "Error fetching Discord Info",
-        Desc = HttpService:JSONEncode(result or {error = "Unknown error"}),
+        Desc = HttpService:JSONEncode(result or { error = "Unknown error" }),
         Image = "triangle-alert",
         ImageSize = 26,
         Color = "Red",
