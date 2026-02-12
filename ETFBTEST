@@ -22,6 +22,9 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
+
+
+
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
@@ -2408,7 +2411,7 @@ VIPWallsSection:Button({
 -- Auto Remove VIP Walls Toggle
 VIPWallsSection:Toggle({
     Title = "Auto Remove VIP Walls",
-    Desc = "Automatically scan and remove VIP walls from all maps every 3 seconds",
+    Desc = "Automatically remove VIP walls from all maps ",
     Value = savedSettings.autoRemoveVIPWalls,
     Callback = function(state)
         autoRemoveVIPWalls = state
