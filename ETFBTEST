@@ -3910,12 +3910,16 @@ DefaultMachineSection:Toggle({
 -- Helper function to find and equip tool from backpack
 local function equipBrainrotTool(brainrotName)
     local backpack = player:FindFirstChild("Backpack")
-    if not backpack then return false end
+    local character = player.Character
+    if not backpack or not character then return false end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return false end
     
     for _, tool in ipairs(backpack:GetChildren()) do
-        if tool:IsA("Tool") and tool.Name == brainrotName then
-            local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
+        if tool:IsA("Tool") then
+            local toolBrainrotName = tool:GetAttribute("BrainrotName")
+            if toolBrainrotName and toolBrainrotName == brainrotName then
                 humanoid:EquipTool(tool)
                 task.wait(0.3)
                 return true
