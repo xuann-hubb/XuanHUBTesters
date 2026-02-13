@@ -2798,7 +2798,7 @@ UtilitiesSection:Button({
             part.Size = Vector3.new(
                 mudPart.Size.X,
                 mudPart.Size.Y,
-                mudPart.Size.Z * 800
+                mudPart.Size.Z * 1000
             )
             part.Anchored = true
             part.CanCollide = true
