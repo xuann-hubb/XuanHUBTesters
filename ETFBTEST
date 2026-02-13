@@ -1789,7 +1789,7 @@ player.CharacterAdded:Connect(function(char)
                             end
                         end)
                         if ok and pos then
-                            local targetPos = pos + Vector3.new(0, -2, 0)
+                            local targetPos = pos + Vector3.new(0, -2.999980926513672, 0)
                             local root = newChar:FindFirstChild("HumanoidRootPart")
                             if root then
                                 root.CFrame = CFrame.new(targetPos)
@@ -1830,7 +1830,7 @@ if player.Character then
                                 end
                             end)
                             if ok and pos then
-                                local targetPos = pos + Vector3.new(0, -2, 0)
+                                local targetPos = pos + Vector3.new(0, -2.999980926513672, 0)
                                 local root = newChar:FindFirstChild("HumanoidRootPart")
                                 if root then
                                     root.CFrame = CFrame.new(targetPos)
@@ -1893,7 +1893,7 @@ TsunamiSection:Button({
                             end
                         end)
                         if ok and pos then
-                            local targetPos = (pos + Vector3.new(0, -2, 0))
+                            local targetPos = (pos + Vector3.new(0, -2.999980926513672, 0))
 
                             -- notify once while waiting for the gap to become safe
                             local blockedNotified = false
@@ -1990,7 +1990,7 @@ TsunamiSection:Button({
                             end
                         end)
                         if ok and pos then
-                            local targetPos = (pos + Vector3.new(0, -2, 0))
+                            local targetPos = (pos + Vector3.new(0, -2.999980926513672, 0))
 
                             -- notify once while waiting for the gap to become safe
                             local blockedNotified = false
@@ -2194,7 +2194,7 @@ task.spawn(function()
                                 end
                             end)
                             if ok2 and pos then
-                                local targetPos = (pos + Vector3.new(0, -2, 0))
+                                local targetPos = (pos + Vector3.new(0, -2.999980926513672, 0))
 
                                 local blockedNotified = false
                                 while not IsPathClear(targetPos) and autoTeleportByRarity do
