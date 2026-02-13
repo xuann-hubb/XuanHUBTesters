@@ -2790,7 +2790,7 @@ UtilitiesSection:Button({
             part.CanCollide = true
             part.Material = mudPart.Material
             part.Color = mudPart.Color
-            part.CFrame = mudPart.CFrame * CFrame.new(0, 0, mudPart.Size.Z * 2)
+            part.Position = Vector3.new(156, 50.00002670288086, -151.0000457763672)
             part.Parent = mudPart.Parent
         end
         
