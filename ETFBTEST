@@ -2762,10 +2762,13 @@ UtilitiesSection:Button({
             vipWalls.VIPWalls:Destroy()
         end
         
-        -- Remove right walls
+        -- Remove right walls (only RightWall1)
         local rightWalls = workspace:FindFirstChild("DefaultMap")
         if rightWalls and rightWalls:FindFirstChild("RightWalls") then
-            rightWalls.RightWalls:Destroy()
+            local rightWall1 = rightWalls.RightWalls:FindFirstChild("RightWall1")
+            if rightWall1 then
+                rightWall1:Destroy()
+            end
         end
         
         -- Remove specific wall parts
