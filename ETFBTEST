@@ -1421,11 +1421,14 @@ local function disableUnlockZoom()
 end
 
 -- ================= GOD MODE HELPERS =================
+local godModeHeartbeatConns = {}
+
 local function applyGodModeToCharacter(char)
     if not char then return end
     task.spawn(function()
         task.wait(0.5)
         local humanoid = char:FindFirstChild("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart")
         local conns = {}
         local modified = {}
 
@@ -1434,6 +1437,7 @@ local function applyGodModeToCharacter(char)
                 humanoid.MaxHealth = math.huge
                 humanoid.Health = math.huge
             end)
+            
             local c = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
                 if humanoid.Health < 1000000 then
                     humanoid.Health = 1000000
@@ -1453,6 +1457,15 @@ local function applyGodModeToCharacter(char)
             end
         end
 
+        if root then
+            local hb = RunService.Heartbeat:Connect(function()
+                root.Velocity = Vector3.new(0, 0, 0)
+                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            end)
+            table.insert(conns, hb)
+            godModeHeartbeatConns[char] = hb
+        end
+
         godModeConns[char] = { conns = conns, modified = modified }
     end)
 end
@@ -1460,6 +1473,8 @@ end
 local function enableGodMode()
     if godModeEnabled then return end
     godModeEnabled = true
+    
+    workspace.Gravity = 0
     
     if player.Character then
         applyGodModeToCharacter(player.Character)
@@ -1477,9 +1492,19 @@ local function disableGodMode()
     if not godModeEnabled then return end
     godModeEnabled = false
     
+    workspace.Gravity = originalGravity
+    
     if godModeCharConn then
         godModeCharConn:Disconnect(); godModeCharConn = nil
     end
+    
+    for char, hb in pairs(godModeHeartbeatConns) do
+        if hb then
+            hb:Disconnect()
+        end
+        godModeHeartbeatConns[char] = nil
+    end
+    
     for char, data in pairs(godModeConns) do
         if data and data.conns then
             for _, c in ipairs(data.conns) do pcall(function() c:Disconnect() end) end
