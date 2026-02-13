@@ -303,15 +303,13 @@ local prevCameraMax = nil
 
 -- God Mode state
 local godModeEnabled = false
-local godModeCharConn = nil
-local godModeConns = {}
 
 -- Fly/NoClip variables
 local flyMode = false
 local flyBodyVelocity = nil
 local flyConnection = nil
 local noclipConnection = nil
-local originalGravity = workspace.Gravity -- map character -> {conns = {...}, modified = {...} }
+local originalGravity = workspace.Gravity
 
 -- Auto Complete Money Obby state
 local autoCompleteMoneyObby = false
@@ -1428,7 +1426,6 @@ local function applyGodMode(character)
     
     task.wait(0.5)
     local humanoid = character:FindFirstChild("Humanoid")
-    local root = character:FindFirstChild("HumanoidRootPart")
     
     if humanoid then
         humanoid.MaxHealth = math.huge
@@ -1446,13 +1443,6 @@ local function applyGodMode(character)
                 part.CanTouch = false
             end
         end
-    end
-    
-    if root then
-        RunService.Heartbeat:Connect(function()
-            root.Velocity = Vector3.new(0, 0, 0)
-            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-        end)
     end
 end
 
@@ -1482,8 +1472,6 @@ local function enableGodMode()
         applyGodMode(character)
     end
     
-    workspace.Gravity = 0
-    
     godModeCharAddedConn = player.CharacterAdded:Connect(function(newChar)
         task.wait(0.5)
         if godModeEnabled then
@@ -1497,8 +1485,6 @@ end
 local function disableGodMode()
     if not godModeEnabled then return end
     godModeEnabled = false
-    
-    workspace.Gravity = originalGravity
     
     if godModeCharAddedConn then
         godModeCharAddedConn:Disconnect()
