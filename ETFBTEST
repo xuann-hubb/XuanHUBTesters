@@ -2768,6 +2768,20 @@ UtilitiesSection:Button({
             rightWalls.RightWalls:Destroy()
         end
         
+        -- Remove specific wall parts
+        pcall(function()
+            local walls = workspace.DefaultMap.Walls:GetChildren()[4]
+            if walls then
+                local indices = {13, 7, 10, 4, 8, 5}
+                for _, index in ipairs(indices) do
+                    local wallPart = walls:GetChildren()[index]
+                    if wallPart then
+                        wallPart:Destroy()
+                    end
+                end
+            end
+        end)
+        
         -- Create bridges over gaps
         local gapsFolder = workspace:WaitForChild("DefaultMap"):WaitForChild("Gaps")
         
@@ -2802,8 +2816,8 @@ UtilitiesSection:Button({
             wall.Position = position
             wall.Anchored = true
             wall.CanCollide = true
-            wall.Material = Enum.Material.Plastic
-            wall.Color = Color3.fromRGB(255, 170, 0)
+            wall.Material = Enum.Material.Neon
+            wall.Color = Color3.fromRGB(255, 105, 180)
             wall.Parent = map
         end
         
