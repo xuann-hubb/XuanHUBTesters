@@ -1426,7 +1426,6 @@ local function applyGodModeToCharacter(char)
     task.spawn(function()
         task.wait(0.5)
         local humanoid = char:FindFirstChild("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
         local conns = {}
         local modified = {}
 
@@ -1454,16 +1453,6 @@ local function applyGodModeToCharacter(char)
             end
         end
 
-        if root then
-            local hb = RunService.Heartbeat:Connect(function()
-                pcall(function()
-                    root.Velocity = Vector3.new(0, 0, 0)
-                    root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-                end)
-            end)
-            table.insert(conns, hb)
-        end
-
         godModeConns[char] = { conns = conns, modified = modified }
     end)
 end
@@ -1471,8 +1460,6 @@ end
 local function enableGodMode()
     if godModeEnabled then return end
     godModeEnabled = true
-    
-    workspace.Gravity = 0
     
     if player.Character then
         applyGodModeToCharacter(player.Character)
@@ -1489,8 +1476,6 @@ end
 local function disableGodMode()
     if not godModeEnabled then return end
     godModeEnabled = false
-    
-    workspace.Gravity = originalGravity
     
     if godModeCharConn then
         godModeCharConn:Disconnect(); godModeCharConn = nil
