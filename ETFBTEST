@@ -2784,13 +2784,13 @@ UtilitiesSection:Button({
             part.Size = Vector3.new(
                 mudPart.Size.X,
                 mudPart.Size.Y,
-                mudPart.Size.Z * 7000
+                mudPart.Size.Z * 2000000
             )
             part.Anchored = true
             part.CanCollide = true
             part.Material = mudPart.Material
             part.Color = mudPart.Color
-            part.Position = Vector3.new(156, 50.00002670288086, -151.0000457763672)
+            part.CFrame = mudPart.CFrame * CFrame.new(0, 0, mudPart.Size.Z * 2)
             part.Parent = mudPart.Parent
         end
         
