@@ -2782,9 +2782,9 @@ UtilitiesSection:Button({
         local function createBridge(mudPart)
             local part = Instance.new("Part")
             part.Size = Vector3.new(
-                mudPart.Size.X,
-                mudPart.Size.Y,
-                mudPart.Size.Z * 2000000
+                100000,
+                10,
+                100000
             )
             part.Anchored = true
             part.CanCollide = true
