@@ -77,8 +77,6 @@ local defaultSettings = {
     autoRejoinAfterMoneyObby = false,
     -- Unlock Zoom
     unlockZoom = false,
-    -- God Mode
-    godMode = false,
     -- Tsunami tracker
     autoTsunamiTracker = false,
     -- Auto-teleport by rarity (Tsunami) — maps rarities to gap indices
@@ -300,9 +298,6 @@ local _widerHitbox_tracking = {}
 local unlockZoomEnabled = false
 local prevCameraMin = nil
 local prevCameraMax = nil
-
--- God Mode state
-local godModeEnabled = false
 
 -- Fly/NoClip variables
 local flyMode = false
@@ -1418,88 +1413,6 @@ local function disableUnlockZoom()
     end
 end
 
--- ================= GOD MODE HELPERS =================
-local godModeCharAddedConn = nil
-
-local function applyGodMode(character)
-    if not character then return end
-    
-    task.wait(0.5)
-    local humanoid = character:FindFirstChild("Humanoid")
-    
-    if humanoid then
-        humanoid.MaxHealth = math.huge
-        humanoid.Health = math.huge
-        
-        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-            if humanoid.Health < 1000000 then
-                humanoid.Health = 1000000
-            end
-        end)
-        
-        for _, part in pairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0.3
-                part.CanTouch = false
-            end
-        end
-    end
-end
-
-local function removeGodMode(character)
-    if not character then return end
-    
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.MaxHealth = 100
-        humanoid.Health = 100
-        
-        for _, part in pairs(character:GetChildren()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0
-                part.CanTouch = true
-            end
-        end
-    end
-end
-
-local function enableGodMode()
-    if godModeEnabled then return end
-    godModeEnabled = true
-    
-    local character = player.Character
-    if character then
-        applyGodMode(character)
-    end
-    
-    godModeCharAddedConn = player.CharacterAdded:Connect(function(newChar)
-        task.wait(0.5)
-        if godModeEnabled then
-            applyGodMode(newChar)
-        end
-    end)
-    
-    WindUI:Notify({ Title = "Main", Content = "God Mode enabled", Icon = "check", Duration = 3 })
-end
-
-local function disableGodMode()
-    if not godModeEnabled then return end
-    godModeEnabled = false
-    
-    if godModeCharAddedConn then
-        godModeCharAddedConn:Disconnect()
-        godModeCharAddedConn = nil
-    end
-    
-    local character = player.Character
-    if character then
-        removeGodMode(character)
-    end
-    
-    WindUI:Notify({ Title = "Main", Content = "God Mode disabled", Icon = "check", Duration = 3 })
-end
-
-
 -- ================= TSUNAMI TRACKER =================
 -- Creates a small ScreenGui that shows distance & color-coded status for nearby tsunamis
 local RunService = game:GetService("RunService")
@@ -2594,22 +2507,6 @@ UtilitiesSection:Toggle({
             disableUnlockZoom()
         end
         savedSettings.unlockZoom = state
-        saveSettings(savedSettings)
-    end
-})
-
--- God Mode
-UtilitiesSection:Toggle({
-    Title = "God Mode",
-    Desc = "Immune To the tsunami for one time or for more than 3 waves if the tsunami is close to each other",
-    Value = savedSettings.godMode,
-    Callback = function(state)
-        if state then
-            enableGodMode()
-        else
-            disableGodMode()
-        end
-        savedSettings.godMode = state
         saveSettings(savedSettings)
     end
 })
