@@ -1737,6 +1737,88 @@ local function SmartMove(targetPos, areaName)
     end
 end
 
+-- Death detection for smart teleport reset
+player.CharacterAdded:Connect(function(char)
+    local humanoid = char:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        if _G.AutoTourActive then
+            -- Teleport to first gap when player dies
+            task.wait(2) -- Wait for respawn
+            local newChar = player.Character
+            if newChar then
+                local gapsFolder = findGapsFolder()
+                if gapsFolder then
+                    local entries = collectGapEntries(gapsFolder)
+                    if #entries > 0 then
+                        local firstGap = entries[1]
+                        local ok, pos = pcall(function()
+                            if firstGap.inst and firstGap.inst.GetModelCFrame then
+                                return firstGap.inst:GetModelCFrame().Position
+                            elseif firstGap.part then
+                                return firstGap.part.Position
+                            end
+                        end)
+                        if ok and pos then
+                            local targetPos = pos + Vector3.new(0, -2, 0)
+                            local root = newChar:FindFirstChild("HumanoidRootPart")
+                            if root then
+                                root.CFrame = CFrame.new(targetPos)
+                                WindUI:Notify({ Title = "Teleport", Content = "Respawned at Gap 1 - continuing teleport", Icon = "info", Duration = 3 })
+                            end
+                        end
+                    end
+                end
+            end
+        end
+        if _G.ReverseTourActive then
+            _G.ReverseTourActive = false
+            WindUI:Notify({ Title = "Teleport", Content = "Smart teleport stopped (player died)", Icon = "alert-triangle", Duration = 3 })
+        end
+    end)
+end)
+
+-- Also set up for current character if it exists
+if player.Character then
+    local humanoid = player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Died:Connect(function()
+            if _G.AutoTourActive then
+                -- Teleport to first gap when player dies
+                task.wait(2) -- Wait for respawn
+                local newChar = player.Character
+                if newChar then
+                    local gapsFolder = findGapsFolder()
+                    if gapsFolder then
+                        local entries = collectGapEntries(gapsFolder)
+                        if #entries > 0 then
+                            local firstGap = entries[1]
+                            local ok, pos = pcall(function()
+                                if firstGap.inst and firstGap.inst.GetModelCFrame then
+                                    return firstGap.inst:GetModelCFrame().Position
+                                elseif firstGap.part then
+                                    return firstGap.part.Position
+                                end
+                            end)
+                            if ok and pos then
+                                local targetPos = pos + Vector3.new(0, -2, 0)
+                                local root = newChar:FindFirstChild("HumanoidRootPart")
+                                if root then
+                                    root.CFrame = CFrame.new(targetPos)
+                                    WindUI:Notify({ Title = "Teleport", Content = "Respawned at Gap 1 - continuing teleport", Icon = "info", Duration = 3 })
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            if _G.ReverseTourActive then
+                _G.ReverseTourActive = false
+                WindUI:Notify({ Title = "Teleport", Content = "Smart teleport stopped (player died)", Icon = "alert-triangle", Duration = 3 })
+            end
+        end)
+    end
+end
+
 
 -- Teleport to last gap (button)
 TsunamiSection:Button({
