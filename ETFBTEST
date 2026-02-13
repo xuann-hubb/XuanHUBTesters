@@ -2773,11 +2773,19 @@ UtilitiesSection:Button({
             local walls = workspace.DefaultMap.Walls:GetChildren()[4]
             if walls then
                 local indices = {13, 7, 10, 4, 8, 5}
+                local partsToDestroy = {}
+                
+                -- First, collect all the parts
                 for _, index in ipairs(indices) do
                     local wallPart = walls:GetChildren()[index]
                     if wallPart then
-                        wallPart:Destroy()
+                        table.insert(partsToDestroy, wallPart)
                     end
+                end
+                
+                -- Then destroy them all at once
+                for _, part in ipairs(partsToDestroy) do
+                    part:Destroy()
                 end
             end
         end)
@@ -2827,7 +2835,12 @@ UtilitiesSection:Button({
             Vector3.new(2000.304703, 7.92906952, -138.809113),
             Vector3.new(3000.304703, 7.92906952, -138.809113),
             Vector3.new(4000.304703, 7.92906952, -138.809113),
-            Vector3.new(5000.304703, 7.92906952, -138.809113)
+            Vector3.new(5000.304703, 7.92906952, -138.809113),
+            Vector3.new(6000.304703, 7.92906952, -138.809113),
+            Vector3.new(7000.304703, 7.92906952, -138.809113),
+            Vector3.new(8000.304703, 7.92906952, -138.809113),
+            Vector3.new(9000.304703, 7.92906952, -138.809113),
+            Vector3.new(10000.304703, 7.92906952, -138.809113)
         }
         
         for _, pos in ipairs(positions) do
