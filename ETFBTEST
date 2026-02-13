@@ -4405,9 +4405,11 @@ local function teleportToArcadeGap(gapNumber)
         return false
     end
     
-    -- Teleport using SmartMove
-    SmartMove(targetPos, gapName)
-    task.wait(1.5)
+    -- Instant teleport to gap (no tween)
+    pcall(function()
+        hrp.CFrame = CFrame.new(targetPos)
+    end)
+    task.wait(0.2)
     return true
 end
 
