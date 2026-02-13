@@ -2751,6 +2751,78 @@ UtilitiesSection:Slider({
     end
 })
 
+-- Domain Expansion
+UtilitiesSection:Button({
+    Title = "Domain Expansion",
+    Desc = "Remove walls and create protective barriers",
+    Callback = function()
+        -- Remove right walls
+        local rightWalls = workspace:FindFirstChild("DefaultMap")
+        if rightWalls and rightWalls:FindFirstChild("RightWalls") then
+            rightWalls.RightWalls:Destroy()
+        end
+        
+        -- Create bridges over gaps
+        local gapsFolder = workspace:WaitForChild("DefaultMap"):WaitForChild("Gaps")
+        
+        local function createBridge(mudPart)
+            local part = Instance.new("Part")
+            part.Size = Vector3.new(
+                mudPart.Size.X,
+                mudPart.Size.Y,
+                mudPart.Size.Z * 800
+            )
+            part.Anchored = true
+            part.CanCollide = true
+            part.Material = mudPart.Material
+            part.Color = mudPart.Color
+            part.CFrame = mudPart.CFrame * CFrame.new(0, 0, mudPart.Size.Z * 2)
+            part.Parent = mudPart.Parent
+        end
+        
+        for i = 1, 9 do
+            local gap = gapsFolder:FindFirstChild("Gap" .. i)
+            if gap and gap:FindFirstChild("Mud") then
+                createBridge(gap.Mud)
+            end
+        end
+        
+        -- Create protective walls
+        local map = workspace:WaitForChild("DefaultMap")
+        
+        local function createWall(size, position)
+            local wall = Instance.new("Part")
+            wall.Size = size
+            wall.Position = position
+            wall.Anchored = true
+            wall.CanCollide = true
+            wall.Material = Enum.Material.Plastic
+            wall.Color = Color3.fromRGB(255, 170, 0)
+            wall.Parent = map
+        end
+        
+        -- Create multiple walls at different positions
+        local positions = {
+            Vector3.new(1180.304703, 7.92906952, -138.809113),
+            Vector3.new(2000.304703, 7.92906952, -138.809113),
+            Vector3.new(3000.304703, 7.92906952, -138.809113),
+            Vector3.new(4000.304703, 7.92906952, -138.809113),
+            Vector3.new(5000.304703, 7.92906952, -138.809113)
+        }
+        
+        for _, pos in ipairs(positions) do
+            createWall(Vector3.new(100000, 100, 5), pos)
+        end
+        
+        WindUI:Notify({
+            Title = "Domain Expansion",
+            Content = "Domain expanded successfully!",
+            Icon = "check",
+            Duration = 3,
+        })
+    end
+})
+
 -- Buttons moved from Main (simplified)
 local SellAllBtn = UpgBase:Button({
     Title = "Sell All Inventory",
