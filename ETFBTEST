@@ -1582,18 +1582,12 @@ TsunamiSection:Toggle({
 
 local function findGapsFolder()
     -- return the first existing 'Gaps' folder from known map locations
-    -- expanded to include Mars, Money and Radioactive map variants
     local candidates = {
         (workspace:FindFirstChild("DefaultMap") and workspace.DefaultMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("DefaultMap_SharedInstances") and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MarsMap") and workspace.MarsMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MarsMap_SharedInstances") and workspace.MarsMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("MoneyMap") and workspace.MoneyMap.DefaultStudioMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("MoneyMap_SharedInstances") and workspace.MoneyMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("RadioactiveMap") and workspace.RadioactiveMap:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("RadioactiveMap_SharedInstances") and workspace.RadioactiveMap_SharedInstances:FindFirstChild("Gaps")),
         (workspace:FindFirstChild("Misc") and workspace.Misc:FindFirstChild("Gaps")),
-        (workspace:FindFirstChild("Misc_SharedInstances") and workspace.Misc_SharedInstances:FindFirstChild("Gaps")),
     }
     for _, f in ipairs(candidates) do
         if f then return f end
