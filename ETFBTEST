@@ -2762,13 +2762,10 @@ UtilitiesSection:Button({
             vipWalls.VIPWalls:Destroy()
         end
         
-        -- Remove right walls (only RightWall1)
+        -- Remove right walls
         local rightWalls = workspace:FindFirstChild("DefaultMap")
         if rightWalls and rightWalls:FindFirstChild("RightWalls") then
-            local rightWall1 = rightWalls.RightWalls:FindFirstChild("RightWall1")
-            if rightWall1 then
-                rightWall1:Destroy()
-            end
+            rightWalls.RightWalls:Destroy()
         end
         
         -- Remove specific wall parts
@@ -2837,6 +2834,17 @@ UtilitiesSection:Button({
         
         -- Create multiple walls at different positions
         local positions = {
+            Vector3.new(341, 10.000030517578125, 144.9999542236328),
+            Vector3.new(200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(1200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(2200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(3200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(4200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(5200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(6200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(7200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(8200, 10.000030517578125, 144.9999542236328),
+            Vector3.new(9200, 10.000030517578125, 144.9999542236328),
             Vector3.new(1180.304703, 7.92906952, -138.809113),
             Vector3.new(2000.304703, 7.92906952, -138.809113),
             Vector3.new(3000.304703, 7.92906952, -138.809113),
