@@ -2756,6 +2756,12 @@ UtilitiesSection:Button({
     Title = "Domain Expansion",
     Desc = "Remove walls and create protective barriers",
     Callback = function()
+        -- Remove VIP walls
+        local vipWalls = workspace:FindFirstChild("DefaultMap_SharedInstances")
+        if vipWalls and vipWalls:FindFirstChild("VIPWalls") then
+            vipWalls.VIPWalls:Destroy()
+        end
+        
         -- Remove right walls
         local rightWalls = workspace:FindFirstChild("DefaultMap")
         if rightWalls and rightWalls:FindFirstChild("RightWalls") then
