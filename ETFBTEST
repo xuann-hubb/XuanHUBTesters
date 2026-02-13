@@ -1725,6 +1725,24 @@ local function SmartMove(targetPos, areaName)
     local char = game.Players.LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp then
+        -- Enable fly mode for safe teleportation
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.Parent = hrp
+        
+        -- Enable noclip
+        local noclipConn
+        noclipConn = RunService.Stepped:Connect(function()
+            if char then
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = false
+                    end
+                end
+            end
+        end)
+        
         local finalSpeed = _G.BaseTweenSpeed
         local areaNum = tonumber(string.match(areaName, "%d+"))
         if areaNum and areaNum >= 6 then
@@ -1734,6 +1752,24 @@ local function SmartMove(targetPos, areaName)
         local tween = TweenService:Create(hrp, info, { CFrame = CFrame.new(targetPos) })
         tween:Play()
         tween.Completed:Wait()
+        
+        -- Disable fly mode after teleport
+        if bodyVelocity then
+            bodyVelocity:Destroy()
+        end
+        
+        if noclipConn then
+            noclipConn:Disconnect()
+        end
+        
+        -- Restore collision
+        if char then
+            for _, part in pairs(char:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end
     end
 end
 
