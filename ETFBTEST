@@ -2768,25 +2768,11 @@ UtilitiesSection:Button({
             rightWalls.RightWalls:Destroy()
         end
         
-        -- Remove specific wall parts
+        -- Remove entire wall group 4
         pcall(function()
             local walls = workspace.DefaultMap.Walls:GetChildren()[4]
             if walls then
-                local indices = {13, 7, 10, 4, 8, 5}
-                local partsToDestroy = {}
-                
-                -- First, collect all the parts
-                for _, index in ipairs(indices) do
-                    local wallPart = walls:GetChildren()[index]
-                    if wallPart then
-                        table.insert(partsToDestroy, wallPart)
-                    end
-                end
-                
-                -- Then destroy them all at once
-                for _, part in ipairs(partsToDestroy) do
-                    part:Destroy()
-                end
+                walls:Destroy()
             end
         end)
         
@@ -2798,7 +2784,7 @@ UtilitiesSection:Button({
             part.Size = Vector3.new(
                 mudPart.Size.X,
                 mudPart.Size.Y,
-                mudPart.Size.Z * 1000
+                mudPart.Size.Z * 300
             )
             part.Anchored = true
             part.CanCollide = true
