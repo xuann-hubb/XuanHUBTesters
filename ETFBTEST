@@ -304,7 +304,14 @@ local prevCameraMax = nil
 -- God Mode state
 local godModeEnabled = false
 local godModeCharConn = nil
-local godModeConns = {} -- map character -> {conns = {...}, modified = {...} }
+local godModeConns = {}
+
+-- Fly/NoClip variables
+local flyMode = false
+local flyBodyVelocity = nil
+local flyConnection = nil
+local noclipConnection = nil
+local originalGravity = workspace.Gravity -- map character -> {conns = {...}, modified = {...} }
 
 -- Auto Complete Money Obby state
 local autoCompleteMoneyObby = false
@@ -1416,9 +1423,8 @@ end
 -- ================= GOD MODE HELPERS =================
 local function applyGodModeToCharacter(char)
     if not char then return end
-    -- run async to wait for the character to be ready
     task.spawn(function()
-        task.wait(0.25)
+        task.wait(0.5)
         local humanoid = char:FindFirstChild("Humanoid")
         local root = char:FindFirstChild("HumanoidRootPart")
         local conns = {}
@@ -1426,8 +1432,8 @@ local function applyGodModeToCharacter(char)
 
         if humanoid then
             pcall(function()
-                humanoid.MaxHealth = 1e9
-                humanoid.Health = 1e9
+                humanoid.MaxHealth = math.huge
+                humanoid.Health = math.huge
             end)
             local c = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
                 if humanoid.Health < 1000000 then
@@ -1435,16 +1441,16 @@ local function applyGodModeToCharacter(char)
                 end
             end)
             table.insert(conns, c)
-        end
 
-        for _, part in ipairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
-                local ok, prevTrans = pcall(function() return part.Transparency end)
-                local ok2, prevCanTouch = pcall(function() return part.CanTouch end)
-                table.insert(modified,
-                    { part = part, transp = (ok and prevTrans) or nil, canTouch = (ok2 and prevCanTouch) or nil })
-                pcall(function() part.Transparency = 0.3 end)
-                pcall(function() part.CanTouch = false end)
+            for _, part in ipairs(char:GetChildren()) do
+                if part:IsA("BasePart") then
+                    local ok, prevTrans = pcall(function() return part.Transparency end)
+                    local ok2, prevCanTouch = pcall(function() return part.CanTouch end)
+                    table.insert(modified,
+                        { part = part, transp = (ok and prevTrans) or nil, canTouch = (ok2 and prevCanTouch) or nil })
+                    pcall(function() part.Transparency = 0.3 end)
+                    pcall(function() part.CanTouch = false end)
+                end
             end
         end
 
@@ -1465,11 +1471,17 @@ end
 local function enableGodMode()
     if godModeEnabled then return end
     godModeEnabled = true
+    
+    workspace.Gravity = 0
+    
     if player.Character then
         applyGodModeToCharacter(player.Character)
     end
     godModeCharConn = player.CharacterAdded:Connect(function(char)
-        applyGodModeToCharacter(char)
+        task.wait(0.5)
+        if godModeEnabled then
+            applyGodModeToCharacter(char)
+        end
     end)
     WindUI:Notify({ Title = "Main", Content = "God Mode enabled", Icon = "check", Duration = 3 })
 end
@@ -1477,6 +1489,9 @@ end
 local function disableGodMode()
     if not godModeEnabled then return end
     godModeEnabled = false
+    
+    workspace.Gravity = originalGravity
+    
     if godModeCharConn then
         godModeCharConn:Disconnect(); godModeCharConn = nil
     end
@@ -1494,6 +1509,18 @@ local function disableGodMode()
         end
         godModeConns[char] = nil
     end
+    
+    local character = player.Character
+    if character then
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            pcall(function()
+                humanoid.MaxHealth = 100
+                humanoid.Health = 100
+            end)
+        end
+    end
+    
     WindUI:Notify({ Title = "Main", Content = "God Mode disabled", Icon = "check", Duration = 3 })
 end
 
@@ -2748,6 +2775,117 @@ UtilitiesSection:Slider({
         widerHitboxWidth = math.clamp(tonumber(value) or 70, 8, 200)
         savedSettings.hitboxWidth = widerHitboxWidth
         saveSettings(savedSettings)
+    end
+})
+
+-- Fly + NoClip Toggle
+UtilitiesSection:Toggle({
+    Title = "Fly + NoClip",
+    Desc = "Fly around and pass through walls ",
+    Value = false,
+    Callback = function(state)
+        flyMode = state
+        
+        if flyMode then
+            local character = player.Character
+            if not character then
+                WindUI:Notify({ Title = "Utilities", Content = "Character not found", Icon = "alert-triangle", Duration = 2 })
+                return
+            end
+            
+            local root = character:FindFirstChild("HumanoidRootPart")
+            if not root then
+                WindUI:Notify({ Title = "Utilities", Content = "HumanoidRootPart not found", Icon = "alert-triangle", Duration = 2 })
+                return
+            end
+            
+            if flyBodyVelocity then
+                flyBodyVelocity:Destroy()
+            end
+            
+            flyBodyVelocity = Instance.new("BodyVelocity")
+            flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
+            flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+            flyBodyVelocity.Parent = root
+            
+            if flyConnection then
+                flyConnection:Disconnect()
+            end
+            
+            flyConnection = RunService.Heartbeat:Connect(function()
+                if not root or not flyBodyVelocity then return end
+                
+                local camera = workspace.CurrentCamera
+                local moveDir = Vector3.new(0, 0, 0)
+                
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
+                    moveDir = moveDir + camera.CFrame.LookVector
+                end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then
+                    moveDir = moveDir - camera.CFrame.LookVector
+                end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then
+                    moveDir = moveDir - camera.CFrame.RightVector
+                end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then
+                    moveDir = moveDir + camera.CFrame.RightVector
+                end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then
+                    moveDir = moveDir + Vector3.new(0, 1, 0)
+                end
+                if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
+                    moveDir = moveDir - Vector3.new(0, 1, 0)
+                end
+                
+                if moveDir.Magnitude > 0 then
+                    flyBodyVelocity.Velocity = moveDir.Unit * 50
+                else
+                    flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
+                end
+            end)
+            
+            if noclipConnection then
+                noclipConnection:Disconnect()
+            end
+            
+            noclipConnection = RunService.Stepped:Connect(function()
+                if player.Character then
+                    for _, part in pairs(player.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = false
+                        end
+                    end
+                end
+            end)
+            
+            WindUI:Notify({ Title = "Utilities", Content = "Fly + NoClip enabled", Icon = "check", Duration = 2 })
+        else
+            if flyConnection then
+                flyConnection:Disconnect()
+                flyConnection = nil
+            end
+            
+            if noclipConnection then
+                noclipConnection:Disconnect()
+                noclipConnection = nil
+            end
+            
+            if flyBodyVelocity then
+                flyBodyVelocity:Destroy()
+                flyBodyVelocity = nil
+            end
+            
+            local character = player.Character
+            if character then
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
+            
+            WindUI:Notify({ Title = "Utilities", Content = "Fly + NoClip disabled", Icon = "check", Duration = 2 })
+        end
     end
 })
 
