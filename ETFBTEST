@@ -1633,15 +1633,26 @@ local function collectGapEntries(folder)
     for _, child in ipairs(folder:GetChildren()) do
         if child then
             -- attempt to find a usable BasePart for positioning
-            local part = (child:IsA("BasePart") and child) or
-            (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
-            if not part then
-                for _, d in ipairs(child:GetDescendants()) do
-                    if d:IsA("BasePart") then
-                        part = d; break
+            -- Prioritize "Mud" part if it exists
+            local part = nil
+            
+            -- First, try to find Mud part
+            local mudPart = child:FindFirstChild("Mud")
+            if mudPart and mudPart:IsA("BasePart") then
+                part = mudPart
+            else
+                -- Fall back to original logic
+                part = (child:IsA("BasePart") and child) or
+                (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+                if not part then
+                    for _, d in ipairs(child:GetDescendants()) do
+                        if d:IsA("BasePart") then
+                            part = d; break
+                        end
                     end
                 end
             end
+            
             if part then
                 local num = tonumber(child.Name:match("%d+"))
                 table.insert(entries, { idxRaw = num, name = child.Name, part = part, inst = child })
@@ -4331,10 +4342,19 @@ ArcadeMachineSection:Toggle({
 
 -- Helper function to find Arcade gaps folder
 local function findArcadeGapsFolder()
-    local arcadeMap = workspace:FindFirstChild("ArcadeMap")
+    -- Try ArcadeMap_SharedInstances first
+    local arcadeMap = workspace:FindFirstChild("ArcadeMap_SharedInstances")
+    if arcadeMap then
+        local gaps = arcadeMap:FindFirstChild("Gaps")
+        if gaps then return gaps end
+    end
+    
+    -- Fallback to ArcadeMap
+    arcadeMap = workspace:FindFirstChild("ArcadeMap")
     if arcadeMap then
         return arcadeMap:FindFirstChild("Gaps")
     end
+    
     return nil
 end
 
@@ -4359,9 +4379,14 @@ local function teleportToArcadeGap(gapNumber)
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
     
-    -- Get gap position
+    -- Get gap position - prioritize Mud part
     local targetPos
-    if gap:IsA("BasePart") then
+    
+    -- Try to find Mud part first
+    local mudPart = gap:FindFirstChild("Mud")
+    if mudPart and mudPart:IsA("BasePart") then
+        targetPos = mudPart.Position
+    elseif gap:IsA("BasePart") then
         targetPos = gap.Position
     elseif gap:IsA("Model") then
         local primaryPart = gap.PrimaryPart or gap:FindFirstChildWhichIsA("BasePart")
