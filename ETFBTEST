@@ -1421,70 +1421,76 @@ local function disableUnlockZoom()
 end
 
 -- ================= GOD MODE HELPERS =================
-local godModeHeartbeatConns = {}
+local godModeCharAddedConn = nil
 
-local function applyGodModeToCharacter(char)
-    if not char then return end
-    task.spawn(function()
-        task.wait(0.5)
-        local humanoid = char:FindFirstChild("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local conns = {}
-        local modified = {}
-
-        if humanoid then
-            pcall(function()
-                humanoid.MaxHealth = math.huge
-                humanoid.Health = math.huge
-            end)
-            
-            local c = humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-                if humanoid.Health < 1000000 then
-                    humanoid.Health = 1000000
-                end
-            end)
-            table.insert(conns, c)
-
-            for _, part in ipairs(char:GetChildren()) do
-                if part:IsA("BasePart") then
-                    local ok, prevTrans = pcall(function() return part.Transparency end)
-                    local ok2, prevCanTouch = pcall(function() return part.CanTouch end)
-                    table.insert(modified,
-                        { part = part, transp = (ok and prevTrans) or nil, canTouch = (ok2 and prevCanTouch) or nil })
-                    pcall(function() part.Transparency = 0.3 end)
-                    pcall(function() part.CanTouch = false end)
-                end
+local function applyGodMode(character)
+    if not character then return end
+    
+    task.wait(0.5)
+    local humanoid = character:FindFirstChild("Humanoid")
+    local root = character:FindFirstChild("HumanoidRootPart")
+    
+    if humanoid then
+        humanoid.MaxHealth = math.huge
+        humanoid.Health = math.huge
+        
+        humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+            if humanoid.Health < 1000000 then
+                humanoid.Health = 1000000
+            end
+        end)
+        
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0.3
+                part.CanTouch = false
             end
         end
+    end
+    
+    if root then
+        RunService.Heartbeat:Connect(function()
+            root.Velocity = Vector3.new(0, 0, 0)
+            root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        end)
+    end
+end
 
-        if root then
-            local hb = RunService.Heartbeat:Connect(function()
-                root.Velocity = Vector3.new(0, 0, 0)
-                root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-            end)
-            table.insert(conns, hb)
-            godModeHeartbeatConns[char] = hb
+local function removeGodMode(character)
+    if not character then return end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.MaxHealth = 100
+        humanoid.Health = 100
+        
+        for _, part in pairs(character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+                part.CanTouch = true
+            end
         end
-
-        godModeConns[char] = { conns = conns, modified = modified }
-    end)
+    end
 end
 
 local function enableGodMode()
     if godModeEnabled then return end
     godModeEnabled = true
     
+    local character = player.Character
+    if character then
+        applyGodMode(character)
+    end
+    
     workspace.Gravity = 0
     
-    if player.Character then
-        applyGodModeToCharacter(player.Character)
-    end
-    godModeCharConn = player.CharacterAdded:Connect(function(char)
+    godModeCharAddedConn = player.CharacterAdded:Connect(function(newChar)
         task.wait(0.5)
         if godModeEnabled then
-            applyGodModeToCharacter(char)
+            applyGodMode(newChar)
         end
     end)
+    
     WindUI:Notify({ Title = "Main", Content = "God Mode enabled", Icon = "check", Duration = 3 })
 end
 
@@ -1494,41 +1500,14 @@ local function disableGodMode()
     
     workspace.Gravity = originalGravity
     
-    if godModeCharConn then
-        godModeCharConn:Disconnect(); godModeCharConn = nil
-    end
-    
-    for char, hb in pairs(godModeHeartbeatConns) do
-        if hb then
-            hb:Disconnect()
-        end
-        godModeHeartbeatConns[char] = nil
-    end
-    
-    for char, data in pairs(godModeConns) do
-        if data and data.conns then
-            for _, c in ipairs(data.conns) do pcall(function() c:Disconnect() end) end
-        end
-        if data and data.modified then
-            for _, m in ipairs(data.modified) do
-                pcall(function()
-                    if m.part and m.transp ~= nil then m.part.Transparency = m.transp end
-                    if m.part and m.canTouch ~= nil then m.part.CanTouch = m.canTouch end
-                end)
-            end
-        end
-        godModeConns[char] = nil
+    if godModeCharAddedConn then
+        godModeCharAddedConn:Disconnect()
+        godModeCharAddedConn = nil
     end
     
     local character = player.Character
     if character then
-        local humanoid = character:FindFirstChild("Humanoid")
-        if humanoid then
-            pcall(function()
-                humanoid.MaxHealth = 100
-                humanoid.Health = 100
-            end)
-        end
+        removeGodMode(character)
     end
     
     WindUI:Notify({ Title = "Main", Content = "God Mode disabled", Icon = "check", Duration = 3 })
