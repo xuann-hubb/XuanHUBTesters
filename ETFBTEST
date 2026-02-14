@@ -5044,13 +5044,16 @@ local function teleportToValentineMachine()
     if not valentineMachine then return false end
 
     local promptZone = valentineMachine:FindFirstChild("PromptZone")
-    if not promptZone or not promptZone:IsA("BasePart") then return false end
+    if not promptZone then return false end
+
+    local radius = promptZone:FindFirstChild("Radius")
+    if not radius or not radius:IsA("BasePart") then return false end
 
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
     pcall(function()
-        hrp.CFrame = promptZone.CFrame + Vector3.new(0, 3, 0)
+        hrp.CFrame = radius.CFrame + Vector3.new(0, 3, 0)
     end)
     task.wait(0.3)
     return true
@@ -5149,7 +5152,7 @@ task.spawn(function()
                     return
                 end
 
-                -- Continuous deposit and combine loop
+                -- Continuous deposit and combine loop at Gap 5
                 while _G.ValentineAutoSubmitActive and isPlayerAlive() do
                     -- Make sure we're at Gap 5
                     teleportToValentineGap(5)
@@ -5163,30 +5166,33 @@ task.spawn(function()
                     if valentineMachine then
                         local promptZone = valentineMachine:FindFirstChild("PromptZone")
                         if promptZone then
-                            local targetPos = promptZone.Position + Vector3.new(0, 3, 0)
+                            local radius = promptZone:FindFirstChild("Radius")
+                            if radius then
+                                local targetPos = radius.Position + Vector3.new(0, 3, 0)
 
-                            -- Wait at Gap 5 until path is clear
-                            while not IsPathClear(targetPos) and _G.ValentineAutoSubmitActive and isPlayerAlive() do
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
-                                teleportToValentineGap(5)
-                                task.wait(2)
-                            end
+                                -- Wait at Gap 5 until path is clear
+                                while not IsPathClear(targetPos) and _G.ValentineAutoSubmitActive and isPlayerAlive() do
+                                    WindUI:Notify({ Title = "Valentine Machine", Content =
+                                    "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
+                                    teleportToValentineGap(5)
+                                    task.wait(2)
+                                end
 
-                            if _G.ValentineAutoSubmitActive and isPlayerAlive() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
-                                pathIsSafe = true
+                                if _G.ValentineAutoSubmitActive and isPlayerAlive() then
+                                    WindUI:Notify({ Title = "Valentine Machine", Content =
+                                    "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
+                                    pathIsSafe = true
+                                end
                             end
                         end
                     end
 
-                    -- If path is not safe or check failed, stop
+                    -- If path is not safe or check failed, break loop
                     if not pathIsSafe or not _G.ValentineAutoSubmitActive or not isPlayerAlive() then
                         break
                     end
 
-                    -- Teleport to Valentine Machine
+                    -- Teleport to Valentine Machine (PromptZone.Radius)
                     if not teleportToValentineMachine() then
                         WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to teleport to machine", Icon =
                         "alert-triangle", Duration = 3 })
@@ -5266,14 +5272,14 @@ task.spawn(function()
                                 task.wait(31)
                                 
                                 WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Cooldown complete! Continuing loop...", Icon = "check", Duration = 3 })
+                                "Cooldown complete! Checking path again...", Icon = "check", Duration = 3 })
                             end
                         end
                     end
                 end
 
                 -- Loop ended
-                WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit loop ended", Icon = "info", Duration = 3 })
+                WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit stopped", Icon = "info", Duration = 3 })
             end)
         end
         task.wait(1)
