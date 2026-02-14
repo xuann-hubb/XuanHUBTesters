@@ -386,16 +386,9 @@ UtilitiesSection:Toggle({
             pcall(function()
                 local lavas = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas") and workspace.GameFolder.Lavas:FindFirstChild("Lava")
                 if lavas then
-                    -- Destroy specific TouchInterest
-                    local lavasParent = workspace.GameFolder.Lavas
-                    if lavasParent:GetChildren()[8] then
-                        local ti = lavasParent:GetChildren()[8]:FindFirstChild("TouchInterest")
-                        if ti then ti:Destroy() end
-                    end
-
-                    -- For children 2-10 of Lavas.Lava
+                    -- For children 1-8 of Lavas.Lava
                     local children = lavas:GetChildren()
-                    for i = 2, math.min(10, #children) do
+                    for i = 1, math.min(8, #children) do
                         local child = children[i]
                         if child and child:IsA("BasePart") then
                             child.CanCollide = false
