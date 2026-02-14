@@ -382,26 +382,6 @@ UtilitiesSection:Toggle({
         savedSettings.immuneToLava = state
         saveSettings(savedSettings)
 
-        if state then
-            pcall(function()
-                local lavasFolder = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas")
-                if lavasFolder then
-                    -- Process all descendants in Lavas folder
-                    for _, lava in pairs(lavasFolder:GetDescendants()) do
-                        if lava:IsA("BasePart") then
-                            lava.CanCollide = false
-                            lava.CanQuery = false
-                            lava.CanTouch = false
-                            local touchInterest = lava:FindFirstChild("TouchInterest")
-                            if touchInterest then
-                                touchInterest:Destroy()
-                            end
-                        end
-                    end
-                end
-            end)
-        end
-
         WindUI:Notify({
             Title = "Immune to Lava",
             Content = state and "Lava immunity enabled!" or "Lava immunity disabled",
@@ -410,6 +390,32 @@ UtilitiesSection:Toggle({
         })
     end,
 })
+
+-- Immune to Lava Loop
+task.spawn(function()
+    while task.wait(0.5) do
+        if immuneToLava then
+            pcall(function()
+                local lavasFolder = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas")
+                if lavasFolder then
+                    for _, lava in pairs(lavasFolder:GetDescendants()) do
+                        if lava:IsA("BasePart") then
+                            lava.CanCollide = false
+                            lava.CanQuery = false
+                            lava.CanTouch = false
+                            -- Destroy TouchInterest if present
+                            for _, child in pairs(lava:GetChildren()) do
+                                if child:IsA("TouchTransmitter") or child.Name == "TouchInterest" then
+                                    child:Destroy()
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end
+end)
 
 -- Infinite Jump Logic
 local UserInputService = game:GetService("UserInputService")
