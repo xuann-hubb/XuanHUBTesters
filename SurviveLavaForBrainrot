@@ -44,6 +44,7 @@ local defaultSettings = {
     autoUpgradeBase = false,
     autoUpgradeCarry = false,
     infJump = false,
+    immuneToLava = false,
     autoFarmCelestials = false,
     removeVIPWalls = false,
 }
@@ -207,6 +208,7 @@ local autoUpgradeSpeed = savedSettings.autoUpgradeSpeed or false
 local autoUpgradeBase = savedSettings.autoUpgradeBase or false
 local autoUpgradeCarry = savedSettings.autoUpgradeCarry or false
 local infJump = savedSettings.infJump or false
+local immuneToLava = savedSettings.immuneToLava or false
 local autoFarmCelestials = savedSettings.autoFarmCelestials or false
 local removeVIPWalls = savedSettings.removeVIPWalls or false
 local vipConn  -- Connection for VIP wall removal
@@ -364,6 +366,41 @@ UtilitiesSection:Toggle({
         WindUI:Notify({
             Title = "Infinite Jump",
             Content = state and "Infinite Jump enabled!" or "Infinite Jump disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
+    end,
+})
+
+-- Immune to Lava Toggle
+UtilitiesSection:Toggle({
+    Title = "Immune to Lava",
+    Desc = "Domain expansion lava immunity",
+    Value = savedSettings.immuneToLava,
+    Callback = function(state)
+        immuneToLava = state
+        savedSettings.immuneToLava = state
+        saveSettings(savedSettings)
+
+        if state then
+            pcall(function()
+                local lavas = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas") and workspace.GameFolder.Lavas:FindFirstChild("Lava")
+                if lavas then
+                    for _, obj in pairs(lavas:GetDescendants()) do
+                        if obj:IsA("BasePart") then
+                            obj.CanCollide = false
+                            obj.CanTouch = false
+                        elseif obj:IsA("ProximityPrompt") then
+                            obj:Destroy()
+                        end
+                    end
+                end
+            end)
+        end
+
+        WindUI:Notify({
+            Title = "Immune to Lava",
+            Content = state and "Lava immunity enabled!" or "Lava immunity disabled",
             Icon = state and "check" or "x",
             Duration = 2,
         })
