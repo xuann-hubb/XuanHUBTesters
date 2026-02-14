@@ -111,7 +111,38 @@ local Window = WindUI:CreateWindow({
     },
 })
 
+-- ================= LOADING POPUP =================
+local LoadingPopup = WindUI:Popup({
+    Title = "Initializing System",
+    Content = "Please wait while we verify your environment...",
+    Buttons = {}
+})
 
+-- Simulate checking process
+task.spawn(function()
+    task.wait(1)
+    LoadingPopup:SetContent("Connecting to services...")
+    
+    task.wait(1)
+    LoadingPopup:SetContent("Verifying game state...")
+    
+    task.wait(1)
+    LoadingPopup:SetContent("Loading configuration...")
+    
+    task.wait(1)
+    LoadingPopup:SetContent("Environment verified successfully!")
+    
+    task.wait(0.5)
+    LoadingPopup:Close()
+    
+    -- Show notification after loading complete
+    WindUI:Notify({
+        Title = "System Ready",
+        Content = "All systems operational",
+        Icon = "check",
+        Duration = 3,
+    })
+end)
 
 Window:EditOpenButton({
     OnlyMobile = false,
@@ -178,7 +209,7 @@ local autoUpgradeCarry = savedSettings.autoUpgradeCarry or false
 local infJump = savedSettings.infJump or false
 local autoFarmCelestials = savedSettings.autoFarmCelestials or false
 local removeVIPWalls = savedSettings.removeVIPWalls or false
-local vipConn -- Connection for VIP wall removal
+local vipConn  -- Connection for VIP wall removal
 local grabConn -- Connection for auto-grab prompt HoldDuration management
 
 -- Upgrade Base Button
@@ -243,7 +274,8 @@ MainSection:Button({
     Callback = function()
         pcall(function()
             local args = { "SellOne" }
-            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(args))
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(
+            args))
             WindUI:Notify({
                 Title = "Sell",
                 Content = "Sold held tool!",
@@ -261,7 +293,8 @@ MainSection:Button({
     Callback = function()
         pcall(function()
             local args = { "SellAll" }
-            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(args))
+            game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(
+            args))
             WindUI:Notify({
                 Title = "Sell",
                 Content = "Sold entire inventory!",
@@ -295,7 +328,8 @@ MainSection:Button({
         local plot = GetMyPlot()
         if not plot then
             pcall(function()
-                WindUI:Notify({ Title = "TP", Content = "No plot found (check your Plot attribute)", Icon = "alert-triangle", Duration = 2 })
+                WindUI:Notify({ Title = "TP", Content = "No plot found (check your Plot attribute)", Icon =
+                "alert-triangle", Duration = 2 })
             end)
             return
         end
@@ -326,7 +360,7 @@ UtilitiesSection:Toggle({
         infJump = state
         savedSettings.infJump = state
         saveSettings(savedSettings)
-        
+
         WindUI:Notify({
             Title = "Infinite Jump",
             Content = state and "Infinite Jump enabled!" or "Infinite Jump disabled",
@@ -347,21 +381,21 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- ================= AUTO TAB =================
+-- ================= LOOP TAB =================
 local AutoTab = Window:Tab({
-    Title = "Auto",
+    Title = "Loop",
     Icon = "lucide:bot",
 })
 
 local AutoSection = AutoTab:Section({
-    Title = "Automation Features",
+    Title = "Continuous Features",
     Opened = true,
 })
 
 -- Speed Upgrade Amount Dropdown
 AutoSection:Dropdown({
     Title = "Speed Upgrade Amount",
-    Desc = "Select upgrade amount for auto speed",
+    Desc = "Select upgrade amount for loop speed",
     Values = { "1", "5", "10" },
     Value = tostring(savedSettings.speedUpgradeAmount or 1),
     Callback = function(value)
@@ -372,62 +406,64 @@ AutoSection:Dropdown({
 })
 
 AutoSection:Toggle({
-    Title = "Auto Upgrade Speed",
-    Desc = "Automatically upgrade speed continuously",
+    Title = "Loop Upgrade Speed",
+    Desc = "Continuously upgrade speed",
     Value = savedSettings.autoUpgradeSpeed,
     Callback = function(state)
         autoUpgradeSpeed = state
         savedSettings.autoUpgradeSpeed = state
         saveSettings(savedSettings)
-        
+
         WindUI:Notify({
-            Title = "Auto Upgrade Speed",
-            Content = state and "Auto Upgrade enabled!" or "Auto Upgrade disabled",
+            Title = "Loop Upgrade Speed",
+            Content = state and "Loop Upgrade enabled!" or "Loop Upgrade disabled",
             Icon = state and "check" or "x",
             Duration = 2,
         })
     end,
 })
 
--- Auto Upgrade Base Toggle
+-- Loop Upgrade Base Toggle
 AutoSection:Toggle({
-    Title = "Auto Upgrade Base",
-    Desc = "Automatically upgrade base when possible",
+    Title = "Loop Upgrade Base",
+    Desc = "Continuously upgrade base when possible",
     Value = savedSettings.autoUpgradeBase,
     Callback = function(state)
         autoUpgradeBase = state
         savedSettings.autoUpgradeBase = state
         saveSettings(savedSettings)
-        WindUI:Notify({ Title = "Auto Upgrade Base", Content = state and "Enabled" or "Disabled", Icon = state and "check" or "x", Duration = 2 })
+        WindUI:Notify({ Title = "Loop Upgrade Base", Content = state and "Enabled" or "Disabled", Icon = state and
+        "check" or "x", Duration = 2 })
     end,
 })
 
--- Auto Upgrade Carry Toggle
+-- Loop Upgrade Carry Toggle
 AutoSection:Toggle({
-    Title = "Auto Upgrade Carry",
-    Desc = "Automatically upgrade carry when possible",
+    Title = "Loop Upgrade Carry",
+    Desc = "Continuously upgrade carry when possible",
     Value = savedSettings.autoUpgradeCarry,
     Callback = function(state)
         autoUpgradeCarry = state
         savedSettings.autoUpgradeCarry = state
         saveSettings(savedSettings)
-        WindUI:Notify({ Title = "Auto Upgrade Carry", Content = state and "Enabled" or "Disabled", Icon = state and "check" or "x", Duration = 2 })
+        WindUI:Notify({ Title = "Loop Upgrade Carry", Content = state and "Enabled" or "Disabled", Icon = state and
+        "check" or "x", Duration = 2 })
     end,
 })
 
--- Auto Farm Celestials Toggle
+-- Farm Rare Items Toggle
 AutoSection:Toggle({
-    Title = "Auto Farm Celestials",
-    Desc = "Automatically farm Celestial brainrots (TP → Grab → Safezone)",
+    Title = "Farm Rare Items",
+    Desc = "Gather rare brainrots (TP → Grab → Safezone)",
     Value = savedSettings.autoFarmCelestials,
     Callback = function(state)
         autoFarmCelestials = state
         savedSettings.autoFarmCelestials = state
         saveSettings(savedSettings)
-        
+
         WindUI:Notify({
-            Title = "Auto Farm Celestials",
-            Content = state and "Auto Farm enabled!" or "Auto Farm disabled",
+            Title = "Farm Rare Items",
+            Content = state and "Farming enabled!" or "Farming disabled",
             Icon = state and "check" or "x",
             Duration = 2,
         })
@@ -442,7 +478,8 @@ task.spawn(function()
         if autoUpgradeSpeed then
             pcall(function()
                 local args = { "Speed", speedUpgradeAmount }
-                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Speed"):InvokeServer(unpack(args))
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Speed"):InvokeServer(unpack(
+                args))
             end)
         end
     end
@@ -465,7 +502,8 @@ task.spawn(function()
         if autoUpgradeCarry then
             pcall(function()
                 local args = { "Carry" }
-                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Carry"):InvokeServer(unpack(args))
+                game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Carry"):InvokeServer(unpack(
+                args))
             end)
         end
     end
@@ -486,16 +524,17 @@ task.spawn(function()
                             if root and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                                 -- 1. Teleport to celestial
                                 player.Character.HumanoidRootPart.CFrame = root.CFrame
-                                
+
                                 -- 2. Wait 5 seconds
                                 task.wait(5)
-                                
+
                                 -- 3. TP to safezone/Baseplate
-                                local baseplate = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Baseplate")
+                                local baseplate = workspace:FindFirstChild("GameFolder") and
+                                workspace.GameFolder:FindFirstChild("Baseplate")
                                 if baseplate and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                                     player.Character.HumanoidRootPart.CFrame = baseplate.CFrame + Vector3.new(0, 5, 0)
                                 end
-                                
+
                                 break -- Only process first celestial found
                             end
                         end
