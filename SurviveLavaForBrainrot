@@ -395,11 +395,10 @@ UtilitiesSection:Toggle({
                         if ti then ti:Destroy() end
                     end
 
-                    -- Then, for children 2-10 of Lavas.Lava
+                    -- Then, for all children of Lavas.Lava
                     local children = lavas:GetChildren()
-                    for lavaNum = 2, 10 do
-                        local child = children[lavaNum]
-                        if child and child:IsA("BasePart") then
+                    for _, child in ipairs(children) do
+                        if child:IsA("BasePart") then
                             child.CanCollide = false
                             child.CanQuery = false
                             child.CanTouch = false
