@@ -4374,19 +4374,7 @@ ArcadeMachineSection:Dropdown({
     end
 })
 
--- Dropdown for Arcade Brainrot 3
-ArcadeMachineSection:Dropdown({
-    Title = "Brainrot 3",
-    Desc = "Select third brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        arcadeBrainrot3 = option or ""
-    end
-})
+
 
 -- Toggle for Auto Submit to Arcade Machine
 ArcadeMachineSection:Toggle({
