@@ -833,7 +833,7 @@ task.spawn(function()
             pcall(function()
                 local args = { "Arcade", false }
                 game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+                    "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
             end)
             local delayValue = tonumber(savedSettings.spinDelay) or 0.5
             if delayValue <= 0 then delayValue = 0.5 end
@@ -1097,8 +1097,13 @@ task.spawn(function()
                 -- If user enabled auto-rejoin, rejoin now; otherwise keep the original 15-minute cooldown
                 if autoRejoinAfterMoneyObby then
                     pcall(function()
-                        WindUI:Notify({ Title = "Money Obby", Content = "Auto-rejoin enabled — rejoining...", Icon =
-                        "info", Duration = 2 })
+                        WindUI:Notify({
+                            Title = "Money Obby",
+                            Content = "Auto-rejoin enabled — rejoining...",
+                            Icon =
+                            "info",
+                            Duration = 2
+                        })
                         task.wait(0.6)
                         game:GetService("TeleportService"):Teleport(game.PlaceId, player)
                     end)
@@ -1635,7 +1640,7 @@ local function collectGapEntries(folder)
             -- attempt to find a usable BasePart for positioning
             -- Prioritize "Mud" part if it exists
             local part = nil
-            
+
             -- First, try to find Mud part
             local mudPart = child:FindFirstChild("Mud")
             if mudPart and mudPart:IsA("BasePart") then
@@ -1643,7 +1648,7 @@ local function collectGapEntries(folder)
             else
                 -- Fall back to original logic
                 part = (child:IsA("BasePart") and child) or
-                (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
+                    (child:IsA("Model") and (child.PrimaryPart or getModelPart(child)))
                 if not part then
                     for _, d in ipairs(child:GetDescendants()) do
                         if d:IsA("BasePart") then
@@ -1652,7 +1657,7 @@ local function collectGapEntries(folder)
                     end
                 end
             end
-            
+
             if part then
                 local num = tonumber(child.Name:match("%d+"))
                 table.insert(entries, { idxRaw = num, name = child.Name, part = part, inst = child })
@@ -1664,9 +1669,11 @@ local function collectGapEntries(folder)
 
     -- If any entries have numeric indices, sort by that; otherwise sort by X (left→right)
     local hasNumbers = false
-    for _, e in ipairs(entries) do if e.idxRaw then
+    for _, e in ipairs(entries) do
+        if e.idxRaw then
             hasNumbers = true; break
-        end end
+        end
+    end
     if hasNumbers then
         table.sort(entries, function(a, b)
             return (a.idxRaw or 9999) < (b.idxRaw or 9999)
@@ -1742,7 +1749,7 @@ local function SmartMove(targetPos, areaName)
         bodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.Parent = hrp
-        
+
         -- Enable noclip
         local noclipConn
         noclipConn = RunService.Stepped:Connect(function()
@@ -1754,7 +1761,7 @@ local function SmartMove(targetPos, areaName)
                 end
             end
         end)
-        
+
         local finalSpeed = _G.BaseTweenSpeed
         local areaNum = tonumber(string.match(areaName, "%d+"))
         if areaNum and areaNum >= 6 then
@@ -1764,16 +1771,16 @@ local function SmartMove(targetPos, areaName)
         local tween = TweenService:Create(hrp, info, { CFrame = CFrame.new(targetPos) })
         tween:Play()
         tween.Completed:Wait()
-        
+
         -- Disable fly mode after teleport
         if bodyVelocity then
             bodyVelocity:Destroy()
         end
-        
+
         if noclipConn then
             noclipConn:Disconnect()
         end
-        
+
         -- Restore collision
         if char then
             for _, part in pairs(char:GetDescendants()) do
@@ -1811,7 +1818,8 @@ player.CharacterAdded:Connect(function(char)
                             local root = newChar:FindFirstChild("HumanoidRootPart")
                             if root then
                                 root.CFrame = CFrame.new(targetPos)
-                                WindUI:Notify({ Title = "Teleport", Content = "Respawned at Gap 1 - continuing teleport", Icon = "info", Duration = 3 })
+                                WindUI:Notify({ Title = "Teleport", Content = "Respawned at Gap 1 - continuing teleport", Icon =
+                                "info", Duration = 3 })
                             end
                         end
                     end
@@ -1852,7 +1860,8 @@ if player.Character then
                                 local root = newChar:FindFirstChild("HumanoidRootPart")
                                 if root then
                                     root.CFrame = CFrame.new(targetPos)
-                                    WindUI:Notify({ Title = "Teleport", Content = "Respawned at Gap 1 - continuing teleport", Icon = "info", Duration = 3 })
+                                    WindUI:Notify({ Title = "Teleport", Content =
+                                    "Respawned at Gap 1 - continuing teleport", Icon = "info", Duration = 3 })
                                 end
                             end
                         end
@@ -1861,7 +1870,8 @@ if player.Character then
             end
             if _G.ReverseTourActive then
                 _G.ReverseTourActive = false
-                WindUI:Notify({ Title = "Teleport", Content = "Smart teleport stopped (player died)", Icon = "alert-triangle", Duration = 3 })
+                WindUI:Notify({ Title = "Teleport", Content = "Smart teleport stopped (player died)", Icon =
+                "alert-triangle", Duration = 3 })
             end
         end)
     end
@@ -2129,7 +2139,7 @@ TsunamiSection:Button({
 
         -- unified notification
         local msg = (#stopped > 0) and ("Stopped: " .. table.concat(stopped, ", ")) or
-        "No teleport operations were active"
+            "No teleport operations were active"
         WindUI:Notify({ Title = "Teleport", Content = msg, Icon = "info", Duration = 3 })
     end,
 })
@@ -2787,39 +2797,39 @@ UtilitiesSection:Toggle({
     Value = false,
     Callback = function(state)
         flyMode = state
-        
+
         if flyMode then
             local character = player.Character
             if not character then
                 WindUI:Notify({ Title = "Utilities", Content = "Character not found", Icon = "alert-triangle", Duration = 2 })
                 return
             end
-            
+
             local root = character:FindFirstChild("HumanoidRootPart")
             if not root then
                 WindUI:Notify({ Title = "Utilities", Content = "HumanoidRootPart not found", Icon = "alert-triangle", Duration = 2 })
                 return
             end
-            
+
             if flyBodyVelocity then
                 flyBodyVelocity:Destroy()
             end
-            
+
             flyBodyVelocity = Instance.new("BodyVelocity")
             flyBodyVelocity.MaxForce = Vector3.new(100000, 100000, 100000)
             flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
             flyBodyVelocity.Parent = root
-            
+
             if flyConnection then
                 flyConnection:Disconnect()
             end
-            
+
             flyConnection = RunService.Heartbeat:Connect(function()
                 if not root or not flyBodyVelocity then return end
-                
+
                 local camera = workspace.CurrentCamera
                 local moveDir = Vector3.new(0, 0, 0)
-                
+
                 if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then
                     moveDir = moveDir + camera.CFrame.LookVector
                 end
@@ -2838,18 +2848,18 @@ UtilitiesSection:Toggle({
                 if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift) then
                     moveDir = moveDir - Vector3.new(0, 1, 0)
                 end
-                
+
                 if moveDir.Magnitude > 0 then
                     flyBodyVelocity.Velocity = moveDir.Unit * 50
                 else
                     flyBodyVelocity.Velocity = Vector3.new(0, 0, 0)
                 end
             end)
-            
+
             if noclipConnection then
                 noclipConnection:Disconnect()
             end
-            
+
             noclipConnection = RunService.Stepped:Connect(function()
                 if player.Character then
                     for _, part in pairs(player.Character:GetDescendants()) do
@@ -2859,24 +2869,24 @@ UtilitiesSection:Toggle({
                     end
                 end
             end)
-            
+
             WindUI:Notify({ Title = "Utilities", Content = "Fly + NoClip enabled", Icon = "check", Duration = 2 })
         else
             if flyConnection then
                 flyConnection:Disconnect()
                 flyConnection = nil
             end
-            
+
             if noclipConnection then
                 noclipConnection:Disconnect()
                 noclipConnection = nil
             end
-            
+
             if flyBodyVelocity then
                 flyBodyVelocity:Destroy()
                 flyBodyVelocity = nil
             end
-            
+
             local character = player.Character
             if character then
                 for _, part in pairs(character:GetDescendants()) do
@@ -2885,7 +2895,7 @@ UtilitiesSection:Toggle({
                     end
                 end
             end
-            
+
             WindUI:Notify({ Title = "Utilities", Content = "Fly + NoClip disabled", Icon = "check", Duration = 2 })
         end
     end
@@ -2909,7 +2919,7 @@ local SellAllBtn = UpgBase:Button({
                     Callback = function()
                         pcall(function()
                             local result = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
-                            :WaitForChild("SellAll"):InvokeServer()
+                                :WaitForChild("SellAll"):InvokeServer()
                             if result == false or result == nil then
                                 WindUI:Notify({
                                     Title = "Sold",
@@ -3100,8 +3110,13 @@ MoneySection:Toggle({
         autoRejoinAfterMoneyObby = state
         savedSettings.autoRejoinAfterMoneyObby = state
         saveSettings(savedSettings)
-        WindUI:Notify({ Title = "Money Obby", Content = (state and "Auto-rejoin enabled" or "Auto-rejoin disabled"), Icon =
-        "info", Duration = 2 })
+        WindUI:Notify({
+            Title = "Money Obby",
+            Content = (state and "Auto-rejoin enabled" or "Auto-rejoin disabled"),
+            Icon =
+            "info",
+            Duration = 2
+        })
     end
 })
 
@@ -3437,7 +3452,7 @@ local function getRarities()
         table.sort(rarities)
     end)
     return rarities
- end
+end
 
 -- Auto Sell by Rarity Dropdown
 BrainrotSection:Dropdown({
@@ -3498,7 +3513,7 @@ BrainrotSection:Space()
 local function getBrainrotNamesWithRarity()
     local allBrainrotNames = {}
     local brainrotToRarityMap = {}
-    
+
     pcall(function()
         local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
         -- Iterate through Chances table to get rarity and brainrot names
@@ -3512,7 +3527,7 @@ local function getBrainrotNamesWithRarity()
         end
         table.sort(allBrainrotNames)
     end)
-    
+
     return allBrainrotNames, brainrotToRarityMap
 end
 
@@ -4038,8 +4053,13 @@ DefaultMachineSection:Input({
         else
             -- Default to 60:00 if invalid format
             machineTargetTime = "60:00"
-            WindUI:Notify({ Title = "Auto Machine", Content = "Invalid time format. Defaulted to 60:00", Icon =
-            "alert-triangle", Duration = 3 })
+            WindUI:Notify({
+                Title = "Auto Machine",
+                Content = "Invalid time format. Defaulted to 60:00",
+                Icon =
+                "alert-triangle",
+                Duration = 3
+            })
         end
     end
 })
@@ -4146,7 +4166,7 @@ end
 -- Helper function to deposit brainrot
 local function depositBrainrot()
     local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
-    workspace.SpawnMachines:FindFirstChild("Default")
+        workspace.SpawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
 
     local args = {
@@ -4155,7 +4175,7 @@ local function depositBrainrot()
     }
     local ok = pcall(function()
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4164,7 +4184,7 @@ end
 -- Helper function to combine brainrots
 local function combineBrainrots()
     local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
-    workspace.SpawnMachines:FindFirstChild("Default")
+        workspace.SpawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
 
     local args = {
@@ -4173,7 +4193,7 @@ local function combineBrainrots()
     }
     local ok = pcall(function()
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4182,7 +4202,7 @@ end
 -- Helper function to teleport to machine
 local function teleportToMachine()
     local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
-    workspace.SpawnMachines:FindFirstChild("Default")
+        workspace.SpawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
 
     local targetPart = defaultMachine:GetChildren()[18]
@@ -4209,8 +4229,13 @@ task.spawn(function()
 
                     -- Step 1: Teleport to machine
                     if not teleportToMachine() then
-                        WindUI:Notify({ Title = "Auto Machine", Content = "Failed to teleport to machine", Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Auto Machine",
+                            Content = "Failed to teleport to machine",
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         autoMachine = false
                     else
                         local depositSuccess = true
@@ -4218,12 +4243,22 @@ task.spawn(function()
                         -- Step 2: Deposit Brainrot 1 (if selected)
                         if machineBrainrot1 ~= "" then
                             if not equipBrainrotTool(machineBrainrot1) then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 1 not found: " ..
-                                machineBrainrot1, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Brainrot 1 not found: " ..
+                                        machineBrainrot1,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositBrainrot() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 1", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Failed to deposit Brainrot 1",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             end
                         end
@@ -4231,12 +4266,22 @@ task.spawn(function()
                         -- Step 3: Deposit Brainrot 2 (if selected and previous steps succeeded)
                         if depositSuccess and machineBrainrot2 ~= "" then
                             if not equipBrainrotTool(machineBrainrot2) then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 2 not found: " ..
-                                machineBrainrot2, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Brainrot 2 not found: " ..
+                                        machineBrainrot2,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositBrainrot() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 2", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Failed to deposit Brainrot 2",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             end
                         end
@@ -4244,12 +4289,22 @@ task.spawn(function()
                         -- Step 4: Deposit Brainrot 3 (if selected and previous steps succeeded)
                         if depositSuccess and machineBrainrot3 ~= "" then
                             if not equipBrainrotTool(machineBrainrot3) then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Brainrot 3 not found: " ..
-                                machineBrainrot3, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Brainrot 3 not found: " ..
+                                        machineBrainrot3,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositBrainrot() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to deposit Brainrot 3", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Failed to deposit Brainrot 3",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             end
                         end
@@ -4257,12 +4312,22 @@ task.spawn(function()
                         -- Step 5: Combine (only if at least one brainrot was deposited successfully)
                         if depositSuccess then
                             if not combineBrainrots() then
-                                WindUI:Notify({ Title = "Auto Machine", Content = "Failed to combine brainrots", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content = "Failed to combine brainrots",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 autoMachine = false
                             else
-                                WindUI:Notify({ Title = "Auto Machine", Content =
-                                "Fusion completed! Waiting 30s for cooldown...", Icon = "check", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Auto Machine",
+                                    Content =
+                                    "Fusion completed! Waiting 30s for cooldown...",
+                                    Icon = "check",
+                                    Duration = 3
+                                })
                                 task.wait(30)
                             end
                         else
@@ -4342,13 +4407,13 @@ ArcadeMachineSection:Toggle({
 
 -- Helper function to find Arcade gaps folder
 local function findArcadeGapsFolder()
-    local ok, gaps = pcall(function()
-        return workspace.ArcadeMap.Gaps
-    end)
-    if ok and gaps then
-        return gaps
-    end
-    return nil
+    local arcadeMap = workspace:FindFirstChild("ArcadeMap")
+    if not arcadeMap then return nil end
+    
+    local gaps = arcadeMap:FindFirstChild("Gaps")
+    if not gaps then return nil end
+    
+    return gaps
 end
 
 -- Helper function to check if player is alive
@@ -4364,17 +4429,17 @@ end
 local function teleportToArcadeGap(gapNumber)
     local gapsFolder = findArcadeGapsFolder()
     if not gapsFolder then return false end
-    
+
     local gapName = "Gap" .. tostring(gapNumber)
     local gap = gapsFolder:FindFirstChild(gapName)
     if not gap then return false end
-    
+
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
-    
+
     -- Get gap position - prioritize Mud part
     local targetPos
-    
+
     -- Try to find Mud part first
     local mudPart = gap:FindFirstChild("Mud")
     if mudPart and mudPart:IsA("BasePart") then
@@ -4387,17 +4452,17 @@ local function teleportToArcadeGap(gapNumber)
             targetPos = primaryPart.Position
         end
     end
-    
+
     if not targetPos then return false end
-    
+
     -- Offset position above the mud to prevent falling
     targetPos = targetPos + Vector3.new(0, 3, 0)
-    
+
     -- Check if path is clear (no tsunami)
     if not IsPathClear(targetPos) then
         return false
     end
-    
+
     -- Instant teleport to gap (no tween)
     pcall(function()
         hrp.CFrame = CFrame.new(targetPos)
@@ -4410,19 +4475,19 @@ end
 local function teleportToArcadeMachine()
     local spawnMachines = workspace:FindFirstChild("SpawnMachines")
     if not spawnMachines then return false end
-    
+
     local arcadeMachine = spawnMachines:FindFirstChild("Arcade")
     if not arcadeMachine then return false end
-    
+
     local model = arcadeMachine:FindFirstChild("Model")
     if not model then return false end
-    
+
     local targetPart = model:FindFirstChild("Part")
     if not targetPart or not targetPart:IsA("BasePart") then return false end
-    
+
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
-    
+
     pcall(function()
         hrp.CFrame = targetPart.CFrame + Vector3.new(0, 3, 0)
     end)
@@ -4437,7 +4502,8 @@ local function depositArcadeBrainrot()
             "Deposit",
             workspace:WaitForChild("SpawnMachines"):WaitForChild("Arcade")
         }
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4450,7 +4516,8 @@ local function combineArcadeBrainrots()
             "Combine",
             workspace:WaitForChild("SpawnMachines"):WaitForChild("Arcade")
         }
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild("RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4463,35 +4530,38 @@ task.spawn(function()
             pcall(function()
                 -- Check if player is alive
                 if not isPlayerAlive() then
-                    WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - stopping auto submit", Icon = "alert-triangle", Duration = 3 })
+                    WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - stopping auto submit", Icon =
+                    "alert-triangle", Duration = 3 })
                     autoArcadeMachine = false
                     _G.ArcadeAutoSubmitActive = false
                     return
                 end
-                
+
                 WindUI:Notify({ Title = "Arcade Machine", Content = "Starting gap progression...", Icon = "info", Duration = 3 })
-                
+
                 -- Teleport through gaps 1-5
                 local gapSuccess = true
                 for gapNum = 1, 5 do
                     if not _G.ArcadeAutoSubmitActive or not isPlayerAlive() then
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "Stopped during gap teleport", Icon = "alert-triangle", Duration = 3 })
+                        WindUI:Notify({ Title = "Arcade Machine", Content = "Stopped during gap teleport", Icon =
+                        "alert-triangle", Duration = 3 })
                         autoArcadeMachine = false
                         _G.ArcadeAutoSubmitActive = false
                         return
                     end
-                    
+
                     -- Try to teleport to gap
                     local maxRetries = 10
                     local retryCount = 0
                     local teleported = false
-                    
+
                     while retryCount < maxRetries and not teleported and _G.ArcadeAutoSubmitActive do
                         teleported = teleportToArcadeGap(gapNum)
                         if not teleported then
                             -- Gap blocked by tsunami, wait at Gap 5 if we're past it
                             if gapNum > 1 then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Gap " .. gapNum .. " blocked - returning to Gap 5", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Gap " ..
+                                gapNum .. " blocked - returning to Gap 5", Icon = "alert-triangle", Duration = 3 })
                                 teleportToArcadeGap(5)
                                 task.wait(2)
                             else
@@ -4500,97 +4570,27 @@ task.spawn(function()
                             retryCount = retryCount + 1
                         end
                     end
-                    
+
                     if not teleported then
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to reach Gap " .. gapNum, Icon = "alert-triangle", Duration = 3 })
+                        WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to reach Gap " .. gapNum, Icon =
+                        "alert-triangle", Duration = 3 })
                         gapSuccess = false
                         break
                     end
-                    
+
                     WindUI:Notify({ Title = "Arcade Machine", Content = "Reached Gap " .. gapNum, Icon = "check", Duration = 2 })
                 end
-                
+
                 -- Check if we successfully reached Gap 5
                 if not gapSuccess or not _G.ArcadeAutoSubmitActive or not isPlayerAlive() then
                     autoArcadeMachine = false
                     _G.ArcadeAutoSubmitActive = false
                     return
                 end
-                
+
                 -- Continuous deposit and combine loop
                 while _G.ArcadeAutoSubmitActive and isPlayerAlive() do
-                    -- Check if path to Arcade Machine is safe
-                    local arcadeMachine = workspace:FindFirstChild("SpawnMachines") and
-                        workspace.SpawnMachines:FindFirstChild("Arcade")
-                    local pathIsSafe = false
-                    
-                    if arcadeMachine then
-                        local model = arcadeMachine:FindFirstChild("Model")
-                        if model then
-                            local targetPart = model:FindFirstChild("Part")
-                            if targetPart then
-                                local targetPos = targetPart.Position + Vector3.new(0, 3, 0)
-                                
-                                -- Check if path is clear
-                                if IsPathClear(targetPos) then
-                                    pathIsSafe = true
-                                else
-                                    -- Path blocked - retreat to Gap 5 and wait
-                                    WindUI:Notify({ Title = "Arcade Machine", Content = "Gap blocked! Retreating to Gap 5...", Icon = "alert-triangle", Duration = 3 })
-                                    teleportToArcadeGap(5)
-                                    
-                                    -- Wait for path to become safe again
-                                    while not IsPathClear(targetPos) and _G.ArcadeAutoSubmitActive and isPlayerAlive() do
-                                        task.wait(2)
-                                        -- Stay at Gap 5
-                                        teleportToArcadeGap(5)
-                                    end
-                                    
-                                    if _G.ArcadeAutoSubmitActive and isPlayerAlive() then
-                                        WindUI:Notify({ Title = "Arcade Machine", Content = "Path is safe again! Returning to machine...", Icon = "check", Duration = 3 })
-                                        pathIsSafe = true
-                                    end
-                                end
-                            end
-                        end
-                    end
-                    
-                    -- If path is not safe or check failed, stop
-                    if not pathIsSafe or not _G.ArcadeAutoSubmitActive or not isPlayerAlive() then
-                        break
-                    end
-                    
-                    -- Teleport to Arcade Machine
-                    if not teleportToArcadeMachine() then
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to teleport to machine", Icon = "alert-triangle", Duration = 3 })
-                        task.wait(2)
-                    else
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "At Arcade Machine - depositing...", Icon = "info", Duration = 2 })
-                        task.wait(1)
-                        
-                        -- Deposit brainrots
-                        local depositSuccess = true
-                        
-                        -- Deposit Brainrot 1
-                        if arcadeBrainrot1 ~= "" and _G.ArcadeAutoSubmitActive then
-                            if not equipBrainrotTool(arcadeBrainrot1) then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 1 not found: " .. arcadeBrainrot1, Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            elseif not depositArcadeBrainrot() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 1", Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 1", Icon = "check", Duration = 2 })
-                            end
-                        end
-                        
-                        -- Deposit Brainrot 2
-                        if depositSuccess and arcadeBrainrot2 ~= "" and _G.ArcadeAutoSubmitActive then
-                            if not equipBrainrotTool(arcadeBrainrot2) then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 2 not found: " .. arcadeBrainrot2, Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            elseif not depositArcadeBrainrot() then
-                       Make sure we're at Gap 5
+                    -- Make sure we're at Gap 5
                     teleportToArcadeGap(5)
                     task.wait(0.5)
                     
@@ -4711,6 +4711,94 @@ task.spawn(function()
                                 "Cooldown complete! Continuing loop...", Icon = "check", Duration = 3 })
                             end
                         end
+                    end
+                end
+
+                -- Loop ended
+                WindUI:Notify({ Title = "Arcade Machine", Content = "Auto submit loop ended", Icon = "info", Duration = 3 })
+            end)
+        end
+        task.wait(1)
+    end
+end)
+
+-- Death detection for Arcade auto-submit
+player.CharacterAdded:Connect(function(char)
+    local humanoid = char:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        if _G.ArcadeAutoSubmitActive then
+            _G.ArcadeAutoSubmitActive = false
+            autoArcadeMachine = false
+            WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - auto submit stopped", Icon =
+            "alert-triangle", Duration = 3 })
+        end
+    end)
+end)
+
+-- Also set up death detection for current character if it exists
+if player.Character then
+    local humanoid = player.Character:FindFirstChild("Humanoid")
+    if humanoid then
+        humanoid.Died:Connect(function()
+            if _G.ArcadeAutoSubmitActive then
+                _G.ArcadeAutoSubmitActive = false
+                autoArcadeMachine = false
+                WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - auto submit stopped", Icon =
+                "alert-triangle", Duration = 3 })
+            end
+        end)
+    end
+end
+
+-- ================= ABOUT TAB =================
+local DiscordTitle = AboutTab:Paragraph({
+    Title = gradient("Discord", Color3.fromHex("#25fa00"), Color3.fromHex("#25fa00")),
+    Desc = "Join our Discord for updates, giveaways, questions, support and more!",
+    TextXAlignment = "Center",
+    TextSize = 17,
+})
+
+AboutTab:Divider()
+
+local InviteCode = "kaydensdens"
+local DiscordAPI = ("https://discord.com/api/v10/invites/%s?with_counts=true&with_expiration=true"):format(InviteCode)
+
+local function GetDiscordData()
+    local success, result = pcall(function()
+        local response = WindUI.Creator.Request({
+            Url = DiscordAPI,
+            Method = "GET",
+            Headers = {
+                ["User-Agent"] = "RobloxBot/1.0",
+                ["Accept"] = "application/json"
+            }
+        })
+        return HttpService:JSONDecode(response.Body)
+    end)
+    return success, result
+end
+
+local success, result = GetDiscordData()
+
+if success and result and result.guild then
+    local DiscordInfo = AboutTab:Paragraph({
+        Title = result.guild.name or "Unknown Server",
+        Desc = string.format(
+            ' <font color="#52525b">•</font> Member Count : %d\n <font color="#16a34a">•</font> Online Count : %d',
+            result.approximate_member_count or 0,
+            result.approximate_presence_count or 0
+        ),
+        Image = string.format(
+            "https://cdn.discordapp.com/icons/%s/%s.png?size=1024",
+            result.guild.id,
+            result.guild.icon
+        ),
+        ImageSize = 42,
+    })
+
+    AboutTab:Button({
+        Title = "Copy Discord Invite",
+        Callback = function()
             if setclipboard then
                 setclipboard("https://discord.gg/" .. InviteCode)
                 WindUI:Notify({ Title = "Discord", Content = "Invite link copied!", Icon = "check", Duration = 2 })
