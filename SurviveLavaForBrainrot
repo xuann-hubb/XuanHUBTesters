@@ -111,36 +111,36 @@ local Window = WindUI:CreateWindow({
     },
 })
 
--- ================= LOADING POPUP =================
-local LoadingPopup = WindUI:Popup({
-    Title = "Initializing System",
-    Content = "Please wait while we verify your environment...",
-    Buttons = {}
-})
-
--- Simulate checking process
+-- ================= LOADING NOTIFICATIONS =================
 task.spawn(function()
-    task.wait(1)
-    LoadingPopup:SetContent("Connecting to services...")
-    
-    task.wait(1)
-    LoadingPopup:SetContent("Verifying game state...")
-    
-    task.wait(1)
-    LoadingPopup:SetContent("Loading configuration...")
-    
-    task.wait(1)
-    LoadingPopup:SetContent("Environment verified successfully!")
-    
-    task.wait(0.5)
-    LoadingPopup:Close()
-    
-    -- Show notification after loading complete
     WindUI:Notify({
-        Title = "System Ready",
-        Content = "All systems operational",
-        Icon = "check",
-        Duration = 3,
+        Title = "Verifying",
+        Content = "Verifying string data...",
+        Duration = 2
+    })
+    
+    task.wait(2)
+    
+    WindUI:Notify({
+        Title = "Verifying",
+        Content = "Verifying environment...",
+        Duration = 2
+    })
+    
+    task.wait(2)
+    
+    WindUI:Notify({
+        Title = "Verifying",
+        Content = "Verifying anti-cheat data...",
+        Duration = 2
+    })
+    
+    task.wait(2)
+    
+    WindUI:Notify({
+        Title = "Success",
+        Content = "Operation completed successfully",
+        Duration = 3
     })
 end)
 
