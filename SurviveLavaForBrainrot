@@ -311,7 +311,7 @@ MainSection:Button({
 -- Unlock VIP Walls (one-shot)
 MainSection:Button({
     Title = "Unlock VIP Walls",
-    Desc = "Destroy VIP doors/walls (one-time)",
+    Desc = "Unlock All VIP walls",
     Callback = function()
         for _, v in pairs(workspace:GetDescendants()) do
             if v.Name == "VIPDoors" or v.Name == "VIPDoor" then
