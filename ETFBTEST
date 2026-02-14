@@ -4590,122 +4590,127 @@ task.spawn(function()
                                 WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 2 not found: " .. arcadeBrainrot2, Icon = "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             elseif not depositArcadeBrainrot() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 2", Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 2", Icon = "check", Duration = 2 })
+                       Make sure we're at Gap 5
+                    teleportToArcadeGap(5)
+                    task.wait(0.5)
+                    
+                    -- Check if path from Gap 5 to Arcade Machine (Gap 5 to 6) is safe
+                    local arcadeMachine = workspace:FindFirstChild("SpawnMachines") and
+                        workspace.SpawnMachines:FindFirstChild("Arcade")
+                    local pathIsSafe = false
+
+                    if arcadeMachine then
+                        local model = arcadeMachine:FindFirstChild("Model")
+                        if model then
+                            local targetPart = model:FindFirstChild("Part")
+                            if targetPart then
+                                local targetPos = targetPart.Position + Vector3.new(0, 3, 0)
+
+                                -- Wait at Gap 5 until path is clear
+                                while not IsPathClear(targetPos) and _G.ArcadeAutoSubmitActive and isPlayerAlive() do
+                                    WindUI:Notify({ Title = "Arcade Machine", Content =
+                                    "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
+                                    teleportToArcadeGap(5)
+                                    task.wait(2)
+                                end
+
+                                if _G.ArcadeAutoSubmitActive and isPlayerAlive() then
+                                    WindUI:Notify({ Title = "Arcade Machine", Content =
+                                    "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
+                                    pathIsSafe = true
+                                end
                             end
                         end
-                        
+                    end
+
+                    -- If path is not safe or check failed, stop
+                    if not pathIsSafe or not _G.ArcadeAutoSubmitActive or not isPlayerAlive() then
+                        break
+                    end
+
+                    -- Teleport to Arcade Machine
+                    if not teleportToArcadeMachine() then
+                        WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to teleport to machine", Icon =
+                        "alert-triangle", Duration = 3 })
+                        task.wait(2)
+                    else
+                        WindUI:Notify({ Title = "Arcade Machine", Content = "At Arcade Machine - depositing...", Icon =
+                        "info", Duration = 2 })
+                        task.wait(1)
+
+                        -- Deposit brainrots
+                        local depositSuccess = true
+
+                        -- Deposit Brainrot 1
+                        if arcadeBrainrot1 ~= "" and _G.ArcadeAutoSubmitActive then
+                            if not equipBrainrotTool(arcadeBrainrot1) then
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 1 not found: " ..
+                                arcadeBrainrot1, Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            elseif not depositArcadeBrainrot() then
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 1", Icon =
+                                "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            else
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 1", Icon =
+                                "check", Duration = 2 })
+                            end
+                        end
+
+                        -- Deposit Brainrot 2
+                        if depositSuccess and arcadeBrainrot2 ~= "" and _G.ArcadeAutoSubmitActive then
+                            if not equipBrainrotTool(arcadeBrainrot2) then
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 2 not found: " ..
+                                arcadeBrainrot2, Icon = "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            elseif not depositArcadeBrainrot() then
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 2", Icon =
+                                "alert-triangle", Duration = 3 })
+                                depositSuccess = false
+                            else
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 2", Icon =
+                                "check", Duration = 2 })
+                            end
+                        end
+
                         -- Deposit Brainrot 3
                         if depositSuccess and arcadeBrainrot3 ~= "" and _G.ArcadeAutoSubmitActive then
                             if not equipBrainrotTool(arcadeBrainrot3) then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 3 not found: " .. arcadeBrainrot3, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 3 not found: " ..
+                                arcadeBrainrot3, Icon = "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             elseif not depositArcadeBrainrot() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 3", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 3", Icon =
+                                "alert-triangle", Duration = 3 })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 3", Icon = "check", Duration = 2 })
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 3", Icon =
+                                "check", Duration = 2 })
                             end
                         end
-                        
+
                         -- Combine brainrots
                         if depositSuccess and _G.ArcadeAutoSubmitActive then
                             if not combineArcadeBrainrots() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to combine brainrots", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to combine brainrots", Icon =
+                                "alert-triangle", Duration = 3 })
                             else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Successfully combined! Continuing loop...", Icon = "check", Duration = 3 })
+                                WindUI:Notify({ Title = "Arcade Machine", Content =
+                                "Successfully combined!", Icon = "check", Duration = 3 })
+                                
+                                -- Return to Gap 5 after combining
+                                task.wait(1)
+                                teleportToArcadeGap(5)
+                                WindUI:Notify({ Title = "Arcade Machine", Content =
+                                "Returned to Gap 5. Waiting 31s for cooldown...", Icon = "info", Duration = 3 })
+                                
+                                -- Wait 31 seconds for machine cooldown (30s + 1s buffer)
+                                task.wait(31)
+                                
+                                WindUI:Notify({ Title = "Arcade Machine", Content =
+                                "Cooldown complete! Continuing loop...", Icon = "check", Duration = 3 })
                             end
                         end
-                        
-                        task.wait(2) -- Wait before next cycle
-                    end
-                end
-                
-                -- Loop ended
-                WindUI:Notify({ Title = "Arcade Machine", Content = "Auto submit loop ended", Icon = "info", Duration = 3 })
-            end)
-        end
-        task.wait(1)
-    end
-end)
-
--- Death detection for Arcade auto-submit
-player.CharacterAdded:Connect(function(char)
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.Died:Connect(function()
-        if _G.ArcadeAutoSubmitActive then
-            _G.ArcadeAutoSubmitActive = false
-            autoArcadeMachine = false
-            WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - auto submit stopped", Icon = "alert-triangle", Duration = 3 })
-        end
-    end)
-end)
-
--- Also set up death detection for current character if it exists
-if player.Character then
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.Died:Connect(function()
-            if _G.ArcadeAutoSubmitActive then
-                _G.ArcadeAutoSubmitActive = false
-                autoArcadeMachine = false
-                WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - auto submit stopped", Icon = "alert-triangle", Duration = 3 })
-            end
-        end)
-    end
-end
-
--- ================= ABOUT TAB =================
-local DiscordTitle = AboutTab:Paragraph({
-    Title = gradient("Discord", Color3.fromHex("#25fa00"), Color3.fromHex("#25fa00")),
-    Desc = "Join our Discord for updates, giveaways, questions, support and more!",
-    TextXAlignment = "Center",
-    TextSize = 17,
-})
-
-AboutTab:Divider()
-
-local InviteCode = "kaydensdens"
-local DiscordAPI = ("https://discord.com/api/v10/invites/%s?with_counts=true&with_expiration=true"):format(InviteCode)
-
-local function GetDiscordData()
-    local success, result = pcall(function()
-        local response = WindUI.Creator.Request({
-            Url = DiscordAPI,
-            Method = "GET",
-            Headers = {
-                ["User-Agent"] = "RobloxBot/1.0",
-                ["Accept"] = "application/json"
-            }
-        })
-        return HttpService:JSONDecode(response.Body)
-    end)
-    return success, result
-end
-
-local success, result = GetDiscordData()
-
-if success and result and result.guild then
-    local DiscordInfo = AboutTab:Paragraph({
-        Title = result.guild.name or "Unknown Server",
-        Desc = string.format(
-            ' <font color="#52525b">•</font> Member Count : %d\n <font color="#16a34a">•</font> Online Count : %d',
-            result.approximate_member_count or 0,
-            result.approximate_presence_count or 0
-        ),
-        Image = string.format(
-            "https://cdn.discordapp.com/icons/%s/%s.png?size=1024",
-            result.guild.id,
-            result.guild.icon
-        ),
-        ImageSize = 42,
-    })
-
-    AboutTab:Button({
-        Title = "Copy Discord Invite",
-        Callback = function()
             if setclipboard then
                 setclipboard("https://discord.gg/" .. InviteCode)
                 WindUI:Notify({ Title = "Discord", Content = "Invite link copied!", Icon = "check", Duration = 2 })
