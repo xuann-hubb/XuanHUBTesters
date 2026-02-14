@@ -397,8 +397,8 @@ UtilitiesSection:Toggle({
 
                     -- Then, for children 2-10 of Lavas.Lava
                     local children = lavas:GetChildren()
-                    for i = 2, math.min(10, #children) do
-                        local child = children[i]
+                    for lavaNum = 2, 10 do
+                        local child = children[lavaNum]
                         if child and child:IsA("BasePart") then
                             child.CanCollide = false
                             child.CanQuery = false
