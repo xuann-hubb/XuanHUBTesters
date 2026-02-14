@@ -384,25 +384,15 @@ UtilitiesSection:Toggle({
 
         if state then
             pcall(function()
-                local lavas = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas") and workspace.GameFolder.Lavas:FindFirstChild("Lava")
-                if lavas then
-                    -- First, destroy and disable Lavas.Lava itself if it's a BasePart
-                    if lavas:IsA("BasePart") then
-                        lavas.CanCollide = false
-                        lavas.CanQuery = false
-                        lavas.CanTouch = false
-                        local ti = lavas:FindFirstChild("TouchInterest")
-                        if ti then ti:Destroy() end
-                    end
-
-                    -- Then, for all children of Lavas.Lava
-                    local children = lavas:GetChildren()
-                    for _, child in ipairs(children) do
-                        if child:IsA("BasePart") then
-                            child.CanCollide = false
-                            child.CanQuery = false
-                            child.CanTouch = false
-                            local touchInterest = child:FindFirstChild("TouchInterest")
+                local lavasFolder = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas")
+                if lavasFolder then
+                    -- Process all descendants in Lavas folder
+                    for _, lava in pairs(lavasFolder:GetDescendants()) do
+                        if lava:IsA("BasePart") then
+                            lava.CanCollide = false
+                            lava.CanQuery = false
+                            lava.CanTouch = false
+                            local touchInterest = lava:FindFirstChild("TouchInterest")
                             if touchInterest then
                                 touchInterest:Destroy()
                             end
