@@ -300,23 +300,11 @@ local function getGearListFromModule()
     return gearList, gearNameMapping
 end
 
--- Initialize with empty values, load asynchronously
-local allGears = {}
-local gearNameMapping = {}
+-- Get all available gear
+local allGears, gearNameMapping = getGearListFromModule()
 local selectedGears = {}
-local gearDropdown
 
--- Load gear data asynchronously to prevent hang
-task.defer(function()
-    allGears, gearNameMapping = getGearListFromModule()
-    if gearDropdown and #allGears > 0 then
-        pcall(function()
-            gearDropdown:SetValues(allGears)
-        end)
-    end
-end)
-
-gearDropdown = GearSection:Dropdown({
+GearSection:Dropdown({
     Title = "Select Gear to Buy",
     Desc = "Select one or more gears to purchase",
     Values = allGears,
@@ -677,12 +665,12 @@ task.spawn(function()
                             "Net"):WaitForChild("RF/Plot.PlotAction")
                         PlotAction:InvokeServer(unpack(args))
                     end)
-                    task.wait(0.03)
+                    task.wait(0.01)
                 end
             end
-            task.wait(0.2)
+            task.wait(0.1)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -763,19 +751,33 @@ task.spawn(function()
 
                 for _, coin in ipairs(folder:GetChildren()) do
                     if coin.Name == "UFO Coin" or coin.Name:lower():find("coin") or coin.Name:lower():find("ufo") then
+                        -- prefer the 'Hitbox' or 'hitbox' part
                         local hitboxPart = coin:FindFirstChild("Hitbox") or coin:FindFirstChild("hitbox")
                         if hitboxPart and hitboxPart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, hitboxPart, 0)
                                 firetouchinterest(hrp, hitboxPart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(coin:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -791,19 +793,33 @@ task.spawn(function()
 
                 for _, coin in ipairs(folder:GetChildren()) do
                     if coin.Name == "Radioactive Coin" or coin.Name:lower():find("coin") or coin.Name == "coins" then
+                        -- prefer the 'hitbox' part
                         local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
                         if hitboxPart and hitboxPart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, hitboxPart, 0)
                                 firetouchinterest(hrp, hitboxPart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(coin:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -818,19 +834,33 @@ task.spawn(function()
                 if not hrp or not folder then return end
                 for _, gb in ipairs(folder:GetChildren()) do
                     if gb.Name == "GoldBar" or gb.Name:lower():find("gold") then
+                        -- prefer the 'Main' part (some maps place the collectible under GoldBar.Main)
                         local mainPart = gb:FindFirstChild("Main")
                         if mainPart and mainPart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, mainPart, 0)
                                 firetouchinterest(hrp, mainPart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(gb:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("main") or d.Name:lower():find("gold")) then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -846,19 +876,33 @@ task.spawn(function()
 
                 for _, gc in ipairs(folder:GetChildren()) do
                     if gc.Name == "Game Console" or gc.Name:lower():find("console") then
+                        -- prefer the 'Game Console' part
                         local consolePart = gc:FindFirstChild("Game Console")
                         if consolePart and consolePart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, consolePart, 0)
                                 firetouchinterest(hrp, consolePart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(gc:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("console") or d.Name:lower():find("game")) then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -874,19 +918,33 @@ task.spawn(function()
 
                 for _, tk in ipairs(folder:GetChildren()) do
                     if tk.Name == "Ticket" or tk.Name:lower():find("ticket") then
+                        -- prefer the 'Ticket' part
                         local ticketPart = tk:FindFirstChild("Ticket") or tk:FindFirstChild("ticket")
                         if ticketPart and ticketPart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, ticketPart, 0)
                                 firetouchinterest(hrp, ticketPart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart descendant (or TouchInterest owner)
+                            for _, d in ipairs(tk:GetDescendants()) do
+                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("ticket")) then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -938,19 +996,33 @@ task.spawn(function()
 
                 for _, candy in ipairs(folder:GetChildren()) do
                     if candy.Name:lower():find("candy") then
+                        -- Look for HeartCandy1 part
                         local heartPart = candy:FindFirstChild("HeartCandy1")
                         if heartPart and heartPart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, heartPart, 0)
                                 firetouchinterest(hrp, heartPart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart with TouchInterest
+                            for _, d in ipairs(candy:GetDescendants()) do
+                                if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -966,19 +1038,33 @@ task.spawn(function()
 
                 for _, coin in ipairs(folder:GetChildren()) do
                     if coin.Name:lower():find("valentine") or coin.Name:lower():find("coin") then
+                        -- Look for lovetoken part
                         local tokenPart = coin:FindFirstChild("lovetoken")
                         if tokenPart and tokenPart:IsA("BasePart") then
                             pcall(function()
                                 firetouchinterest(hrp, tokenPart, 0)
                                 firetouchinterest(hrp, tokenPart, 1)
                             end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart with TouchInterest
+                            for _, d in ipairs(coin:GetDescendants()) do
+                                if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
                     end
                 end
             end)
-            task.wait(0.15)
+            task.wait(0.05)
         else
-            task.wait(2)
+            task.wait(0.5)
         end
     end
 end)
@@ -1267,7 +1353,7 @@ task.spawn(function()
             end)
             task.wait(0.5)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -1282,7 +1368,7 @@ task.spawn(function()
             end)
             task.wait(0.5)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -1297,7 +1383,7 @@ task.spawn(function()
             end)
             task.wait(0.5)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -1313,7 +1399,7 @@ task.spawn(function()
             end)
             task.wait(0.5)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -1328,7 +1414,7 @@ task.spawn(function()
             end)
             task.wait(1)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -1382,9 +1468,9 @@ task.spawn(function()
                     end
                 end
             end)
-            task.wait(1.5)
+            task.wait(1)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -1424,9 +1510,9 @@ task.spawn(function()
                     end
                 end
             end)
-            task.wait(1.5)
+            task.wait(1)
         else
-            task.wait(2)
+            task.wait(1)
         end
     end
 end)
@@ -3702,41 +3788,127 @@ local AutoRebirthToggle = AutoSection:Toggle({
 
 AutoSection:Space()
 
+-- ================= SHARED BRAINROT DATA =================
+-- Consolidated function to fetch brainrot data once (prevents duplicate require() calls)
+local cachedBrainrotsData = nil
+
+local function loadBrainrotsData()
+    if cachedBrainrotsData then return cachedBrainrotsData end
+    
+    pcall(function()
+        cachedBrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+    end)
+    
+    return cachedBrainrotsData
+end
+
+-- Get brainrot names for machine dropdowns (simple list with empty option)
+local function getBrainrotNamesForMachines()
+    local names = { "" } -- Start with empty string for "None" option
+    local data = loadBrainrotsData()
+    
+    if data and data.BrainrotNames then
+        for _, name in ipairs(data.BrainrotNames) do
+            table.insert(names, name)
+        end
+        table.sort(names)
+    end
+    
+    return names
+end
+
+-- Get brainrot names with rarity labels for sell dropdown
+local function getBrainrotNamesWithRarity()
+    local allBrainrotNames = {}
+    local brainrotToRarityMap = {}
+    local data = loadBrainrotsData()
+    
+    if data and data.Chances then
+        for rarity, brainrots in pairs(data.Chances) do
+            for name, _ in pairs(brainrots) do
+                local labeledName = "[" .. rarity .. "] " .. name
+                table.insert(allBrainrotNames, labeledName)
+                brainrotToRarityMap[labeledName] = rarity
+            end
+        end
+        table.sort(allBrainrotNames)
+    end
+    
+    return allBrainrotNames, brainrotToRarityMap
+end
+
 -- ================= BRAINROT SECTION =================
 local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
 
--- Get rarities dynamically from game data
+-- ================= SHARED BRAINROT DATA =================
+-- Consolidated function to fetch brainrot data once (prevents duplicate require() calls)
+local cachedBrainrotsData = nil
+
+local function loadBrainrotsData()
+    if cachedBrainrotsData then return cachedBrainrotsData end
+    
+    pcall(function()
+        cachedBrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+    end)
+    
+    return cachedBrainrotsData
+end
+
+-- Get brainrot names for machine dropdowns (simple list with empty option)
+local function getBrainrotNamesForMachines()
+    local names = { "" } -- Start with empty string for "None" option
+    local data = loadBrainrotsData()
+    
+    if data and data.BrainrotNames then
+        for _, name in ipairs(data.BrainrotNames) do
+            table.insert(names, name)
+        end
+        table.sort(names)
+    end
+    
+    return names
+end
+
+-- Get brainrot names with rarity labels for sell dropdown
+local function getBrainrotNamesWithRarity()
+    local allBrainrotNames = {}
+    local brainrotToRarityMap = {}
+    local data = loadBrainrotsData()
+    
+    if data and data.Chances then
+        for rarity, brainrots in pairs(data.Chances) do
+            for name, _ in pairs(brainrots) do
+                local labeledName = "[" .. rarity .. "] " .. name
+                table.insert(allBrainrotNames, labeledName)
+                brainrotToRarityMap[labeledName] = rarity
+            end
+        end
+        table.sort(allBrainrotNames)
+    end
+    
+    return allBrainrotNames, brainrotToRarityMap
+end
+
+-- Get rarities dynamically from game data (using cached data)
 local function getRarities()
     local rarities = {}
-    pcall(function()
-        local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
-        for rarity, _ in pairs(BrainrotsData.Chances) do
+    local data = loadBrainrotsData()
+    
+    if data and data.Chances then
+        for rarity, _ in pairs(data.Chances) do
             table.insert(rarities, rarity)
         end
         table.sort(rarities)
-    end)
+    end
+    
     return rarities
 end
 
--- Initialize dropdown variables
-local rarityDropdown
-local raritiesData = {}
-
--- Load rarity data asynchronously
-task.defer(function()
-    raritiesData = getRarities()
-    if rarityDropdown and #raritiesData > 0 then
-        pcall(function()
-            rarityDropdown:SetValues(raritiesData)
-        end)
-    end
-end)
-
 -- Auto Sell by Rarity Dropdown
-rarityDropdown = BrainrotSection:Dropdown({
+BrainrotSection:Dropdown({
     Title = "Select Rarities to Sell",
     Desc = "Choose which rarities to auto-sell",
-    Values = raritiesData,
+    Values = getRarities(),
     Value = {},
     Multi = true,
     AllowNone = true,
@@ -3810,21 +3982,9 @@ local function getBrainrotNamesWithRarity()
 end
 
 -- Get all brainrot names dynamically
-local allBrainrotNamesForSell = {}
-local brainrotToRarityMap = {}
-local sellByNameDropdown
+local allBrainrotNamesForSell, brainrotToRarityMap = getBrainrotNamesWithRarity()
 
--- Load brainrot names asynchronously
-task.defer(function()
-    allBrainrotNamesForSell, brainrotToRarityMap = getBrainrotNamesWithRarity()
-    if sellByNameDropdown and #allBrainrotNamesForSell > 0 then
-        pcall(function()
-            sellByNameDropdown:SetValues(allBrainrotNamesForSell)
-        end)
-    end
-end)
-
-sellByNameDropdown = BrainrotSection:Dropdown({
+BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
     Desc = "Choose which brainrot you want to sell",
     Values = allBrainrotNamesForSell,
@@ -4391,33 +4551,11 @@ local function getBrainrotNames()
     return names
 end
 
--- Initialize brainrot names with empty array
-local AllBrainrotNames = {}
-local machineDropdown1, machineDropdown2, machineDropdown3
-local arcadeDropdown1, arcadeDropdown2, arcadeDropdown3
-local valentineDropdown1, valentineDropdown2, valentineDropdown3
-
--- Load brainrot names asynchronously to prevent hang
-task.defer(function()
-    AllBrainrotNames = getBrainrotNames()
-    if #AllBrainrotNames > 0 then
-        -- Update all machine dropdowns once data is loaded
-        pcall(function()
-            if machineDropdown1 then machineDropdown1:SetValues(AllBrainrotNames) end
-            if machineDropdown2 then machineDropdown2:SetValues(AllBrainrotNames) end
-            if machineDropdown3 then machineDropdown3:SetValues(AllBrainrotNames) end
-            if arcadeDropdown1 then arcadeDropdown1:SetValues(AllBrainrotNames) end
-            if arcadeDropdown2 then arcadeDropdown2:SetValues(AllBrainrotNames) end
-            if arcadeDropdown3 then arcadeDropdown3:SetValues(AllBrainrotNames) end
-            if valentineDropdown1 then valentineDropdown1:SetValues(AllBrainrotNames) end
-            if valentineDropdown2 then valentineDropdown2:SetValues(AllBrainrotNames) end
-            if valentineDropdown3 then valentineDropdown3:SetValues(AllBrainrotNames) end
-        end)
-    end
-end)
+-- Get all brainrot names dynamically
+local AllBrainrotNames = getBrainrotNames()
 
 -- Dropdown for Brainrot 1
-machineDropdown1 = DefaultMachineSection:Dropdown({
+DefaultMachineSection:Dropdown({
     Title = "Brainrot 1",
     Desc = "Select first brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4431,7 +4569,7 @@ machineDropdown1 = DefaultMachineSection:Dropdown({
 })
 
 -- Dropdown for Brainrot 2
-machineDropdown2 = DefaultMachineSection:Dropdown({
+DefaultMachineSection:Dropdown({
     Title = "Brainrot 2",
     Desc = "Select second brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4445,7 +4583,7 @@ machineDropdown2 = DefaultMachineSection:Dropdown({
 })
 
 -- Dropdown for Brainrot 3
-machineDropdown3 = DefaultMachineSection:Dropdown({
+DefaultMachineSection:Dropdown({
     Title = "Brainrot 3",
     Desc = "Select third brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4679,7 +4817,7 @@ end)
 local ArcadeMachineSection = MachineTab:Section({ Title = "Arcade Machine", Opened = true })
 
 -- Dropdown for Arcade Brainrot 1
-arcadeDropdown1 = ArcadeMachineSection:Dropdown({
+ArcadeMachineSection:Dropdown({
     Title = "Brainrot 1",
     Desc = "Select first brainrot to submit (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4693,7 +4831,7 @@ arcadeDropdown1 = ArcadeMachineSection:Dropdown({
 })
 
 -- Dropdown for Arcade Brainrot 2
-arcadeDropdown2 = ArcadeMachineSection:Dropdown({
+ArcadeMachineSection:Dropdown({
     Title = "Brainrot 2",
     Desc = "Select second brainrot to submit (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4707,7 +4845,7 @@ arcadeDropdown2 = ArcadeMachineSection:Dropdown({
 })
 
 -- Dropdown for Arcade Brainrot 3
-arcadeDropdown3 = ArcadeMachineSection:Dropdown({
+ArcadeMachineSection:Dropdown({
     Title = "Brainrot 3",
     Desc = "Select third brainrot to submit (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -5086,7 +5224,7 @@ end
 local ValentineMachineSection = MachineTab:Section({ Title = "Valentine Machine", Opened = true })
 
 -- Dropdown for Valentine Brainrot 1
-valentineDropdown1 = ValentineMachineSection:Dropdown({
+ValentineMachineSection:Dropdown({
     Title = "Brainrot 1",
     Desc = "Select first brainrot to submit (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -5100,7 +5238,7 @@ valentineDropdown1 = ValentineMachineSection:Dropdown({
 })
 
 -- Dropdown for Valentine Brainrot 2
-valentineDropdown2 = ValentineMachineSection:Dropdown({
+ValentineMachineSection:Dropdown({
     Title = "Brainrot 2",
     Desc = "Select second brainrot to submit (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -5114,7 +5252,7 @@ valentineDropdown2 = ValentineMachineSection:Dropdown({
 })
 
 -- Dropdown for Valentine Brainrot 3
-valentineDropdown3 = ValentineMachineSection:Dropdown({
+ValentineMachineSection:Dropdown({
     Title = "Brainrot 3",
     Desc = "Select third brainrot to submit (leave blank to skip)",
     Values = AllBrainrotNames,
