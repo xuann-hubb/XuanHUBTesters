@@ -69,10 +69,6 @@ local defaultSettings = {
     autoCollectGameConsole = false,
     autoCollectArcadeTicket = false,
     autoSpinArcadeWheel = false,
-    -- Valentines Event
-    autoCollectCandy = false,
-    autoCollectValentinesCoin = false,
-    autoSpinValentinesWheel = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
     autoOpenLuckyBlockTarget = "Radioactive Block",
@@ -241,6 +237,12 @@ local TsunamiTab = Window:Tab({
     Locked = false,
 })
 
+local GearTab = Window:Tab({
+    Title = "Gear Shop",
+    Icon = "shopping-bag",
+    Locked = false,
+})
+
 local MiscTab = Window:Tab({
     Title = "Settings",
     Icon = "settings",
@@ -281,9 +283,6 @@ local autoCollectGoldBar = false
 local autoCollectGameConsole = false
 local autoCollectArcadeTicket = false
 local autoSpinArcadeWheel = false
-local autoCollectCandy = false
-local autoCollectValentinesCoin = false
-local autoSpinValentinesWheel = false
 -- Teleport-by-rarity (Tsunami)
 local autoTeleportByRarity = false
 local autoTeleportByRarityTarget = "Common"
@@ -351,13 +350,6 @@ local arcadeBrainrot1 = ""
 local arcadeBrainrot2 = ""
 local arcadeBrainrot3 = ""
 _G.ArcadeAutoSubmitActive = false
-
--- Auto Valentine Machine state
-local autoValentineMachine = false
-local valentineBrainrot1 = ""
-local valentineBrainrot2 = ""
-local valentineBrainrot3 = ""
-_G.ValentineAutoSubmitActive = false
 
 -- Sell All confirmation
 local lastSellAllClick = 0
@@ -852,108 +844,6 @@ task.spawn(function()
             local delayValue = tonumber(savedSettings.spinDelay) or 0.5
             if delayValue <= 0 then delayValue = 0.5 end
             task.wait(delayValue)
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
--- Auto Spin Valentines Wheel Loop
-task.spawn(function()
-    while scriptRunning do
-        if autoSpinValentinesWheel then
-            pcall(function()
-                local args = { "Valentines", false }
-                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                    "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
-            end)
-            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
-            if delayValue <= 0 then delayValue = 0.5 end
-            task.wait(delayValue)
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
--- Auto Collect Candy (Valentines Event)
-task.spawn(function()
-    while scriptRunning do
-        if autoCollectCandy then
-            pcall(function()
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local folder = workspace:FindFirstChild("CandyEventParts")
-                if not hrp or not folder then return end
-
-                for _, candy in ipairs(folder:GetChildren()) do
-                    if candy.Name:lower():find("candy") then
-                        -- Look for HeartCandy1 part
-                        local heartPart = candy:FindFirstChild("HeartCandy1")
-                        if heartPart and heartPart:IsA("BasePart") then
-                            pcall(function()
-                                firetouchinterest(hrp, heartPart, 0)
-                                firetouchinterest(hrp, heartPart, 1)
-                            end)
-                            task.wait(0.01)
-                        else
-                            -- fallback: find any BasePart with TouchInterest
-                            for _, d in ipairs(candy:GetDescendants()) do
-                                if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
-                                    pcall(function()
-                                        firetouchinterest(hrp, d, 0)
-                                        firetouchinterest(hrp, d, 1)
-                                    end)
-                                    task.wait(0.01)
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-            task.wait(0.05)
-        else
-            task.wait(0.5)
-        end
-    end
-end)
-
--- Auto Collect Valentines Coin (Love Token)
-task.spawn(function()
-    while scriptRunning do
-        if autoCollectValentinesCoin then
-            pcall(function()
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local folder = workspace:FindFirstChild("ValentinesCoinParts")
-                if not hrp or not folder then return end
-
-                for _, coin in ipairs(folder:GetChildren()) do
-                    if coin.Name:lower():find("valentine") or coin.Name:lower():find("coin") then
-                        -- Look for lovetoken part
-                        local tokenPart = coin:FindFirstChild("lovetoken")
-                        if tokenPart and tokenPart:IsA("BasePart") then
-                            pcall(function()
-                                firetouchinterest(hrp, tokenPart, 0)
-                                firetouchinterest(hrp, tokenPart, 1)
-                            end)
-                            task.wait(0.01)
-                        else
-                            -- fallback: find any BasePart with TouchInterest
-                            for _, d in ipairs(coin:GetDescendants()) do
-                                if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
-                                    pcall(function()
-                                        firetouchinterest(hrp, d, 0)
-                                        firetouchinterest(hrp, d, 1)
-                                    end)
-                                    task.wait(0.01)
-                                    break
-                                end
-                            end
-                        end
-                    end
-                end
-            end)
-            task.wait(0.05)
         else
             task.wait(0.5)
         end
@@ -3275,45 +3165,6 @@ ArcadeSection:Toggle({
     end
 })
 
--- Valentines Event Section
-local ValentinesSection = EventTab:Section({
-    Title = "Candy (Valentines) Event",
-    Opened = true,
-})
-
-ValentinesSection:Toggle({
-    Title = "Auto Collect Candy",
-    Desc = "Automatically collect Valentine's Candy",
-    Value = savedSettings.autoCollectCandy,
-    Callback = function(state)
-        autoCollectCandy = state
-        savedSettings.autoCollectCandy = state
-        saveSettings(savedSettings)
-    end
-})
-
-ValentinesSection:Toggle({
-    Title = "Auto Collect Valentines Coin",
-    Desc = "Automatically collect Valentine's Love Tokens",
-    Value = savedSettings.autoCollectValentinesCoin,
-    Callback = function(state)
-        autoCollectValentinesCoin = state
-        savedSettings.autoCollectValentinesCoin = state
-        saveSettings(savedSettings)
-    end
-})
-
-ValentinesSection:Toggle({
-    Title = "Auto Spin Valentines Wheel",
-    Desc = "Automatically spin the Valentines wheel",
-    Value = savedSettings.autoSpinValentinesWheel,
-    Callback = function(state)
-        autoSpinValentinesWheel = state
-        savedSettings.autoSpinValentinesWheel = state
-        saveSettings(savedSettings)
-    end
-})
-
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
@@ -4080,21 +3931,6 @@ task.spawn(function()
         autoSpinUFO = true
     end
 
-    -- Apply Auto Collect Candy (Valentines Event)
-    if savedSettings.autoCollectCandy then
-        autoCollectCandy = true
-    end
-
-    -- Apply Auto Collect Valentines Coin
-    if savedSettings.autoCollectValentinesCoin then
-        autoCollectValentinesCoin = true
-    end
-
-    -- Apply Auto Spin Valentines Wheel
-    if savedSettings.autoSpinValentinesWheel then
-        autoSpinValentinesWheel = true
-    end
-
     -- Apply God Mode
     if savedSettings.godMode then
         enableGodMode()
@@ -4577,13 +4413,13 @@ ArcadeMachineSection:Toggle({
 
 -- Helper function to find Arcade gaps folder
 local function findArcadeGapsFolder()
-    local arcadeMap = workspace:FindFirstChild("ArcadeMap")
-    if not arcadeMap then return nil end
-    
-    local gaps = arcadeMap:FindFirstChild("Gaps")
-    if not gaps then return nil end
-    
-    return gaps
+    local ok, gaps = pcall(function()
+        return workspace.ArcadeMap.Gaps
+    end)
+    if ok and gaps then
+        return gaps
+    end
+    return nil
 end
 
 -- Helper function to check if player is alive
@@ -4760,11 +4596,7 @@ task.spawn(function()
 
                 -- Continuous deposit and combine loop
                 while _G.ArcadeAutoSubmitActive and isPlayerAlive() do
-                    -- Make sure we're at Gap 5
-                    teleportToArcadeGap(5)
-                    task.wait(0.5)
-                    
-                    -- Check if path from Gap 5 to Arcade Machine (Gap 5 to 6) is safe
+                    -- Check if path to Arcade Machine is safe
                     local arcadeMachine = workspace:FindFirstChild("SpawnMachines") and
                         workspace.SpawnMachines:FindFirstChild("Arcade")
                     local pathIsSafe = false
@@ -4776,18 +4608,27 @@ task.spawn(function()
                             if targetPart then
                                 local targetPos = targetPart.Position + Vector3.new(0, 3, 0)
 
-                                -- Wait at Gap 5 until path is clear
-                                while not IsPathClear(targetPos) and _G.ArcadeAutoSubmitActive and isPlayerAlive() do
-                                    WindUI:Notify({ Title = "Arcade Machine", Content =
-                                    "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
-                                    teleportToArcadeGap(5)
-                                    task.wait(2)
-                                end
-
-                                if _G.ArcadeAutoSubmitActive and isPlayerAlive() then
-                                    WindUI:Notify({ Title = "Arcade Machine", Content =
-                                    "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
+                                -- Check if path is clear
+                                if IsPathClear(targetPos) then
                                     pathIsSafe = true
+                                else
+                                    -- Path blocked - retreat to Gap 5 and wait
+                                    WindUI:Notify({ Title = "Arcade Machine", Content =
+                                    "Gap blocked! Retreating to Gap 5...", Icon = "alert-triangle", Duration = 3 })
+                                    teleportToArcadeGap(5)
+
+                                    -- Wait for path to become safe again
+                                    while not IsPathClear(targetPos) and _G.ArcadeAutoSubmitActive and isPlayerAlive() do
+                                        task.wait(2)
+                                        -- Stay at Gap 5
+                                        teleportToArcadeGap(5)
+                                    end
+
+                                    if _G.ArcadeAutoSubmitActive and isPlayerAlive() then
+                                        WindUI:Notify({ Title = "Arcade Machine", Content =
+                                        "Path is safe again! Returning to machine...", Icon = "check", Duration = 3 })
+                                        pathIsSafe = true
+                                    end
                                 end
                             end
                         end
@@ -4866,21 +4707,11 @@ task.spawn(function()
                                 "alert-triangle", Duration = 3 })
                             else
                                 WindUI:Notify({ Title = "Arcade Machine", Content =
-                                "Successfully combined!", Icon = "check", Duration = 3 })
-                                
-                                -- Return to Gap 5 after combining
-                                task.wait(1)
-                                teleportToArcadeGap(5)
-                                WindUI:Notify({ Title = "Arcade Machine", Content =
-                                "Returned to Gap 5. Waiting 31s for cooldown...", Icon = "info", Duration = 3 })
-                                
-                                -- Wait 31 seconds for machine cooldown (30s + 1s buffer)
-                                task.wait(31)
-                                
-                                WindUI:Notify({ Title = "Arcade Machine", Content =
-                                "Cooldown complete! Continuing loop...", Icon = "check", Duration = 3 })
+                                "Successfully combined! Continuing loop...", Icon = "check", Duration = 3 })
                             end
                         end
+
+                        task.wait(2) -- Wait before next cycle
                     end
                 end
 
@@ -4920,399 +4751,145 @@ if player.Character then
     end
 end
 
--- ================= VALENTINE MACHINE SECTION =================
-local ValentineMachineSection = MachineTab:Section({ Title = "Valentine Machine", Opened = true })
+-- ================= GEAR SHOP TAB =================
+local GearShopSection = GearTab:Section({ Title = "Gear Shop", Opened = true })
 
--- Dropdown for Valentine Brainrot 1
-ValentineMachineSection:Dropdown({
-    Title = "Brainrot 1",
-    Desc = "Select first brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        valentineBrainrot1 = option or ""
-    end
-})
-
--- Dropdown for Valentine Brainrot 2
-ValentineMachineSection:Dropdown({
-    Title = "Brainrot 2",
-    Desc = "Select second brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        valentineBrainrot2 = option or ""
-    end
-})
-
--- Dropdown for Valentine Brainrot 3
-ValentineMachineSection:Dropdown({
-    Title = "Brainrot 3",
-    Desc = "Select third brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        valentineBrainrot3 = option or ""
-    end
-})
-
--- Toggle for Auto Submit to Valentine Machine
-ValentineMachineSection:Toggle({
-    Title = "Auto Submit to Valentine Machine",
-    Desc = "Automatically navigate through gaps and submit brainrots to Valentine Machine",
-    Value = false,
-    Callback = function(state)
-        autoValentineMachine = state
-        if state then
-            _G.ValentineAutoSubmitActive = true
-            WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit enabled", Icon = "check", Duration = 3 })
-        else
-            _G.ValentineAutoSubmitActive = false
-            WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit disabled", Icon = "check", Duration = 3 })
-        end
-    end
-})
-
--- Helper function to find Valentine gaps folder
-local function findValentineGapsFolder()
-    local valentineMap = workspace:FindFirstChild("ValentinesMap_SharedInstances")
-    if not valentineMap then return nil end
-    
-    local gaps = valentineMap:FindFirstChild("Gaps")
-    if not gaps then return nil end
-    
-    return gaps
-end
-
--- Helper function to teleport to Valentine gap
-local function teleportToValentineGap(gapNumber)
-    local gapsFolder = findValentineGapsFolder()
-    if not gapsFolder then return false end
-
-    local gapName = "Gap" .. tostring(gapNumber)
-    local gap = gapsFolder:FindFirstChild(gapName)
-    if not gap then return false end
-
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    -- Get gap position
-    local targetPos
-
-    if gap:IsA("BasePart") then
-        targetPos = gap.Position
-    elseif gap:IsA("Model") then
-        local primaryPart = gap.PrimaryPart or gap:FindFirstChildWhichIsA("BasePart")
-        if primaryPart then
-            targetPos = primaryPart.Position
-        end
-    end
-
-    if not targetPos then return false end
-
-    -- Offset position above the gap
-    targetPos = targetPos + Vector3.new(0, 3, 0)
-
-    -- Check if path is clear (no tsunami)
-    if not IsPathClear(targetPos) then
-        return false
-    end
-
-    -- Instant teleport to gap
+-- Function to fetch gear data from game module
+local function getGearListFromModule()
+    local gearList = {}
     pcall(function()
-        hrp.CFrame = CFrame.new(targetPos)
-    end)
-    task.wait(0.2)
-    return true
-end
-
--- Helper function to teleport to Valentine Machine
-local function teleportToValentineMachine()
-    local spawnMachines = workspace:FindFirstChild("SpawnMachines")
-    if not spawnMachines then return false end
-
-    local valentineMachine = spawnMachines:FindFirstChild("Valentines")
-    if not valentineMachine then return false end
-
-    local promptZone = valentineMachine:FindFirstChild("PromptZone")
-    if not promptZone then return false end
-
-    local radius = promptZone:FindFirstChild("Radius")
-    if not radius or not radius:IsA("BasePart") then return false end
-
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-
-    pcall(function()
-        hrp.CFrame = radius.CFrame + Vector3.new(0, 3, 0)
-    end)
-    task.wait(0.3)
-    return true
-end
-
--- Helper function to deposit brainrot to Valentine
-local function depositValentineBrainrot()
-    local ok = pcall(function()
-        local args = {
-            "Deposit",
-            workspace:WaitForChild("SpawnMachines"):WaitForChild("Valentines")
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
-    end)
-    task.wait(0.5)
-    return ok
-end
-
--- Helper function to combine brainrots in Valentine
-local function combineValentineBrainrots()
-    local ok = pcall(function()
-        local args = {
-            "Combine",
-            workspace:WaitForChild("SpawnMachines"):WaitForChild("Valentines")
-        }
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
-    end)
-    task.wait(0.5)
-    return ok
-end
-
--- Auto Valentine Machine Background Loop
-task.spawn(function()
-    while scriptRunning do
-        if autoValentineMachine and _G.ValentineAutoSubmitActive then
-            pcall(function()
-                -- Check if player is alive
-                if not isPlayerAlive() then
-                    WindUI:Notify({ Title = "Valentine Machine", Content = "Player died - stopping auto submit", Icon =
-                    "alert-triangle", Duration = 3 })
-                    autoValentineMachine = false
-                    _G.ValentineAutoSubmitActive = false
-                    return
+        local GearModule = require(game:GetService("ReplicatedStorage").SharedModules.GearModule)
+        
+        if GearModule and GearModule.GearNames then
+            -- Build gear array with cost and description
+            for _, gearName in ipairs(GearModule.GearNames) do
+                local cost = GearModule.Costs[gearName]
+                local desc = GearModule.Descriptions[gearName] or ""
+                
+                -- Only include items with a defined cost
+                if cost then
+                    table.insert(gearList, {
+                        name = gearName,
+                        cost = cost,
+                        description = desc,
+                        -- Format: "Name - $Cost (Description)"
+                        displayLabel = string.format("%s - $%s%s", 
+                            gearName, 
+                            tostring(cost),
+                            desc ~= "" and " (" .. desc .. ")" or "")
+                    })
                 end
-
-                WindUI:Notify({ Title = "Valentine Machine", Content = "Starting gap progression...", Icon = "info", Duration = 3 })
-
-                -- Teleport through gaps 1-5
-                local gapSuccess = true
-                for gapNum = 1, 5 do
-                    if not _G.ValentineAutoSubmitActive or not isPlayerAlive() then
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "Stopped during gap teleport", Icon =
-                        "alert-triangle", Duration = 3 })
-                        autoValentineMachine = false
-                        _G.ValentineAutoSubmitActive = false
-                        return
-                    end
-
-                    -- Try to teleport to gap
-                    local maxRetries = 10
-                    local retryCount = 0
-                    local teleported = false
-
-                    while retryCount < maxRetries and not teleported and _G.ValentineAutoSubmitActive do
-                        teleported = teleportToValentineGap(gapNum)
-                        if not teleported then
-                            -- Gap blocked by tsunami, wait at Gap 5 if we're past it
-                            if gapNum > 1 then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Gap " ..
-                                gapNum .. " blocked - returning to Gap 5", Icon = "alert-triangle", Duration = 3 })
-                                teleportToValentineGap(5)
-                                task.wait(2)
-                            else
-                                task.wait(1)
-                            end
-                            retryCount = retryCount + 1
-                        end
-                    end
-
-                    if not teleported then
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to reach Gap " .. gapNum, Icon =
-                        "alert-triangle", Duration = 3 })
-                        gapSuccess = false
-                        break
-                    end
-
-                    WindUI:Notify({ Title = "Valentine Machine", Content = "Reached Gap " .. gapNum, Icon = "check", Duration = 2 })
-                end
-
-                -- Check if we successfully reached Gap 5
-                if not gapSuccess or not _G.ValentineAutoSubmitActive or not isPlayerAlive() then
-                    autoValentineMachine = false
-                    _G.ValentineAutoSubmitActive = false
-                    return
-                end
-
-                -- Continuous deposit and combine loop at Gap 5
-                while _G.ValentineAutoSubmitActive and isPlayerAlive() do
-                    -- Make sure we're at Gap 5
-                    teleportToValentineGap(5)
-                    task.wait(0.5)
-                    
-                    -- Check if path from Gap 5 to Valentine Machine is safe
-                    local valentineMachine = workspace:FindFirstChild("SpawnMachines") and
-                        workspace.SpawnMachines:FindFirstChild("Valentines")
-                    local pathIsSafe = false
-
-                    if valentineMachine then
-                        local promptZone = valentineMachine:FindFirstChild("PromptZone")
-                        if promptZone then
-                            local radius = promptZone:FindFirstChild("Radius")
-                            if radius then
-                                local targetPos = radius.Position + Vector3.new(0, 3, 0)
-
-                                -- Wait at Gap 5 until path is clear
-                                while not IsPathClear(targetPos) and _G.ValentineAutoSubmitActive and isPlayerAlive() do
-                                    WindUI:Notify({ Title = "Valentine Machine", Content =
-                                    "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
-                                    teleportToValentineGap(5)
-                                    task.wait(2)
-                                end
-
-                                if _G.ValentineAutoSubmitActive and isPlayerAlive() then
-                                    WindUI:Notify({ Title = "Valentine Machine", Content =
-                                    "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
-                                    pathIsSafe = true
-                                end
-                            end
-                        end
-                    end
-
-                    -- If path is not safe or check failed, break loop
-                    if not pathIsSafe or not _G.ValentineAutoSubmitActive or not isPlayerAlive() then
-                        break
-                    end
-
-                    -- Teleport to Valentine Machine (PromptZone.Radius)
-                    if not teleportToValentineMachine() then
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to teleport to machine", Icon =
-                        "alert-triangle", Duration = 3 })
-                        task.wait(2)
-                    else
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "At Valentine Machine - depositing...", Icon =
-                        "info", Duration = 2 })
-                        task.wait(1)
-
-                        -- Deposit brainrots
-                        local depositSuccess = true
-
-                        -- Deposit Brainrot 1
-                        if valentineBrainrot1 ~= "" and _G.ValentineAutoSubmitActive then
-                            if not equipBrainrotTool(valentineBrainrot1) then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Brainrot 1 not found: " ..
-                                valentineBrainrot1, Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            elseif not depositValentineBrainrot() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to deposit Brainrot 1", Icon =
-                                "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            else
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Deposited Brainrot 1", Icon =
-                                "check", Duration = 2 })
-                            end
-                        end
-
-                        -- Deposit Brainrot 2
-                        if depositSuccess and valentineBrainrot2 ~= "" and _G.ValentineAutoSubmitActive then
-                            if not equipBrainrotTool(valentineBrainrot2) then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Brainrot 2 not found: " ..
-                                valentineBrainrot2, Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            elseif not depositValentineBrainrot() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to deposit Brainrot 2", Icon =
-                                "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            else
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Deposited Brainrot 2", Icon =
-                                "check", Duration = 2 })
-                            end
-                        end
-
-                        -- Deposit Brainrot 3
-                        if depositSuccess and valentineBrainrot3 ~= "" and _G.ValentineAutoSubmitActive then
-                            if not equipBrainrotTool(valentineBrainrot3) then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Brainrot 3 not found: " ..
-                                valentineBrainrot3, Icon = "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            elseif not depositValentineBrainrot() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to deposit Brainrot 3", Icon =
-                                "alert-triangle", Duration = 3 })
-                                depositSuccess = false
-                            else
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Deposited Brainrot 3", Icon =
-                                "check", Duration = 2 })
-                            end
-                        end
-
-                        -- Combine brainrots
-                        if depositSuccess and _G.ValentineAutoSubmitActive then
-                            if not combineValentineBrainrots() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to combine brainrots", Icon =
-                                "alert-triangle", Duration = 3 })
-                            else
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Successfully combined!", Icon = "check", Duration = 3 })
-                                
-                                -- Return to Gap 5 after combining
-                                task.wait(1)
-                                teleportToValentineGap(5)
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Returned to Gap 5. Waiting 31s for cooldown...", Icon = "info", Duration = 3 })
-                                
-                                -- Wait 31 seconds for machine cooldown (30s + 1s buffer)
-                                task.wait(31)
-                                
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Cooldown complete! Checking path again...", Icon = "check", Duration = 3 })
-                            end
-                        end
-                    end
-                end
-
-                -- Loop ended
-                WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit stopped", Icon = "info", Duration = 3 })
+            end
+            
+            -- Sort by cost (cheapest first)
+            table.sort(gearList, function(a, b)
+                return a.cost < b.cost
             end)
         end
-        task.wait(1)
-    end
-end)
-
--- Death detection for Valentine auto-submit
-player.CharacterAdded:Connect(function(char)
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.Died:Connect(function()
-        if _G.ValentineAutoSubmitActive then
-            _G.ValentineAutoSubmitActive = false
-            autoValentineMachine = false
-            WindUI:Notify({ Title = "Valentine Machine", Content = "Player died - auto submit stopped", Icon =
-            "alert-triangle", Duration = 3 })
-        end
     end)
-end)
+    return gearList
 
--- Also set up death detection for current character if it exists
-if player.Character then
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.Died:Connect(function()
-            if _G.ValentineAutoSubmitActive then
-                _G.ValentineAutoSubmitActive = false
-                autoValentineMachine = false
-                WindUI:Notify({ Title = "Valentine Machine", Content = "Player died - auto submit stopped", Icon =
-                "alert-triangle", Duration = 3 })
-            end
-        end)
-    end
 end
+
+-- Get all available gear
+local allGears = getGearListFromModule()
+local gearDropdownValues = {}
+for _, gear in ipairs(allGears) do
+    table.insert(gearDropdownValues, gear.displayLabel)
+end
+
+-- Selected gear to buy
+local selectedGearToBuy = ""
+
+-- Dropdown to select gear
+GearShopSection:Dropdown({
+    Title = "Select Gear",
+    Desc = "Choose which gear to purchase",
+    Values = gearDropdownValues,
+    Value = "",
+    Multi = false,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedGearToBuy = option or ""
+    end
+})
+
+-- Button to buy selected gear
+GearShopSection:Button({
+    Title = "Buy Selected Gear",
+    Desc = "Purchase the selected gear item",
+    Locked = false,
+    Callback = function()
+        if selectedGearToBuy == "" then
+            WindUI:Notify({
+                Title = "Gear Shop",
+                Content = "Please select a gear item first!",
+                Icon = "alert-triangle",
+                Duration = 3
+            })
+            return
+        end
+        
+        -- Extract gear name from display label (format: "Name - $Cost (Description)")
+        local gearName = selectedGearToBuy:match("^(.-)%s*%-%s*%$")
+        if not gearName then
+            WindUI:Notify({
+                Title = "Gear Shop",
+                Content = "Invalid gear selection",
+                Icon = "alert-triangle",
+                Duration = 3
+            })
+            return
+        end
+        
+        -- Attempt to purchase using BuyGear remote
+        local success, result = pcall(function()
+            return game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyGear")
+                :InvokeServer(gearName)
+        end)
+        
+        if success then
+            WindUI:Notify({
+                Title = "Gear Shop",
+                Content = "Purchased: " .. gearName,
+                Icon = "check",
+                Duration = 3
+            })
+        else
+            WindUI:Notify({
+                Title = "Gear Shop",
+                Content = "Purchase failed: " .. tostring(result),
+                Icon = "alert-triangle",
+                Duration = 3
+            })
+        end
+    end
+})
+
+-- Display gear info
+local gearInfoText = "Available Gear Items:\n"
+if #allGears > 0 then
+    -- Show first 10 items as preview
+    for i = 1, math.min(10, #allGears) do
+        local gear = allGears[i]
+        gearInfoText = gearInfoText .. string.format("\n%s - $%s", gear.name, tostring(gear.cost))
+        if gear.description ~= "" then
+            gearInfoText = gearInfoText .. "\n  " .. gear.description
+        end
+    end
+    if #allGears > 10 then
+        gearInfoText = gearInfoText .. string.format("\n\n...and %d more items", #allGears - 10)
+    end
+    gearInfoText = gearInfoText .. "\n\nUse the dropdown above to see all items"
+else
+    gearInfoText = gearInfoText .. "\nNo gear items found. Make sure you're in the game!"
+end
+
+GearShopSection:Paragraph({
+    Title = "Gear Preview",
+    Desc = gearInfoText,
+})
 
 -- ================= ABOUT TAB =================
 local DiscordTitle = AboutTab:Paragraph({
