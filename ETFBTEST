@@ -4807,7 +4807,7 @@ GearShopSection:Dropdown({
     Desc = "Choose which gear to purchase",
     Values = gearDropdownValues,
     Value = "",
-    Multi = false,
+    Multi = true,
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
@@ -4865,30 +4865,6 @@ GearShopSection:Button({
             })
         end
     end
-})
-
--- Display gear info
-local gearInfoText = "Available Gear Items:\n"
-if #allGears > 0 then
-    -- Show first 10 items as preview
-    for i = 1, math.min(10, #allGears) do
-        local gear = allGears[i]
-        gearInfoText = gearInfoText .. string.format("\n%s - $%s", gear.name, tostring(gear.cost))
-        if gear.description ~= "" then
-            gearInfoText = gearInfoText .. "\n  " .. gear.description
-        end
-    end
-    if #allGears > 10 then
-        gearInfoText = gearInfoText .. string.format("\n\n...and %d more items", #allGears - 10)
-    end
-    gearInfoText = gearInfoText .. "\n\nUse the dropdown above to see all items"
-else
-    gearInfoText = gearInfoText .. "\nNo gear items found. Make sure you're in the game!"
-end
-
-GearShopSection:Paragraph({
-    Title = "Gear Preview",
-    Desc = gearInfoText,
 })
 
 -- ================= ABOUT TAB =================
