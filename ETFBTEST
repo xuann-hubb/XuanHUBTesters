@@ -4360,7 +4360,7 @@ task.spawn(function()
 end)
 
 -- ================= MACHINE TAB =================
-local DefaultMachineSection = MachineTab:Section({ Title = "Default Machine", Opened = true })
+local DefaultMachineSection = MachineTab:Section({ Title = "Machine Section", Opened = true })
 
 -- Create paragraph for Machine Luck Timer
 local MachineLuckTimerParagraph = DefaultMachineSection:Paragraph({
@@ -4456,7 +4456,7 @@ local AllBrainrotNames = getBrainrotNamesForMachines()
 -- Dropdown for Brainrot 1
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 1",
-    Desc = "Select first brainrot to fuse (leave blank to skip)",
+    Desc = "Select first brainrot to fuse/submit (shared for all machines)",
     Values = AllBrainrotNames,
     Value = "",
     Multi = false,
@@ -4464,13 +4464,15 @@ DefaultMachineSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(option)
         machineBrainrot1 = option or ""
+        arcadeBrainrot1 = option or ""
+        valentineBrainrot1 = option or ""
     end
 })
 
 -- Dropdown for Brainrot 2
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 2",
-    Desc = "Select second brainrot to fuse (leave blank to skip)",
+    Desc = "Select second brainrot to fuse/submit (shared for all machines)",
     Values = AllBrainrotNames,
     Value = "",
     Multi = false,
@@ -4478,13 +4480,15 @@ DefaultMachineSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(option)
         machineBrainrot2 = option or ""
+        arcadeBrainrot2 = option or ""
+        valentineBrainrot2 = option or ""
     end
 })
 
 -- Dropdown for Brainrot 3
 DefaultMachineSection:Dropdown({
     Title = "Brainrot 3",
-    Desc = "Select third brainrot to fuse (leave blank to skip)",
+    Desc = "Select third brainrot to fuse/submit (shared for all machines)",
     Values = AllBrainrotNames,
     Value = "",
     Multi = false,
@@ -4492,12 +4496,14 @@ DefaultMachineSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(option)
         machineBrainrot3 = option or ""
+        arcadeBrainrot3 = option or ""
+        valentineBrainrot3 = option or ""
     end
 })
 
 -- Toggle for Auto Machine
 DefaultMachineSection:Toggle({
-    Title = "Auto Machine",
+    Title = "Auto Machine (Default)",
     Desc = "Automatically fuse brainrots when timer matches target time",
     Value = false,
     Callback = function(state)
@@ -4506,6 +4512,40 @@ DefaultMachineSection:Toggle({
             WindUI:Notify({ Title = "Auto Machine", Content = "Auto machine enabled", Icon = "check", Duration = 3 })
         else
             WindUI:Notify({ Title = "Auto Machine", Content = "Auto machine disabled", Icon = "check", Duration = 3 })
+        end
+    end
+})
+
+-- Toggle for Auto Submit to Arcade Machine
+DefaultMachineSection:Toggle({
+    Title = "Auto Submit (Arcade)",
+    Desc = "Automatically navigate through gaps and submit brainrots to Arcade Machine",
+    Value = false,
+    Callback = function(state)
+        autoArcadeMachine = state
+        if state then
+            _G.ArcadeAutoSubmitActive = true
+            WindUI:Notify({ Title = "Arcade Machine", Content = "Auto submit enabled", Icon = "check", Duration = 3 })
+        else
+            _G.ArcadeAutoSubmitActive = false
+            WindUI:Notify({ Title = "Arcade Machine", Content = "Auto submit disabled", Icon = "check", Duration = 3 })
+        end
+    end
+})
+
+-- Toggle for Auto Submit to Valentine Machine
+DefaultMachineSection:Toggle({
+    Title = "Auto Submit (Valentine)",
+    Desc = "Automatically navigate through gaps and submit brainrots to Valentine Machine",
+    Value = false,
+    Callback = function(state)
+        autoValentineMachine = state
+        if state then
+            _G.ValentineAutoSubmitActive = true
+            WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit enabled", Icon = "check", Duration = 3 })
+        else
+            _G.ValentineAutoSubmitActive = false
+            WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit disabled", Icon = "check", Duration = 3 })
         end
     end
 })
@@ -4711,88 +4751,6 @@ task.spawn(function()
         end
     end
 end)
-
--- ================= EVENTS MACHINES SECTION =================
-local EventsMachineSection = MachineTab:Section({ Title = "Events Machines", Opened = true })
-
--- Shared Dropdown for Brainrot 1 (used by both Arcade and Valentine)
-EventsMachineSection:Dropdown({
-    Title = "Brainrot 1",
-    Desc = "Select first brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        arcadeBrainrot1 = option or ""
-        valentineBrainrot1 = option or ""
-    end
-})
-
--- Shared Dropdown for Brainrot 2 (used by both Arcade and Valentine)
-EventsMachineSection:Dropdown({
-    Title = "Brainrot 2",
-    Desc = "Select second brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        arcadeBrainrot2 = option or ""
-        valentineBrainrot2 = option or ""
-    end
-})
-
--- Shared Dropdown for Brainrot 3 (used by both Arcade and Valentine)
-EventsMachineSection:Dropdown({
-    Title = "Brainrot 3",
-    Desc = "Select third brainrot to submit (leave blank to skip)",
-    Values = AllBrainrotNames,
-    Value = "",
-    Multi = false,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        arcadeBrainrot3 = option or ""
-        valentineBrainrot3 = option or ""
-    end
-})
-
--- Toggle for Auto Submit to Arcade Machine
-EventsMachineSection:Toggle({
-    Title = "Auto Submit to Arcade Machine",
-    Desc = "Automatically navigate through gaps and submit brainrots to Arcade Machine",
-    Value = false,
-    Callback = function(state)
-        autoArcadeMachine = state
-        if state then
-            _G.ArcadeAutoSubmitActive = true
-            WindUI:Notify({ Title = "Arcade Machine", Content = "Auto submit enabled", Icon = "check", Duration = 3 })
-        else
-            _G.ArcadeAutoSubmitActive = false
-            WindUI:Notify({ Title = "Arcade Machine", Content = "Auto submit disabled", Icon = "check", Duration = 3 })
-        end
-    end
-})
-
--- Toggle for Auto Submit to Valentine Machine
-EventsMachineSection:Toggle({
-    Title = "Auto Submit to Valentine Machine",
-    Desc = "Automatically navigate through gaps and submit brainrots to Valentine Machine",
-    Value = false,
-    Callback = function(state)
-        autoValentineMachine = state
-        if state then
-            _G.ValentineAutoSubmitActive = true
-            WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit enabled", Icon = "check", Duration = 3 })
-        else
-            _G.ValentineAutoSubmitActive = false
-            WindUI:Notify({ Title = "Valentine Machine", Content = "Auto submit disabled", Icon = "check", Duration = 3 })
-        end
-    end
-})
 
 -- Helper function to find Arcade gaps folder
 local function findArcadeGapsFolder()
