@@ -272,6 +272,8 @@ local GearSection = GearTab:Section({ Title = "Gear Shop", Opened = true })
 -- Function to fetch gear data from game module
 local function getGearListFromModule()
     local gearList = {}
+    local gearNameMapping = {}
+    
     pcall(function()
         local GearModule = require(game:GetService("ReplicatedStorage").SharedModules.GearModule)
         
@@ -283,47 +285,33 @@ local function getGearListFromModule()
                 
                 -- Only include items with a defined cost
                 if cost then
-                    table.insert(gearList, {
-                        name = gearName,
-                        cost = cost,
-                        description = desc,
-                        -- Format: "Name - $Cost (Description)"
-                        displayLabel = string.format("%s - $%s%s", 
-                            gearName, 
-                            tostring(cost),
-                            desc ~= "" and " (" .. desc .. ")" or "")
-                    })
+                    local displayLabel = string.format("%s - $%s%s", 
+                        gearName, 
+                        tostring(cost),
+                        desc ~= "" and " (" .. desc .. ")" or "")
+                    
+                    table.insert(gearList, displayLabel)
+                    gearNameMapping[displayLabel] = gearName
                 end
             end
-            
-            -- Sort by cost (cheapest first)
-            table.sort(gearList, function(a, b)
-                return a.cost < b.cost
-            end)
         end
     end)
-    return gearList
+    
+    return gearList, gearNameMapping
 end
 
 -- Get all available gear
-local allGears = getGearListFromModule()
-local gearOptions = {}
-local gearNameMapping = {} -- Maps display name to actual gear name
-for _, gear in ipairs(allGears) do
-    table.insert(gearOptions, gear.displayLabel)
-    gearNameMapping[gear.displayLabel] = gear.name
-end
-
+local allGears, gearNameMapping = getGearListFromModule()
 local selectedGears = {}
 
 GearSection:Dropdown({
     Title = "Select Gear to Buy",
     Desc = "Select one or more gears to purchase",
+    Values = allGears,
+    Value = {},
     Multi = true,
     AllowNone = true,
-    Options = gearOptions,
-    Value = {},
-    Search = true,
+    SearchBarEnabled = true,
     Callback = function(selected)
         selectedGears = selected
     end
