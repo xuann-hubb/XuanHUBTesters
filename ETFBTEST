@@ -2961,74 +2961,44 @@ local LocalPlayer = Players.LocalPlayer
 local BASE_SIZE = Vector3.new(4, 4, 4)
 local MAX_SIZE = Vector3.new(150, 150, 150)
 
--- Cache for optimization
+-- Optimization: throttle updates
 local lastHitboxUpdate = 0
-local UPDATE_INTERVAL = 0.1 -- Update every 0.1 seconds instead of every frame
-local lastNearbyPlayers = {}
-local toolCollectionDirty = true
+local UPDATE_INTERVAL = 0.05 -- Update every 0.05 seconds (20 times per second instead of 60+)
+
+local function findToolHitbox(tool)
+    -- Try direct children first
+    local hb = tool:FindFirstChild("Hitbox") or tool:FindFirstChild("hitbox") or tool:FindFirstChild("Hit")
+    if hb and hb:IsA("BasePart") then return hb end
+    
+    -- Check Handle.Hitbox (for bats and similar tools)
+    local handle = tool:FindFirstChild("Handle")
+    if handle then
+        local nested = handle:FindFirstChild("Hitbox") or handle:FindFirstChild("hitbox") or handle:FindFirstChild("Hit")
+        if nested and nested:IsA("BasePart") then return nested end
+        -- If no nested hitbox, use Handle itself
+        if handle:IsA("BasePart") then return handle end
+    end
+    
+    -- Fallback: first BasePart
+    for _, child in ipairs(tool:GetChildren()) do
+        if child:IsA("BasePart") then
+            return child
+        end
+    end
+    
+    return nil
+end
 
 local function _collectToolHitboxes()
-    if not toolCollectionDirty then return end
-    toolCollectionDirty = false
-    
-    -- Only clear and rebuild if needed
-    local newTracking = {}
-    
-    local function findToolHitbox(tool)
-        local hb = nil
-        
-        -- Check for direct hitbox children
-        hb = tool:FindFirstChild("Hitbox") or tool:FindFirstChild("hitbox") or tool:FindFirstChild("Hit")
-        if hb and hb:IsA("BasePart") then return hb end
-        
-        -- Check for nested hitbox inside Handle (e.g., Tool.Handle.Hitbox)
-        local handle = tool:FindFirstChild("Handle")
-        if handle and handle:IsA("BasePart") then
-            local nestedHitbox = handle:FindFirstChild("Hitbox") or handle:FindFirstChild("hitbox") or handle:FindFirstChild("Hit")
-            if nestedHitbox and nestedHitbox:IsA("BasePart") then
-                return nestedHitbox
-            end
-            -- If no nested hitbox, use Handle itself
-            return handle
-        end
-        
-        -- Check for Pivot or PrimaryPivot
-        local pivot = tool:FindFirstChild("Pivot") or tool:FindFirstChild("PrimaryPivot")
-        if pivot and pivot:IsA("BasePart") then
-            local nestedHitbox = pivot:FindFirstChild("Hitbox") or pivot:FindFirstChild("hitbox")
-            if nestedHitbox and nestedHitbox:IsA("BasePart") then
-                return nestedHitbox
-            end
-            return pivot
-        end
-        
-        -- Fallback: get first BasePart
-        for _, child in ipairs(tool:GetChildren()) do
-            if child:IsA("BasePart") then
-                -- Check if this BasePart has a Hitbox child
-                local childHitbox = child:FindFirstChild("Hitbox") or child:FindFirstChild("hitbox")
-                if childHitbox and childHitbox:IsA("BasePart") then
-                    return childHitbox
-                end
-                hb = child
-            end
-        end
-        
-        return hb
-    end
+    table.clear(_widerHitbox_tracking)
     
     -- Backpack
     if LocalPlayer:FindFirstChild("Backpack") then
         for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
             if tool:IsA("Tool") then
                 local hb = findToolHitbox(tool)
-                if hb and hb:IsA("BasePart") then
-                    -- Preserve original values if already tracked
-                    if _widerHitbox_tracking[hb] then
-                        newTracking[hb] = _widerHitbox_tracking[hb]
-                    else
-                        newTracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
-                    end
+                if hb then
+                    _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
                 end
             end
         end
@@ -3039,28 +3009,12 @@ local function _collectToolHitboxes()
         for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
             if tool:IsA("Tool") then
                 local hb = findToolHitbox(tool)
-                if hb and hb:IsA("BasePart") then
-                    if _widerHitbox_tracking[hb] then
-                        newTracking[hb] = _widerHitbox_tracking[hb]
-                    else
-                        newTracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
-                    end
+                if hb then
+                    _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
                 end
             end
         end
     end
-    
-    -- Restore any hitboxes that are no longer tracked
-    for hb, meta in pairs(_widerHitbox_tracking) do
-        if not newTracking[hb] then
-            pcall(function()
-                if meta.part and meta.origSize then meta.part.Size = meta.origSize end
-                if meta.part and meta.origTransparency then meta.part.Transparency = meta.origTransparency end
-            end)
-        end
-    end
-    
-    _widerHitbox_tracking = newTracking
 end
 
 local function _applyWiderHitboxes()
