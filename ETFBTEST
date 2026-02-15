@@ -155,7 +155,6 @@ local Window = WindUI:CreateWindow({
 })
 
 
-
 Window:EditOpenButton({
     OnlyMobile = false,
     Enabled = true,
@@ -1821,6 +1820,7 @@ local TsunamiSection = TsunamiTab:Section({ Title = "Tsunami Tracker", Opened = 
 TsunamiSection:Toggle({
     Title = "Tsunami Tracker",
     Desc = "Toggle tsunami tracker display",
+    Icon = "check",
     Value = savedSettings.autoTsunamiTracker,
     Callback = function(state)
         if state then
@@ -2792,6 +2792,7 @@ VIPWallsSection:Button({
 VIPWallsSection:Toggle({
     Title = "Auto Remove VIP Walls",
     Desc = "Automatically remove VIP walls from all maps ",
+    Icon = "check",
     Value = savedSettings.autoRemoveVIPWalls,
     Callback = function(state)
         autoRemoveVIPWalls = state
@@ -2939,6 +2940,7 @@ UpgBase:Button({
 UtilitiesSection:Toggle({
     Title = "Unlock Zoom Limit",
     Desc = "Unlock camera zoom limits",
+    Icon = "check",
     Value = savedSettings.unlockZoom,
     Callback = function(state)
         if state then
@@ -3065,6 +3067,7 @@ end
 UtilitiesSection:Toggle({
     Title = "Enable Wider Hitbox",
     Desc = "Expand tool hitboxes when players are nearby",
+    Icon = "check",
     Value = savedSettings.hitboxEnabled,
     Callback = function(state)
         savedSettings.hitboxEnabled = state
@@ -3094,6 +3097,7 @@ UtilitiesSection:Slider({
 UtilitiesSection:Toggle({
     Title = "Fly + NoClip",
     Desc = "Fly around and pass through walls ",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         flyMode = state
@@ -3285,6 +3289,7 @@ local RadioactiveSection = EventTab:Section({
 RadioactiveSection:Toggle({
     Title = "Auto Collect Radioactive Coins",
     Desc = "Automatically Collect Radioactive Coins",
+    Icon = "check",
     Value = savedSettings.autoCollectRadioactive,
     Callback = function(state)
         autoCollectRadioactive = state
@@ -3299,6 +3304,7 @@ RadioactiveSection:Space()
 RadioactiveSection:Toggle({
     Title = "Auto Spin Radioactive Wheel",
     Desc = "Automatically spins the radioactive wheel",
+    Icon = "check",
     Value = savedSettings.autoSpin,
     Callback = function(state)
         spinning = state
@@ -3326,6 +3332,7 @@ RadioactiveSection:Space()
 RadioactiveSection:Toggle({
     Title = "Auto Complete Radioactive Obby",
     Desc = "Automatically complete the Radioactive obby ",
+    Icon = "check",
     Value = savedSettings.autoObby,
     Callback = function(state)
         autoObby = state
@@ -3343,6 +3350,7 @@ local UFOSection = EventTab:Section({
 UFOSection:Toggle({
     Title = "Auto Collect UFO Coins",
     Desc = "Automatically collects UFO coins",
+    Icon = "check",
     Value = savedSettings.autoCollectUFO,
     Callback = function(state)
         autoCollectUFO = state
@@ -3354,6 +3362,7 @@ UFOSection:Toggle({
 UFOSection:Toggle({
     Title = "Auto Spin UFO Wheel",
     Desc = "Automatically spins the UFO wheel",
+    Icon = "check",
     Value = savedSettings.autoSpinUFO,
     Callback = function(state)
         autoSpinUFO = state
@@ -3371,6 +3380,7 @@ local MoneySection = EventTab:Section({
 MoneySection:Toggle({
     Title = "Auto Collect Gold Bar",
     Desc = "Automatically collect Gold Bars",
+    Icon = "check",
     Value = savedSettings.autoCollectGoldBar,
     Callback = function(state)
         autoCollectGoldBar = state
@@ -3382,6 +3392,7 @@ MoneySection:Toggle({
 MoneySection:Toggle({
     Title = "Auto Spin Money Wheel",
     Desc = "Automatically spin the money wheel",
+    Icon = "check",
     Value = savedSettings.autoSpinMoneyWheel,
     Callback = function(state)
         autoSpinMoneyWheel = state
@@ -3393,6 +3404,7 @@ MoneySection:Toggle({
 MoneySection:Toggle({
     Title = "Auto Complete Money Obbies",
     Desc = "Automatically complete 3 Money obbies",
+    Icon = "check",
     Value = savedSettings.autoCompleteMoneyObby,
     Callback = function(state)
         autoCompleteMoneyObby = state
@@ -3405,6 +3417,7 @@ MoneySection:Toggle({
 MoneySection:Toggle({
     Title = "Auto Rejoin After Money Obbies",
     Desc = "When enabled, rejoin the server automatically after 3 completed obby cycles",
+    Icon = "check",
     Value = savedSettings.autoRejoinAfterMoneyObby,
     Callback = function(state)
         autoRejoinAfterMoneyObby = state
@@ -3429,6 +3442,7 @@ local ArcadeSection = EventTab:Section({
 ArcadeSection:Toggle({
     Title = "Auto Collect Game Console",
     Desc = "Automatically collect from Game Console",
+    Icon = "check",
     Value = savedSettings.autoCollectGameConsole,
     Callback = function(state)
         autoCollectGameConsole = state
@@ -3440,6 +3454,7 @@ ArcadeSection:Toggle({
 ArcadeSection:Toggle({
     Title = "Auto Collect Ticket",
     Desc = "Automatically collect Arcade Tickets",
+    Icon = "check",
     Value = savedSettings.autoCollectArcadeTicket,
     Callback = function(state)
         autoCollectArcadeTicket = state
@@ -3451,6 +3466,7 @@ ArcadeSection:Toggle({
 ArcadeSection:Toggle({
     Title = "Auto Spin Arcade Wheel",
     Desc = "Automatically spin the Arcade wheel",
+    Icon = "check",
     Value = savedSettings.autoSpinArcadeWheel,
     Callback = function(state)
         autoSpinArcadeWheel = state
@@ -3468,6 +3484,7 @@ local ValentinesSection = EventTab:Section({
 ValentinesSection:Toggle({
     Title = "Auto Collect Candy",
     Desc = "Automatically collect Valentine's Candy",
+    Icon = "check",
     Value = savedSettings.autoCollectCandy,
     Callback = function(state)
         autoCollectCandy = state
@@ -3479,6 +3496,7 @@ ValentinesSection:Toggle({
 ValentinesSection:Toggle({
     Title = "Auto Collect Valentines Coin",
     Desc = "Automatically collect Valentine's Love Tokens",
+    Icon = "check",
     Value = savedSettings.autoCollectValentinesCoin,
     Callback = function(state)
         autoCollectValentinesCoin = state
@@ -3490,6 +3508,7 @@ ValentinesSection:Toggle({
 ValentinesSection:Toggle({
     Title = "Auto Spin Valentines Wheel",
     Desc = "Automatically spin the Valentines wheel",
+    Icon = "check",
     Value = savedSettings.autoSpinValentinesWheel,
     Callback = function(state)
         autoSpinValentinesWheel = state
@@ -3505,6 +3524,7 @@ local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 local AutoUpgradeBaseToggle = AutoSection:Toggle({
     Title = "Auto Upgrade Base",
     Desc = "Automatically upgrades your base",
+    Icon = "check",
     Value = savedSettings.autoUpgradeBase,
     Callback = function(state)
         autoUpgradeBase = state
@@ -3517,6 +3537,7 @@ local AutoUpgradeBaseToggle = AutoSection:Toggle({
 local AutoCollectMoneyToggle = AutoSection:Toggle({
     Title = "Auto Collect Money",
     Desc = "Automatically collects money from your base",
+    Icon = "check",
     Value = savedSettings.autoCollectMoney,
     Callback = function(state)
         collectingMoney = state
@@ -3556,6 +3577,7 @@ LuckyBlockSection:Dropdown({
 LuckyBlockSection:Toggle({
     Title = "Auto Open Lucky Block",
     Desc = "Automatically equip & open matching Lucky Blocks from your Backpack",
+    Icon = "check",
     Value = savedSettings.autoOpenLuckyBlock,
     Callback = function(state)
         autoOpenLuckyBlock = state
@@ -3727,6 +3749,7 @@ end)
 local AutoUpgradeCarryToggle = AutoSection:Toggle({
     Title = "Auto Upgrade Carry",
     Desc = "Automatically upgrades carry capacity",
+    Icon = "check",
     Value = savedSettings.autoUpgradeCarry,
     Callback = function(state)
         autoUpgradeCarry = state
@@ -3739,6 +3762,7 @@ local AutoUpgradeCarryToggle = AutoSection:Toggle({
 local AutoUpgradeJumpToggle = AutoSection:Toggle({
     Title = "Auto Upgrade Jump",
     Desc = "Automatically upgrades jump power",
+    Icon = "check",
     Value = savedSettings.autoUpgradeJump,
     Callback = function(state)
         autoUpgradeJump = state
@@ -3751,6 +3775,7 @@ local AutoUpgradeJumpToggle = AutoSection:Toggle({
 local AutoUpgradeSpeedToggle = AutoSection:Toggle({
     Title = "Auto Upgrade Speed",
     Desc = "Automatically upgrades movement speed",
+    Icon = "check",
     Value = savedSettings.autoUpgradeSpeed,
     Callback = function(state)
         autoUpgradeSpeed = state
@@ -3779,6 +3804,7 @@ local SpeedAmountDropdown = AutoSection:Dropdown({
 local AutoRebirthToggle = AutoSection:Toggle({
     Title = "Auto Rebirth",
     Desc = "Automatically rebirths when possible",
+    Icon = "check",
     Value = savedSettings.autoRebirth,
     Callback = function(state)
         autoRebirth = state
@@ -3878,6 +3904,7 @@ BrainrotSection:Dropdown({
 BrainrotSection:Toggle({
     Title = "Auto Sell by Rarity",
     Desc = "Automatically sell selected rarities",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         autoSellByRarity = state
@@ -3932,6 +3959,7 @@ BrainrotSection:Dropdown({
 BrainrotSection:Toggle({
     Title = "Auto Sell by Name",
     Desc = "Automatically sell selected brainrot names",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         autoSellByName = state
@@ -4038,6 +4066,7 @@ BrainrotUpgradeDropdown = BrainrotSection:Dropdown({
 BrainrotSection:Toggle({
     Title = "Auto Upgrade Brainrot",
     Desc = "Automatically upgrade selected brainrots",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         autoUpgradeBrainrot = state
@@ -4074,6 +4103,7 @@ local UISection = MiscTab:Section({
 UISection:Toggle({
     Title = "Profile Icon",
     Desc = "Toggle profile visibility",
+    Icon = "check",
     Value = true,
     Callback = function(state)
         local stateinfo = state
@@ -4088,6 +4118,7 @@ UISection:Toggle({
 UISection:Toggle({
     Title = "Set Profile Anonymous",
     Desc = "Hide your profile information",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         local stateinfo = state
@@ -4102,6 +4133,7 @@ UISection:Toggle({
 UISection:Toggle({
     Title = "UI Transparency",
     Desc = "Toggle window transparency",
+    Icon = "check",
     Value = true,
     Callback = function(state)
         local stateinfo = state
@@ -4505,6 +4537,7 @@ DefaultMachineSection:Dropdown({
 DefaultMachineSection:Toggle({
     Title = "Auto Machine (Default)",
     Desc = "Automatically fuse brainrots when timer matches target time",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         autoMachine = state
@@ -4520,6 +4553,7 @@ DefaultMachineSection:Toggle({
 DefaultMachineSection:Toggle({
     Title = "Auto Submit (Arcade)",
     Desc = "Automatically navigate through gaps and submit brainrots to Arcade Machine",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         autoArcadeMachine = state
@@ -4537,6 +4571,7 @@ DefaultMachineSection:Toggle({
 DefaultMachineSection:Toggle({
     Title = "Auto Submit (Valentine)",
     Desc = "Automatically navigate through gaps and submit brainrots to Valentine Machine",
+    Icon = "check",
     Value = false,
     Callback = function(state)
         autoValentineMachine = state
