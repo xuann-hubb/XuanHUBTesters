@@ -2961,55 +2961,41 @@ local LocalPlayer = Players.LocalPlayer
 local BASE_SIZE = Vector3.new(4, 4, 4)
 local MAX_SIZE = Vector3.new(150, 150, 150)
 
--- Optimization: throttle updates
-local lastHitboxUpdate = 0
-local UPDATE_INTERVAL = 0.05 -- Update every 0.05 seconds (20 times per second instead of 60+)
-
-local function findToolHitbox(tool)
-    -- Try direct children first
-    local hb = tool:FindFirstChild("Hitbox") or tool:FindFirstChild("hitbox") or tool:FindFirstChild("Hit")
-    if hb and hb:IsA("BasePart") then return hb end
-    
-    -- Check Handle.Hitbox (for bats and similar tools)
-    local handle = tool:FindFirstChild("Handle")
-    if handle then
-        local nested = handle:FindFirstChild("Hitbox") or handle:FindFirstChild("hitbox") or handle:FindFirstChild("Hit")
-        if nested and nested:IsA("BasePart") then return nested end
-        -- If no nested hitbox, use Handle itself
-        if handle:IsA("BasePart") then return handle end
-    end
-    
-    -- Fallback: first BasePart
-    for _, child in ipairs(tool:GetChildren()) do
-        if child:IsA("BasePart") then
-            return child
-        end
-    end
-    
-    return nil
-end
-
 local function _collectToolHitboxes()
     table.clear(_widerHitbox_tracking)
-    
     -- Backpack
     if LocalPlayer:FindFirstChild("Backpack") then
         for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
             if tool:IsA("Tool") then
-                local hb = findToolHitbox(tool)
-                if hb then
+                -- Try direct Hitbox first
+                local hb = tool:FindFirstChild("Hitbox")
+                -- If not found, try Handle.Hitbox (for bats)
+                if not hb then
+                    local handle = tool:FindFirstChild("Handle")
+                    if handle then
+                        hb = handle:FindFirstChild("Hitbox")
+                    end
+                end
+                if hb and hb:IsA("BasePart") then
                     _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
                 end
             end
         end
     end
-    
     -- Character (equipped)
     if LocalPlayer.Character then
         for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
             if tool:IsA("Tool") then
-                local hb = findToolHitbox(tool)
-                if hb then
+                -- Try direct Hitbox first
+                local hb = tool:FindFirstChild("Hitbox")
+                -- If not found, try Handle.Hitbox (for bats)
+                if not hb then
+                    local handle = tool:FindFirstChild("Handle")
+                    if handle then
+                        hb = handle:FindFirstChild("Hitbox")
+                    end
+                end
+                if hb and hb:IsA("BasePart") then
                     _widerHitbox_tracking[hb] = { part = hb, origSize = hb.Size, origTransparency = hb.Transparency }
                 end
             end
@@ -3018,96 +3004,59 @@ local function _collectToolHitboxes()
 end
 
 local function _applyWiderHitboxes()
-    local currentTime = tick()
-    
-    -- Throttle updates to reduce lag
-    if currentTime - lastHitboxUpdate < UPDATE_INTERVAL then return end
-    lastHitboxUpdate = currentTime
-    
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    
     _collectToolHitboxes()
     if not next(_widerHitbox_tracking) then return end
 
-    -- find nearby players (cached)
+    -- find nearby players
     local hrp = LocalPlayer.Character.HumanoidRootPart
     local nearby = {}
-    local hrpPos = hrp.Position
-    
     for _, pl in ipairs(Players:GetPlayers()) do
         if pl ~= LocalPlayer and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
-            local targetHrp = pl.Character.HumanoidRootPart
-            local d = (targetHrp.Position - hrpPos).Magnitude
-            if d <= 50 then 
-                table.insert(nearby, targetHrp) 
-            end
+            local d = (pl.Character.HumanoidRootPart.Position - hrp.Position).Magnitude
+            if d <= 50 then table.insert(nearby, pl.Character.HumanoidRootPart) end
         end
     end
 
     for hb, meta in pairs(_widerHitbox_tracking) do
-        if hb and hb.Parent then
-            if #nearby == 0 then
-                -- No enemies nearby, restore original size
-                hb.Size = meta.origSize or BASE_SIZE
-                hb.Transparency = meta.origTransparency or 1
-                hb.CanCollide = false
+        if #nearby == 0 then
+            hb.Size = meta.origSize or BASE_SIZE
+            hb.Transparency = meta.origTransparency or 1
+            hb.CanCollide = false
+        else
+            local targetPos = hrp.Position
+            if #nearby == 1 then
+                local dir = (nearby[1].Position - hrp.Position).Unit
+                targetPos = nearby[1].Position + dir * 2
             else
-                -- Enemies nearby, make hitbox MUCH larger to reach them
-                -- Use the widerHitboxWidth slider value to control size
-                local finalSize = Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth)
-                hb.Size = finalSize
-                hb.Transparency = 0.7
-                hb.CanCollide = false
-                -- Don't reposition - let it stay attached to the tool so it extends from you
+                local total = Vector3.new()
+                for _, p in ipairs(nearby) do
+                    total = total + p.Position
+                end
+                targetPos = total / #nearby
             end
+            local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or MAX_SIZE
+            hb.Size = finalSize
+            hb.Position = targetPos
+            hb.Transparency = 0.7
+            hb.CanCollide = false
         end
     end
-    
-    lastNearbyPlayers = nearby
 end
 
 local function startWiderHitbox()
     if widerHitboxConn then return end
     widerHitboxEnabled = true
-    toolCollectionDirty = true
-    
     widerHitboxConn = RunService.Heartbeat:Connect(function()
         if widerHitboxEnabled then _applyWiderHitboxes() end
     end)
-    
     -- react to tool/character changes
-    if LocalPlayer:FindFirstChild("Backpack") then
-        LocalPlayer.Backpack.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") then
-                toolCollectionDirty = true
-            end
-        end)
-        LocalPlayer.Backpack.ChildRemoved:Connect(function(child)
-            if child:IsA("Tool") then
-                toolCollectionDirty = true
-            end
-        end)
-    end
-    
-    LocalPlayer.CharacterAdded:Connect(function(char)
-        toolCollectionDirty = true
-        task.wait(1)
-        toolCollectionDirty = true
+    LocalPlayer.Backpack.ChildAdded:Connect(function(child)
+        task.wait(0.1); _collectToolHitboxes()
     end)
-    
-    if LocalPlayer.Character then
-        LocalPlayer.Character.ChildAdded:Connect(function(child)
-            if child:IsA("Tool") then
-                toolCollectionDirty = true
-            end
-        end)
-        LocalPlayer.Character.ChildRemoved:Connect(function(child)
-            if child:IsA("Tool") then
-                toolCollectionDirty = true
-            end
-        end)
-    end
-    
+    LocalPlayer.CharacterAdded:Connect(function()
+        task.wait(1); _collectToolHitboxes()
+    end)
     WindUI:Notify({ Title = "Utilities", Content = "Wider hitbox enabled", Icon = "check", Duration = 2 })
 end
 
