@@ -242,6 +242,12 @@ local TsunamiTab = Window:Tab({
     Locked = false,
 })
 
+local GearTab = Window:Tab({
+    Title = "Gear Shop",
+    Icon = "shopping-bag",
+    Locked = false,
+})
+
 local MiscTab = Window:Tab({
     Title = "Settings",
     Icon = "settings",
@@ -260,7 +266,90 @@ local AboutTab = Window:Tab({
     Locked = false,
 })
 
+-- ================= GEAR SHOP =================
+local GearSection = GearTab:Section({ Title = "Gear Shop", Opened = true })
 
+-- Fetch gear data from GearModule
+local gearOptions = {}
+local gearNameMapping = {} -- Maps display name to actual gear name
+pcall(function()
+    local GearModule = require(game:GetService("ReplicatedStorage").SharedModules.GearModule)
+    for gearName, gearData in pairs(GearModule) do
+        if type(gearData) == "table" and gearData.Cost then
+            local displayName = string.format("%s - $%s", gearName, tostring(gearData.Cost))
+            if gearData.Description then
+                displayName = displayName .. string.format(" (%s)", gearData.Description)
+            end
+            table.insert(gearOptions, displayName)
+            gearNameMapping[displayName] = gearName
+        end
+    end
+end)
+
+-- Sort gear options alphabetically
+table.sort(gearOptions)
+
+local selectedGears = {}
+
+GearSection:Dropdown({
+    Title = "Select Gear to Buy",
+    Desc = "Select one or more gears to purchase",
+    Multi = true,
+    AllowNone = true,
+    Options = gearOptions,
+    Value = {},
+    Search = true,
+    Callback = function(selected)
+        selectedGears = selected
+    end
+})
+
+GearSection:Button({
+    Title = "Buy Selected Gears",
+    Desc = "Purchase all selected gears",
+    Locked = false,
+    Callback = function()
+        if #selectedGears == 0 then
+            WindUI:Notify({ Title = "Gear Shop", Content = "No gears selected", Icon = "alert-triangle", Duration = 3 })
+            return
+        end
+        
+        local successCount = 0
+        local failCount = 0
+        
+        for _, displayName in ipairs(selectedGears) do
+            local gearName = gearNameMapping[displayName]
+            if gearName then
+                local success = pcall(function()
+                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyGear"):InvokeServer(gearName)
+                end)
+                if success then
+                    successCount = successCount + 1
+                else
+                    failCount = failCount + 1
+                end
+                task.wait(0.1)
+            end
+        end
+        
+        if successCount > 0 then
+            WindUI:Notify({ 
+                Title = "Gear Shop", 
+                Content = string.format("Purchased %d gear(s)", successCount), 
+                Icon = "check", 
+                Duration = 3 
+            })
+        end
+        if failCount > 0 then
+            WindUI:Notify({ 
+                Title = "Gear Shop", 
+                Content = string.format("%d purchase(s) failed", failCount), 
+                Icon = "alert-triangle", 
+                Duration = 3 
+            })
+        end
+    end
+})
 
 -- ================= FUNCTIONALITY LOGIC =================
 
