@@ -2975,17 +2975,42 @@ local function _collectToolHitboxes()
     local newTracking = {}
     
     local function findToolHitbox(tool)
-        -- Try common hitbox names first
-        local hb = tool:FindFirstChild("Hitbox") or tool:FindFirstChild("hitbox") or 
-                   tool:FindFirstChild("Handle") or tool:FindFirstChild("Hit")
+        local hb = nil
         
-        -- If still not found, get first BasePart
-        if not hb then
-            for _, child in ipairs(tool:GetChildren()) do
-                if child:IsA("BasePart") then
-                    hb = child
-                    break
+        -- Check for direct hitbox children
+        hb = tool:FindFirstChild("Hitbox") or tool:FindFirstChild("hitbox") or tool:FindFirstChild("Hit")
+        if hb and hb:IsA("BasePart") then return hb end
+        
+        -- Check for nested hitbox inside Handle (e.g., Tool.Handle.Hitbox)
+        local handle = tool:FindFirstChild("Handle")
+        if handle and handle:IsA("BasePart") then
+            local nestedHitbox = handle:FindFirstChild("Hitbox") or handle:FindFirstChild("hitbox") or handle:FindFirstChild("Hit")
+            if nestedHitbox and nestedHitbox:IsA("BasePart") then
+                return nestedHitbox
+            end
+            -- If no nested hitbox, use Handle itself
+            return handle
+        end
+        
+        -- Check for Pivot or PrimaryPivot
+        local pivot = tool:FindFirstChild("Pivot") or tool:FindFirstChild("PrimaryPivot")
+        if pivot and pivot:IsA("BasePart") then
+            local nestedHitbox = pivot:FindFirstChild("Hitbox") or pivot:FindFirstChild("hitbox")
+            if nestedHitbox and nestedHitbox:IsA("BasePart") then
+                return nestedHitbox
+            end
+            return pivot
+        end
+        
+        -- Fallback: get first BasePart
+        for _, child in ipairs(tool:GetChildren()) do
+            if child:IsA("BasePart") then
+                -- Check if this BasePart has a Hitbox child
+                local childHitbox = child:FindFirstChild("Hitbox") or child:FindFirstChild("hitbox")
+                if childHitbox and childHitbox:IsA("BasePart") then
+                    return childHitbox
                 end
+                hb = child
             end
         end
         
