@@ -3093,26 +3093,18 @@ local function _applyWiderHitboxes()
     for hb, meta in pairs(_widerHitbox_tracking) do
         if hb and hb.Parent then
             if #nearby == 0 then
+                -- No enemies nearby, restore original size
                 hb.Size = meta.origSize or BASE_SIZE
                 hb.Transparency = meta.origTransparency or 1
                 hb.CanCollide = false
             else
-                local targetPos = hrpPos
-                if #nearby == 1 then
-                    local dir = (nearby[1].Position - hrpPos).Unit
-                    targetPos = nearby[1].Position + dir * 2
-                else
-                    local total = Vector3.new()
-                    for _, p in ipairs(nearby) do
-                        total = total + p.Position
-                    end
-                    targetPos = total / #nearby
-                end
-                local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or MAX_SIZE
+                -- Enemies nearby, make hitbox MUCH larger to reach them
+                -- Use the widerHitboxWidth slider value to control size
+                local finalSize = Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth)
                 hb.Size = finalSize
-                hb.Position = targetPos
                 hb.Transparency = 0.7
                 hb.CanCollide = false
+                -- Don't reposition - let it stay attached to the tool so it extends from you
             end
         end
     end
