@@ -1431,11 +1431,12 @@ task.spawn(function()
                 local humanoid = character:FindFirstChild("Humanoid")
                 if not humanoid then return end
 
-                -- Build list of brainrots to sell from selected rarities (dynamically from game data)
+                -- Build list of brainrots to sell from selected rarities (using cached data)
                 local brainrotsToSell = {}
-                pcall(function()
-                    local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
-                    for rarity, brainrots in pairs(BrainrotsData.Chances) do
+                local data = loadBrainrotsData()
+                
+                if data and data.Chances then
+                    for rarity, brainrots in pairs(data.Chances) do
                         -- Check if this rarity is in the sellRarities list
                         for _, targetRarity in ipairs(sellRarities) do
                             if rarity == targetRarity then
@@ -1447,7 +1448,7 @@ task.spawn(function()
                             end
                         end
                     end
-                end)
+                end
 
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoSellByRarity then break end
@@ -3840,55 +3841,6 @@ end
 -- ================= BRAINROT SECTION =================
 local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
 
--- ================= SHARED BRAINROT DATA =================
--- Consolidated function to fetch brainrot data once (prevents duplicate require() calls)
-local cachedBrainrotsData = nil
-
-local function loadBrainrotsData()
-    if cachedBrainrotsData then return cachedBrainrotsData end
-    
-    pcall(function()
-        cachedBrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
-    end)
-    
-    return cachedBrainrotsData
-end
-
--- Get brainrot names for machine dropdowns (simple list with empty option)
-local function getBrainrotNamesForMachines()
-    local names = { "" } -- Start with empty string for "None" option
-    local data = loadBrainrotsData()
-    
-    if data and data.BrainrotNames then
-        for _, name in ipairs(data.BrainrotNames) do
-            table.insert(names, name)
-        end
-        table.sort(names)
-    end
-    
-    return names
-end
-
--- Get brainrot names with rarity labels for sell dropdown
-local function getBrainrotNamesWithRarity()
-    local allBrainrotNames = {}
-    local brainrotToRarityMap = {}
-    local data = loadBrainrotsData()
-    
-    if data and data.Chances then
-        for rarity, brainrots in pairs(data.Chances) do
-            for name, _ in pairs(brainrots) do
-                local labeledName = "[" .. rarity .. "] " .. name
-                table.insert(allBrainrotNames, labeledName)
-                brainrotToRarityMap[labeledName] = rarity
-            end
-        end
-        table.sort(allBrainrotNames)
-    end
-    
-    return allBrainrotNames, brainrotToRarityMap
-end
-
 -- Get rarities dynamically from game data (using cached data)
 local function getRarities()
     local rarities = {}
@@ -3959,32 +3911,22 @@ BrainrotSection:Toggle({
 
 BrainrotSection:Space()
 
--- Auto Sell by Name - Build dropdown dynamically from game data
-local function getBrainrotNamesWithRarity()
-    local allBrainrotNames = {}
-    local brainrotToRarityMap = {}
+-- Auto Sell by Name - Use shared brainrot data (no duplicate require)
+local allBrainrotNamesForSell = {}
+local brainrotToRarityMap = {}
+local sellByNameDropdown
 
-    pcall(function()
-        local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
-        -- Iterate through Chances table to get rarity and brainrot names
-        for rarity, brainrots in pairs(BrainrotsData.Chances) do
-            for name, _ in pairs(brainrots) do
-                -- Exclude the float value, just use rarity and name
-                local labeledName = "[" .. rarity .. "] " .. name
-                table.insert(allBrainrotNames, labeledName)
-                brainrotToRarityMap[labeledName] = rarity
-            end
-        end
-        table.sort(allBrainrotNames)
-    end)
+-- Load brainrot names asynchronously
+task.defer(function()
+    allBrainrotNamesForSell, brainrotToRarityMap = getBrainrotNamesWithRarity()
+    if sellByNameDropdown and #allBrainrotNamesForSell > 0 then
+        pcall(function()
+            sellByNameDropdown:SetValues(allBrainrotNamesForSell)
+        end)
+    end
+end)
 
-    return allBrainrotNames, brainrotToRarityMap
-end
-
--- Get all brainrot names dynamically
-local allBrainrotNamesForSell, brainrotToRarityMap = getBrainrotNamesWithRarity()
-
-BrainrotSection:Dropdown({
+sellByNameDropdown = BrainrotSection:Dropdown({
     Title = "Select Brainrot Names to Sell",
     Desc = "Choose which brainrot you want to sell",
     Values = allBrainrotNamesForSell,
@@ -4534,28 +4476,34 @@ DefaultMachineSection:Input({
     end
 })
 
--- Function to get brainrot names dynamically from game data
-local function getBrainrotNames()
-    local names = { "" } -- Start with empty string for "None" option
-    pcall(function()
-        local BrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
-        -- BrainrotNames is an array, use ipairs to iterate
-        if BrainrotsData.BrainrotNames then
-            for _, name in ipairs(BrainrotsData.BrainrotNames) do
-                table.insert(names, name)
-            end
-            table.sort(names)
-        end
-    end)
-    -- If require fails, return just the empty string
-    return names
-end
+-- Initialize brainrot names with empty array (using shared function)
+local AllBrainrotNames = {}
+local machineDropdown1, machineDropdown2, machineDropdown3
+local arcadeDropdown1, arcadeDropdown2, arcadeDropdown3
+local valentineDropdown1, valentineDropdown2, valentineDropdown3
 
--- Get all brainrot names dynamically
-local AllBrainrotNames = getBrainrotNames()
+-- Load all brainrot dropdowns asynchronously (single shared data load)
+task.defer(function()
+    -- Load machine names using cached data (no duplicate require)
+    AllBrainrotNames = getBrainrotNamesForMachines()
+    if #AllBrainrotNames > 0 then
+        -- Update all machine dropdowns once data is loaded
+        pcall(function()
+            if machineDropdown1 then machineDropdown1:SetValues(AllBrainrotNames) end
+            if machineDropdown2 then machineDropdown2:SetValues(AllBrainrotNames) end
+            if machineDropdown3 then machineDropdown3:SetValues(AllBrainrotNames) end
+            if arcadeDropdown1 then arcadeDropdown1:SetValues(AllBrainrotNames) end
+            if arcadeDropdown2 then arcadeDropdown2:SetValues(AllBrainrotNames) end
+            if arcadeDropdown3 then arcadeDropdown3:SetValues(AllBrainrotNames) end
+            if valentineDropdown1 then valentineDropdown1:SetValues(AllBrainrotNames) end
+            if valentineDropdown2 then valentineDropdown2:SetValues(AllBrainrotNames) end
+            if valentineDropdown3 then valentineDropdown3:SetValues(AllBrainrotNames) end
+        end)
+    end
+end)
 
 -- Dropdown for Brainrot 1
-DefaultMachineSection:Dropdown({
+machineDropdown1 = DefaultMachineSection:Dropdown({
     Title = "Brainrot 1",
     Desc = "Select first brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4569,7 +4517,7 @@ DefaultMachineSection:Dropdown({
 })
 
 -- Dropdown for Brainrot 2
-DefaultMachineSection:Dropdown({
+machineDropdown2 = DefaultMachineSection:Dropdown({
     Title = "Brainrot 2",
     Desc = "Select second brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
@@ -4583,7 +4531,7 @@ DefaultMachineSection:Dropdown({
 })
 
 -- Dropdown for Brainrot 3
-DefaultMachineSection:Dropdown({
+machineDropdown3 = DefaultMachineSection:Dropdown({
     Title = "Brainrot 3",
     Desc = "Select third brainrot to fuse (leave blank to skip)",
     Values = AllBrainrotNames,
