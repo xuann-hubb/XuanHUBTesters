@@ -2974,11 +2974,29 @@ local function _collectToolHitboxes()
     -- Only clear and rebuild if needed
     local newTracking = {}
     
+    local function findToolHitbox(tool)
+        -- Try common hitbox names first
+        local hb = tool:FindFirstChild("Hitbox") or tool:FindFirstChild("hitbox") or 
+                   tool:FindFirstChild("Handle") or tool:FindFirstChild("Hit")
+        
+        -- If still not found, get first BasePart
+        if not hb then
+            for _, child in ipairs(tool:GetChildren()) do
+                if child:IsA("BasePart") then
+                    hb = child
+                    break
+                end
+            end
+        end
+        
+        return hb
+    end
+    
     -- Backpack
     if LocalPlayer:FindFirstChild("Backpack") then
         for _, tool in ipairs(LocalPlayer.Backpack:GetChildren()) do
             if tool:IsA("Tool") then
-                local hb = tool:FindFirstChild("Hitbox")
+                local hb = findToolHitbox(tool)
                 if hb and hb:IsA("BasePart") then
                     -- Preserve original values if already tracked
                     if _widerHitbox_tracking[hb] then
@@ -2995,7 +3013,7 @@ local function _collectToolHitboxes()
     if LocalPlayer.Character then
         for _, tool in ipairs(LocalPlayer.Character:GetChildren()) do
             if tool:IsA("Tool") then
-                local hb = tool:FindFirstChild("Hitbox")
+                local hb = findToolHitbox(tool)
                 if hb and hb:IsA("BasePart") then
                     if _widerHitbox_tracking[hb] then
                         newTracking[hb] = _widerHitbox_tracking[hb]
