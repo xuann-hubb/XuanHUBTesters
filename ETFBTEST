@@ -3803,39 +3803,23 @@ local function loadBrainrotsData()
     return cachedBrainrotsData
 end
 
--- Get brainrot names for machine dropdowns (simple list with empty option)
+-- Get brainrot names for machine dropdowns (with rarity labels)
 local function getBrainrotNamesForMachines()
     local names = { "" } -- Start with empty string for "None" option
     local data = loadBrainrotsData()
     
-    if data and data.BrainrotNames then
-        for _, name in ipairs(data.BrainrotNames) do
-            table.insert(names, name)
-        end
-        table.sort(names)
-    end
-    
-    return names
-end
-
--- Get brainrot names with rarity labels for sell dropdown
-local function getBrainrotNamesWithRarity()
-    local allBrainrotNames = {}
-    local brainrotToRarityMap = {}
-    local data = loadBrainrotsData()
-    
     if data and data.Chances then
+        -- Extract brainrot names with rarity labels from all rarities
         for rarity, brainrots in pairs(data.Chances) do
             for name, _ in pairs(brainrots) do
                 local labeledName = "[" .. rarity .. "] " .. name
-                table.insert(allBrainrotNames, labeledName)
-                brainrotToRarityMap[labeledName] = rarity
+                table.insert(names, labeledName)
             end
         end
-        table.sort(allBrainrotNames)
+        table.sort(names) -- Sort alphabetically (empty string will be first)
     end
     
-    return allBrainrotNames, brainrotToRarityMap
+    return names
 end
 
 -- ================= BRAINROT SECTION =================
@@ -3913,12 +3897,11 @@ BrainrotSection:Space()
 
 -- Auto Sell by Name - Use shared brainrot data (no duplicate require)
 local allBrainrotNamesForSell = {}
-local brainrotToRarityMap = {}
 local sellByNameDropdown
 
 -- Load brainrot names asynchronously
 task.defer(function()
-    allBrainrotNamesForSell, brainrotToRarityMap = getBrainrotNamesWithRarity()
+    allBrainrotNamesForSell = getBrainrotNamesForMachines()
     if sellByNameDropdown and #allBrainrotNamesForSell > 0 then
         pcall(function()
             sellByNameDropdown:SetValues(allBrainrotNamesForSell)
@@ -3935,14 +3918,8 @@ sellByNameDropdown = BrainrotSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(selected)
-        -- Remove the [Rarity] prefix from selected names
-        sellBrainrotNames = {}
-        for _, labeledName in ipairs(selected) do
-            local name = labeledName:match("%] (.+)$")
-            if name then
-                table.insert(sellBrainrotNames, name)
-            end
-        end
+        -- Store selected names directly (no rarity prefix to remove)
+        sellBrainrotNames = selected
 
         if #sellBrainrotNames > 0 then
             WindUI:Notify({
