@@ -269,25 +269,50 @@ local AboutTab = Window:Tab({
 -- ================= GEAR SHOP =================
 local GearSection = GearTab:Section({ Title = "Gear Shop", Opened = true })
 
--- Fetch gear data from GearModule
+-- Function to fetch gear data from game module
+local function getGearListFromModule()
+    local gearList = {}
+    pcall(function()
+        local GearModule = require(game:GetService("ReplicatedStorage").SharedModules.GearModule)
+        
+        if GearModule and GearModule.GearNames then
+            -- Build gear array with cost and description
+            for _, gearName in ipairs(GearModule.GearNames) do
+                local cost = GearModule.Costs[gearName]
+                local desc = GearModule.Descriptions[gearName] or ""
+                
+                -- Only include items with a defined cost
+                if cost then
+                    table.insert(gearList, {
+                        name = gearName,
+                        cost = cost,
+                        description = desc,
+                        -- Format: "Name - $Cost (Description)"
+                        displayLabel = string.format("%s - $%s%s", 
+                            gearName, 
+                            tostring(cost),
+                            desc ~= "" and " (" .. desc .. ")" or "")
+                    })
+                end
+            end
+            
+            -- Sort by cost (cheapest first)
+            table.sort(gearList, function(a, b)
+                return a.cost < b.cost
+            end)
+        end
+    end)
+    return gearList
+end
+
+-- Get all available gear
+local allGears = getGearListFromModule()
 local gearOptions = {}
 local gearNameMapping = {} -- Maps display name to actual gear name
-pcall(function()
-    local GearModule = require(game:GetService("ReplicatedStorage").SharedModules.GearModule)
-    for gearName, gearData in pairs(GearModule) do
-        if type(gearData) == "table" and gearData.Cost then
-            local displayName = string.format("%s - $%s", gearName, tostring(gearData.Cost))
-            if gearData.Description then
-                displayName = displayName .. string.format(" (%s)", gearData.Description)
-            end
-            table.insert(gearOptions, displayName)
-            gearNameMapping[displayName] = gearName
-        end
-    end
-end)
-
--- Sort gear options alphabetically
-table.sort(gearOptions)
+for _, gear in ipairs(allGears) do
+    table.insert(gearOptions, gear.displayLabel)
+    gearNameMapping[gear.displayLabel] = gear.name
+end
 
 local selectedGears = {}
 
