@@ -3804,7 +3804,11 @@ local function loadBrainrotsData()
 end
 
 -- Get brainrot names for machine dropdowns (using cached data)
+local cachedBrainrotNames = nil
 local function getBrainrotNamesForMachines()
+    -- Return cached result if already processed
+    if cachedBrainrotNames then return cachedBrainrotNames end
+    
     local names = { "" }
     local data = loadBrainrotsData()
     
@@ -3815,8 +3819,18 @@ local function getBrainrotNamesForMachines()
         table.sort(names)
     end
     
+    cachedBrainrotNames = names
     return names
 end
+
+-- Preload brainrot data asynchronously in background (so it's cached before dropdowns are created)
+task.spawn(function()
+    loadBrainrotsData() -- Load raw data
+    getBrainrotNamesForMachines() -- Process and cache names array
+end)
+
+-- Brief delay to ensure preload completes (prevents lag from synchronous processing)
+task.wait(0.1)
 
 -- ================= BRAINROT SECTION =================
 local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
@@ -3901,14 +3915,8 @@ BrainrotSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(selected)
-        -- Strip [Rarity] prefix from selected names
-        sellBrainrotNames = {}
-        for _, labeledName in ipairs(selected) do
-            local plainName = stripRarityPrefix(labeledName)
-            if plainName ~= "" then
-                table.insert(sellBrainrotNames, plainName)
-            end
-        end
+        -- Store selected brainrot names
+        sellBrainrotNames = selected
 
         if #sellBrainrotNames > 0 then
             WindUI:Notify({
@@ -4442,13 +4450,6 @@ DefaultMachineSection:Input({
     end
 })
 
--- Helper function to strip [Rarity] prefix from brainrot names
-local function stripRarityPrefix(labeledName)
-    if not labeledName or labeledName == "" then return "" end
-    local name = labeledName:match("%] (.+)$") -- Match text after "] "
-    return name or labeledName -- Return original if no match
-end
-
 -- Get brainrot names once (called synchronously, uses cached data for subsequent calls)
 local AllBrainrotNames = getBrainrotNamesForMachines()
 
@@ -4462,7 +4463,7 @@ DefaultMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        machineBrainrot1 = stripRarityPrefix(option)
+        machineBrainrot1 = option or ""
     end
 })
 
@@ -4476,7 +4477,7 @@ DefaultMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        machineBrainrot2 = stripRarityPrefix(option)
+        machineBrainrot2 = option or ""
     end
 })
 
@@ -4490,7 +4491,7 @@ DefaultMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        machineBrainrot3 = stripRarityPrefix(option)
+        machineBrainrot3 = option or ""
     end
 })
 
@@ -4724,7 +4725,7 @@ ArcadeMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        arcadeBrainrot1 = stripRarityPrefix(option)
+        arcadeBrainrot1 = option or ""
     end
 })
 
@@ -4738,7 +4739,7 @@ ArcadeMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        arcadeBrainrot2 = stripRarityPrefix(option)
+        arcadeBrainrot2 = option or ""
     end
 })
 
@@ -4752,7 +4753,7 @@ ArcadeMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        arcadeBrainrot3 = stripRarityPrefix(option)
+        arcadeBrainrot3 = option or ""
     end
 })
 
@@ -5131,7 +5132,7 @@ ValentineMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        valentineBrainrot1 = stripRarityPrefix(option)
+        valentineBrainrot1 = option or ""
     end
 })
 
@@ -5145,7 +5146,7 @@ ValentineMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        valentineBrainrot2 = stripRarityPrefix(option)
+        valentineBrainrot2 = option or ""
     end
 })
 
@@ -5159,7 +5160,7 @@ ValentineMachineSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        valentineBrainrot3 = stripRarityPrefix(option)
+        valentineBrainrot3 = option or ""
     end
 })
 
