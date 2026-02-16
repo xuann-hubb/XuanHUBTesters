@@ -1471,8 +1471,15 @@ task.spawn(function()
                         for _, brainrotName in ipairs(rarityList) do
                             brainrotsToSell[brainrotName] = true
                         end
+                    else
+                        print("[DEBUG] No rarity list found for:", tostring(targetRarity))
                     end
                 end
+
+                -- quick debug: how many names in lookup
+                local lookupCount = 0
+                for _ in pairs(brainrotsToSell) do lookupCount = lookupCount + 1 end
+                print("[DEBUG] AutoSellByRarity active=", tostring(autoSellByRarity), "selected=", (type(sellRarities)=='table' and table.concat(sellRarities, ', ') or tostring(sellRarities)), "lookupCount=", lookupCount)
 
                 -- Scan backpack and sell matching brainrots
                 local soldCount = 0
@@ -1481,6 +1488,7 @@ task.spawn(function()
 
                     if tool:IsA("Tool") then
                         local brainrotName = tool:GetAttribute("BrainrotName")
+                        print("[DEBUG] Backpack Tool=", tool.Name, "BrainrotName=", tostring(brainrotName))
                         if brainrotName and brainrotsToSell[brainrotName] then
                             humanoid:EquipTool(tool)
                             task.wait(0.15)
@@ -3923,6 +3931,7 @@ BrainrotSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(selected)
         sellRarities = selected
+        print("[DEBUG] Dropdown set sellRarities =>", (type(selected) == 'table' and table.concat(selected, ', ') or tostring(selected)))
 
         if #selected > 0 then
             local rarityList = table.concat(selected, ", ")
