@@ -1449,6 +1449,8 @@ task.spawn(function()
                     end
                 end
 
+                -- Scan backpack and sell matching brainrots
+                local soldCount = 0
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoSellByRarity then break end
 
@@ -1458,14 +1460,27 @@ task.spawn(function()
                             humanoid:EquipTool(tool)
                             task.wait(0.15)
 
-
-                            pcall(function()
+                            local sellSuccess = pcall(function()
                                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
                                     :WaitForChild("SellTool"):InvokeServer()
                             end)
+                            
+                            if sellSuccess then
+                                soldCount = soldCount + 1
+                            end
                             task.wait(0.2)
                         end
                     end
+                end
+                
+                -- Debug output every 10 seconds
+                if soldCount > 0 then
+                    WindUI:Notify({
+                        Title = "Auto Sell",
+                        Content = string.format("Sold %d brainrot(s)", soldCount),
+                        Icon = "check",
+                        Duration = 2,
+                    })
                 end
             end)
             task.wait(1)
