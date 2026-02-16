@@ -437,11 +437,25 @@ local function getGearListFromModule()
     return gearList, gearNameMapping
 end
 
--- Get all available gear
-local allGears, gearNameMapping = getGearListFromModule()
+-- Get all available gear (lazy-loaded via button to avoid startup hangs)
+local allGears, gearNameMapping = {}, {}
 local selectedGears = {}
 
-GearSection:Dropdown({
+GearSection:Button({
+    Title = "Load Gear Shop",
+    Desc = "Load gear list into the dropdown",
+    Icon = "download",
+    Callback = function()
+        local list, mapping = getGearListFromModule()
+        allGears, gearNameMapping = list or {}, mapping or {}
+        if GearDropdown then
+            GearDropdown:Refresh(allGears)
+        end
+        WindUI:Notify({ Title = "Gear Shop", Content = string.format("Loaded %d gear(s)", #allGears), Icon = "check", Duration = 2 })
+    end
+})
+
+local GearDropdown = GearSection:Dropdown({
     Title = "Select Gear to Buy",
     Desc = "Select one or more gears to purchase",
     Values = allGears,
