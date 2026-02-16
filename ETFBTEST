@@ -3952,6 +3952,7 @@ BrainrotSection:Toggle({
     Icon = "check",
     Value = false,
     Callback = function(state)
+        print("[DEBUG] Toggle AutoSellByRarity pressed ->", tostring(state), "current sellRarities=", (type(sellRarities)=='table' and table.concat(sellRarities, ', ') or tostring(sellRarities)))
         autoSellByRarity = state
 
         if state then
@@ -3962,6 +3963,7 @@ BrainrotSection:Toggle({
                     Icon = "alert-triangle",
                     Duration = 3,
                 })
+                print("[DEBUG] Toggle blocked because sellRarities is empty")
                 autoSellByRarity = false
             else
                 WindUI:Notify({
@@ -3970,7 +3972,10 @@ BrainrotSection:Toggle({
                     Icon = "check",
                     Duration = 3,
                 })
+                print("[DEBUG] AutoSellByRarity enabled — will sell: ", table.concat(sellRarities, ', '))
             end
+        else
+            print("[DEBUG] AutoSellByRarity disabled by user")
         end
     end
 })
