@@ -3989,12 +3989,22 @@ end
 -- ================= BRAINROT SECTION =================
 local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
 
--- Get rarities from hardcoded data
+-- Get rarities dynamically from BrainrotData.Chances to ensure consistency
 local function getRarities()
-    local rarities = {
-        "Common", "Uncommon", "Rare", "Epic", "Legendary", 
-        "Mythical", "Cosmic", "Secret", "Celestial", "Divine", "Infinity"
-    }
+    local rarities = {}
+    for rarity, _ in pairs(BrainrotData.Chances) do
+        table.insert(rarities, rarity)
+    end
+    -- Sort for consistent display order
+    table.sort(rarities, function(a, b)
+        local order = {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial", "Divine", "Infinity"}
+        local aIndex, bIndex = 999, 999
+        for i, v in ipairs(order) do
+            if v == a then aIndex = i end
+            if v == b then bIndex = i end
+        end
+        return aIndex < bIndex
+    end)
     return rarities
 end
 
