@@ -466,6 +466,39 @@ local State = {
     autoTeleportByRarityTarget = "Common",
 }
 
+-- Module-level variables for loops (set by UI callbacks)
+autoSellByRarity = false
+sellRarities = {}
+autoSellByName = false
+sellBrainrotNames = {}
+autoUpgradeBase = false
+autoUpgradeCarry = false
+autoUpgradeSpeed = false
+upgradeSpeedAmount = 1
+autoUpgradeJump = false
+autoRebirth = false
+autoObby = false
+collectingMoney = false
+autoCollectRadioactive = false
+autoCollectUFO = false
+autoCollectGoldBar = false
+autoCollectGameConsole = false
+autoCollectArcadeTicket = false
+autoSpinArcadeWheel = false
+autoCollectCandy = false
+autoCollectValentinesCoin = false
+autoSpinValentinesWheel = false
+autoSpinUFO = false
+autoSpinMoneyWheel = false
+spinning = false
+active = false
+PullDelay = 0.1
+HeightOffset = 3
+autoCompleteMoneyObby = false
+autoRejoinAfterMoneyObby = false
+autoUpgradeBrainrot = false
+upgradeBrainrotTargets = {}
+
 -- Global machine flags
 _G.ArcadeAutoSubmitActive = false
 _G.ValentineAutoSubmitActive = false
@@ -1430,21 +1463,13 @@ task.spawn(function()
                 local humanoid = character:FindFirstChild("Humanoid")
                 if not humanoid then return end
 
-                -- Build list of brainrots to sell from selected rarities (using cached data)
+                -- Build list of brainrots to sell from selected rarities
                 local brainrotsToSell = {}
-                local data = loadBrainrotsData()
-                
-                if data and data.Chances then
-                    for rarity, brainrots in pairs(data.Chances) do
-                        -- Check if this rarity is in the sellRarities list
-                        for _, targetRarity in ipairs(sellRarities) do
-                            if rarity == targetRarity then
-                                -- Add all brainrots from this rarity to the sell list (now array format)
-                                for _, brainrotName in ipairs(brainrots) do
-                                    brainrotsToSell[brainrotName] = true
-                                end
-                                break
-                            end
+                for _, targetRarity in ipairs(sellRarities) do
+                    local rarityList = BrainrotData.Chances[targetRarity]
+                    if rarityList then
+                        for _, brainrotName in ipairs(rarityList) do
+                            brainrotsToSell[brainrotName] = true
                         end
                     end
                 end
@@ -1473,7 +1498,7 @@ task.spawn(function()
                     end
                 end
                 
-                -- Debug output every 10 seconds
+                -- Notify on successful sells
                 if soldCount > 0 then
                     WindUI:Notify({
                         Title = "Auto Sell",
