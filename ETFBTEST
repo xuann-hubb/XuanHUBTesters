@@ -1471,49 +1471,27 @@ task.spawn(function()
                         for _, brainrotName in ipairs(rarityList) do
                             brainrotsToSell[brainrotName] = true
                         end
-                    else
-                        print("[DEBUG] No rarity list found for:", tostring(targetRarity))
                     end
                 end
 
-                -- quick debug: how many names in lookup
-                local lookupCount = 0
-                for _ in pairs(brainrotsToSell) do lookupCount = lookupCount + 1 end
-                print("[DEBUG] AutoSellByRarity active=", tostring(autoSellByRarity), "selected=", (type(sellRarities)=='table' and table.concat(sellRarities, ', ') or tostring(sellRarities)), "lookupCount=", lookupCount)
 
-                -- Scan backpack and sell matching brainrots
-                local soldCount = 0
                 for _, tool in ipairs(backpack:GetChildren()) do
                     if not autoSellByRarity then break end
 
                     if tool:IsA("Tool") then
                         local brainrotName = tool:GetAttribute("BrainrotName")
-                        print("[DEBUG] Backpack Tool=", tool.Name, "BrainrotName=", tostring(brainrotName))
                         if brainrotName and brainrotsToSell[brainrotName] then
                             humanoid:EquipTool(tool)
                             task.wait(0.15)
 
-                            local sellSuccess = pcall(function()
+
+                            pcall(function()
                                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions")
                                     :WaitForChild("SellTool"):InvokeServer()
                             end)
-                            
-                            if sellSuccess then
-                                soldCount = soldCount + 1
-                            end
                             task.wait(0.2)
                         end
                     end
-                end
-                
-                -- Notify on successful sells
-                if soldCount > 0 then
-                    WindUI:Notify({
-                        Title = "Auto Sell",
-                        Content = string.format("Sold %d brainrot(s)", soldCount),
-                        Icon = "check",
-                        Duration = 2,
-                    })
                 end
             end)
             task.wait(1)
