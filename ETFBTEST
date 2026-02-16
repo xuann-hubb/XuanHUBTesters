@@ -1451,6 +1451,23 @@ task.spawn(function()
     end
 end)
 
+-- ================= BRAINROT DATA (UPDATED) =================
+-- Simple rarity-to-brainrot mapping (update this list when new brainrots are added)
+local BrainrotsByRarity = {
+    Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
+    Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
+    Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
+    Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
+    Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
+    Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
+    Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh", "Gatti Marshmallini" },
+    Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini", "Sausaggini Sanitario", "Marietti Frigo", "Tartarughi Attrezzini", "Kissarini Heartini" },
+    Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini", "Polpo Semaforini", "Cioccolatone Draghettone" },
+    Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero", "Rubichetto Cubini", "Glacierello Infernetti", "Freezeti Cobretti", "Biscotti Macarotti", "Cupitron Consoletron" },
+    Infinity = { "Noobini Infeeny", "Anububu", "Meta Technetta" },
+}
+
+
 -- Auto Sell by Rarity Loop
 task.spawn(function()
     while scriptRunning do
@@ -3856,21 +3873,6 @@ local AutoRebirthToggle = AutoSection:Toggle({
 
 AutoSection:Space()
 
--- ================= BRAINROT DATA (UPDATED) =================
--- Simple rarity-to-brainrot mapping (update this list when new brainrots are added)
-local BrainrotsByRarity = {
-    Common = { "Noobini Cakenini", "Lirili Larila", "Tim Cheese", "Frulli Frulla", "Talpa Di Fero", "Svinino Bombondino", "Pipi Kiwi", "Pipi Corni" },
-    Uncommon = { "Trippi Troppi", "Gangster Footera", "Bobrito Bandito", "Boneca Ambalabu", "Cacto Hipopotamo", "Ta Ta Ta Sahur", "Tric Tric Baraboom", "Pipi Avocado", "67" },
-    Rare = { "Cappuccino Assassino", "Brr Brr Patapim", "Trulimero Trulicina", "Bambini Crostini", "Bananita Dolphinita", "Perochello Lemonchello", "Avocadini Guffo", "Salamino Penguino", "Penguino Cocosino", "Ti Ti Ti Sahur" },
-    Epic = { "Burbaloni Luliloli", "Chimpanzini Bananini", "Ballerina Cappuccina", "Chef Crabracadabra", "Lionel Cactuseli", "Glorbo Fruttodrillo", "Blueberrinni Octopussini", "Strawberrelli Flamingelli", "Pandaccini Bananini", "Sigma Boy", "Pi Pi Watermelon", "Cocosini Mama", "Guesto Angelic" },
-    Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
-    Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
-    Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh", "Gatti Marshmallini" },
-    Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini", "Sausaggini Sanitario", "Marietti Frigo", "Tartarughi Attrezzini", "Kissarini Heartini" },
-    Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini", "Polpo Semaforini", "Cioccolatone Draghettone" },
-    Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero", "Rubichetto Cubini", "Glacierello Infernetti", "Freezeti Cobretti", "Biscotti Macarotti", "Cupitron Consoletron" },
-    Infinity = { "Noobini Infeeny", "Anububu", "Meta Technetta" },
-}
 
 -- Get brainrot names for machine dropdowns
 local cachedBrainrotNames = nil
