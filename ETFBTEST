@@ -268,34 +268,172 @@ local AboutTab = Window:Tab({
 -- ================= GEAR SHOP =================
 local GearSection = GearTab:Section({ Title = "Gear Shop", Opened = true })
 
--- Function to fetch gear data from game module
+-- Local gear shop data (use this to avoid requiring the game's module at runtime)
+local gearShop = {
+	["GearNames"] = {
+		"Metal Coil",
+		"Slap Hand",
+		"Lightning Coil",
+		"Blood Slap Hand",
+		"Ice Coil",
+		"Poison Slap Hand",
+		"Flame Coil",
+		"Dark Slap Hand",
+		"Poison Coil",
+		"Ice Slap Hand",
+		"Blood Coil",
+		"Flame Slap Hand",
+		"Dark Coil",
+		"Cosmic Slap Hand",
+		"Rainbow Coil",
+		"Glitch Slap Hand",
+		"Twin Coil",
+		"Lightning Slap Hand",
+		"Rainbow Slap Hand",
+		"Freeze Ray",
+		"Invisibility Cloak",
+		"Laser Gun",
+		"Galaxy Bat",
+		"Basic Bat",
+		"Wave Shield",
+		"Bat",
+		"BIG Rainbow Slap Hand",
+		"Green Light Megaphone",
+		"Rainbow Magic Carpet",
+		"Trident"
+	},
+	["Descriptions"] = {
+		["Metal Coil"] = "+10% Speed",
+		["Slap Hand"] = "+5% Power",
+		["Lightning Coil"] = "+20% Speed",
+		["Blood Slap Hand"] = "+10% Power",
+		["Ice Coil"] = "+30% Speed",
+		["Poison Slap Hand"] = "+15% Power",
+		["Flame Coil"] = "+40% Speed",
+		["Dark Slap Hand"] = "+20% Power",
+		["Poison Coil"] = "+50% Speed",
+		["Ice Slap Hand"] = "+25% Power",
+		["Blood Coil"] = "+65% Speed",
+		["Flame Slap Hand"] = "+30% Power",
+		["Dark Coil"] = "+80% Speed",
+		["Cosmic Slap Hand"] = "+35% Power",
+		["Rainbow Coil"] = "+100% Speed",
+		["Glitch Slap Hand"] = "+40% Power",
+		["Twin Coil"] = "+120% Speed",
+		["Lightning Slap Hand"] = "+45% Power",
+		["Rainbow Slap Hand"] = "+50% Power",
+		["Freeze Ray"] = "Freeze players",
+		["Invisibility Cloak"] = "Be invisible",
+		["Laser Gun"] = "Fling players",
+		["Galaxy Bat"] = "Cash Multiplier",
+		["Basic Bat"] = "The basic bat",
+		["Wave Shield"] = "Get ragdolled if hit by waves",
+		["Bat"] = "A mutated bat!",
+		["BIG Rainbow Slap Hand"] = "",
+		["Green Light Megaphone"] = "",
+		["Rainbow Magic Carpet"] = "",
+		["Trident"] = "Shoot a mini wave!"
+	},
+	["Costs"] = {
+		["Metal Coil"] = 500,
+		["Slap Hand"] = 1000,
+		["Lightning Coil"] = 5000,
+		["Blood Slap Hand"] = 25000,
+		["Ice Coil"] = 50000,
+		["Poison Slap Hand"] = 100000,
+		["Flame Coil"] = 250000,
+		["Dark Slap Hand"] = 500000,
+		["Poison Coil"] = 1000000,
+		["Ice Slap Hand"] = 3000000,
+		["Blood Coil"] = 10000000,
+		["Flame Slap Hand"] = 25000000,
+		["Dark Coil"] = 50000000,
+		["Cosmic Slap Hand"] = 100000000,
+		["Rainbow Coil"] = 150000000,
+		["Glitch Slap Hand"] = 300000000,
+		["Twin Coil"] = 500000000,
+		["Lightning Slap Hand"] = 750000000,
+		["Rainbow Slap Hand"] = 1000000000,
+		["Freeze Ray"] = 2500000000,
+		["Invisibility Cloak"] = 5000000000,
+		["Laser Gun"] = 10000000000
+	},
+	["IconIDs"] = {
+		["Metal Coil"] = 85798561547243,
+		["Slap Hand"] = 76979732732065,
+		["Lightning Coil"] = 77983606202892,
+		["Blood Slap Hand"] = 116402512485925,
+		["Ice Coil"] = 114056432462175,
+		["Poison Slap Hand"] = 114724622409595,
+		["Flame Coil"] = 111880281856457,
+		["Dark Slap Hand"] = 82132025234886,
+		["Poison Coil"] = 112261035697704,
+		["Ice Slap Hand"] = 85359683661843,
+		["Blood Coil"] = 138486306829721,
+		["Flame Slap Hand"] = 74081111310407,
+		["Dark Coil"] = 138917729213952,
+		["Cosmic Slap Hand"] = 81693414611645,
+		["Rainbow Coil"] = 80505582605424,
+		["Glitch Slap Hand"] = 130243871642722,
+		["Twin Coil"] = 137923105546413,
+		["Lightning Slap Hand"] = 76195019068029,
+		["Rainbow Slap Hand"] = 79661774384004,
+		["Freeze Ray"] = 119957553974380,
+		["Invisibility Cloak"] = 98289456139228,
+		["Laser Gun"] = 97850392972040,
+		["Galaxy Bat"] = 85815965209830,
+		["Basic Bat"] = 14434989783,
+		["BIG Rainbow Slap Hand"] = 79661774384004,
+		["Green Light Megaphone"] = 85049285168293,
+		["Rainbow Magic Carpet"] = 223080070,
+		["Wave Shield"] = 75615672416500,
+		["Trident"] = 103093762676359,
+		["Bat#Admin"] = 131406578534874,
+		["Bat#Blood"] = 127181031078521,
+		["Bat#Diamond"] = 121464546843561,
+		["Bat#Electric"] = 128846904597740,
+		["Bat#Emerald"] = 114687030117609,
+		["Bat#Gold"] = 92707664984673,
+		["Bat#Money"] = 136154208030685,
+		["Bat#Toxic"] = 82725857337987,
+		["Bat#Radioactive"] = 82725857337987,
+		["Bat#Gamer"] = 120274446838583,
+		["Bat#Candy"] = 116241724294207,
+		["Wave Shield#Admin"] = 75615672416500,
+		["Wave Shield#Blood"] = 75615672416500,
+		["Wave Shield#Diamond"] = 75615672416500,
+		["Wave Shield#Electric"] = 75615672416500,
+		["Wave Shield#Emerald"] = 75615672416500,
+		["Wave Shield#Gold"] = 75615672416500,
+		["Wave Shield#Money"] = 75615672416500,
+		["Wave Shield#Toxic"] = 75615672416500,
+		["Wave Shield#Radioactive"] = 75615672416500,
+		["Wave Shield#Candy"] = 132232278564949,
+		["__PLUS_BUTTON"] = 72773973290770
+	},
+	["SpawnableGearMutations"] = {
+		["Bat"] = true,
+		["Wave Shield"] = true
+	}
+}
+
+-- Function to fetch gear data from the local gearShop table (no require)
 local function getGearListFromModule()
     local gearList = {}
     local gearNameMapping = {}
-    
-    pcall(function()
-        local GearModule = require(game:GetService("ReplicatedStorage").SharedModules.GearModule)
-        
-        if GearModule and GearModule.GearNames then
-            -- Build gear array with cost and description
-            for _, gearName in ipairs(GearModule.GearNames) do
-                local cost = GearModule.Costs[gearName]
-                local desc = GearModule.Descriptions[gearName] or ""
-                
-                -- Only include items with a defined cost
-                if cost then
-                    local displayLabel = string.format("%s - $%s%s", 
-                        gearName, 
-                        tostring(cost),
-                        desc ~= "" and " (" .. desc .. ")" or "")
-                    
-                    table.insert(gearList, displayLabel)
-                    gearNameMapping[displayLabel] = gearName
-                end
+
+    if gearShop and gearShop.GearNames then
+        for _, gearName in ipairs(gearShop.GearNames) do
+            local cost = (gearShop.Costs and gearShop.Costs[gearName])
+            local desc = ((gearShop.Descriptions and gearShop.Descriptions[gearName]) or "")
+            if cost then
+                local displayLabel = string.format("%s - $%s%s", gearName, tostring(cost), desc ~= "" and " (" .. desc .. ")" or "")
+                table.insert(gearList, displayLabel)
+                gearNameMapping[displayLabel] = gearName
             end
         end
-    end)
-    
+    end
+
     return gearList, gearNameMapping
 end
 
