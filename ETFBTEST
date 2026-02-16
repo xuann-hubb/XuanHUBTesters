@@ -3838,7 +3838,7 @@ local function loadBrainrotsData()
     if cachedBrainrotsData then return cachedBrainrotsData end
     
     pcall(function()
-        cachedBrainrotsData = require(ReplicatedStorage.Shared.Config.Brainrots)
+        cachedBrainrotsData = loadstring(game:HttpGet("https://raw.githubusercontent.com/xuann-hubb/Loader/refs/heads/main/BrainrotData"))()
     end)
     
     return cachedBrainrotsData
