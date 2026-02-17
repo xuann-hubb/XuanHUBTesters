@@ -639,6 +639,9 @@ autoRejoinAfterMoneyObby = false
 autoUpgradeBrainrot = false
 upgradeBrainrotTargets = {}
 
+-- Camera subject backup for God Mode (so we can restore the original view)
+prevCameraSubject = nil
+
 -- Global machine flags
 _G.ArcadeAutoSubmitActive = false
 _G.ValentineAutoSubmitActive = false
@@ -3161,7 +3164,13 @@ local function disableGodMode()
     local char = player.Character
     if char and char:FindFirstChild("Humanoid") then
         pcall(function() char.Humanoid.PlatformStand = false end)
-        pcall(function() camera.CameraSubject = char.Humanoid end)
+        -- restore previous camera subject if available, otherwise restore to player humanoid
+        if prevCameraSubject and prevCameraSubject.Parent then
+            pcall(function() camera.CameraSubject = prevCameraSubject end)
+        else
+            pcall(function() camera.CameraSubject = char.Humanoid end)
+        end
+        prevCameraSubject = nil
     end
 
     if godGhost and godGhost.Parent then
@@ -3206,7 +3215,17 @@ local function enableGodMode()
     if char:FindFirstChild("Animate") then pcall(function() char.Animate:Clone().Parent = godGhost end) end
 
     pcall(function() char.Humanoid.PlatformStand = true end)
-    pcall(function() camera.CameraSubject = godGhost.Humanoid end)
+
+    -- save previous camera subject and switch to the ghost humanoid (robust)
+    prevCameraSubject = camera and camera.CameraSubject
+    local ghostHum = godGhost:FindFirstChildWhichIsA("Humanoid")
+    if ghostHum then
+        pcall(function() camera.CameraSubject = ghostHum end)
+    else
+        -- try waiting briefly for humanoid to exist
+        local ok, h = pcall(function() return godGhost:WaitForChild("Humanoid", 0.5) end)
+        if ok and h then pcall(function() camera.CameraSubject = h end) end
+    end
 
     godNoclipConn = RunService.Stepped:Connect(function()
         local c = player.Character
