@@ -3148,50 +3148,51 @@ local god_lastPromptUpdate = 0
 local function disableGodMode()
     if not godmodeActive then return end
     godmodeActive = false
-    savedSettings.godMode = false; pcall(saveSettings, savedSettings)
-
+    savedSettings.godMode = false
+    pcall(saveSettings, savedSettings)
+    
     if godHeartbeatConn then godHeartbeatConn:Disconnect(); godHeartbeatConn = nil end
     if godNoclipConn then godNoclipConn:Disconnect(); godNoclipConn = nil end
     if godDeathConn then godDeathConn:Disconnect(); godDeathConn = nil end
-
+    
     local char = player.Character
     if char then
         local root = char:FindFirstChild("HumanoidRootPart")
-        if root and godGhost and godGhost:FindFirstChild("HumanoidRootPart") then
-            pcall(function() root.CFrame = godGhost.HumanoidRootPart.CFrame end)
-        end
-        if char:FindFirstChild("Humanoid") then
-            pcall(function() char.Humanoid.PlatformStand = false end)
-            if prevCameraSubject and prevCameraSubject.Parent then
-                pcall(function() camera.CameraSubject = prevCameraSubject end)
-            else
-                pcall(function() camera.CameraSubject = char.Humanoid end)
+        if root and godGhost then
+            local ghostRoot = godGhost:FindFirstChild("HumanoidRootPart")
+            if ghostRoot then
+                root.CFrame = ghostRoot.CFrame
             end
         end
+        if char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+            camera.CameraSubject = char.Humanoid
+        end
     end
-    prevCameraSubject = nil
-
-    if godGhost then godGhost:Destroy(); godGhost = nil end
+    
+    if godGhost then
+        godGhost:Destroy()
+        godGhost = nil
+    end
+    
     WindUI:Notify({ Title = "God Mode", Content = "Disabled", Icon = "info", Duration = 2 })
 end
 
 local function enableGodMode()
     if godmodeActive then return end
     local char = player.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then
-        WindUI:Notify({ Title = "God Mode", Content = "Character not ready", Icon = "alert-triangle", Duration = 2 })
-        return
-    end
-
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
     godmodeActive = true
-    savedSettings.godMode = true; pcall(saveSettings, savedSettings)
-
+    savedSettings.godMode = true
+    pcall(saveSettings, savedSettings)
+    
     char.Archivable = true
     godGhost = char:Clone()
     godGhost.Name = "GhostDecoy"
     godGhost.Parent = workspace
     char.Archivable = false
-
+    
     for _, v in pairs(godGhost:GetDescendants()) do
         if v:IsA("BasePart") then
             if v.Name:lower():find("root") or v.Name:lower():find("collision") then
@@ -3202,68 +3203,52 @@ local function enableGodMode()
             v.CanCollide = true
         end
     end
-    if char:FindFirstChild("Animate") then pcall(function() char.Animate:Clone().Parent = godGhost end) end
-
-    pcall(function() char.Humanoid.PlatformStand = true end)
-
-    prevCameraSubject = camera.CameraSubject
-    local ghostHum = godGhost:FindFirstChildWhichIsA("Humanoid")
-    if ghostHum then
-        pcall(function() camera.CameraSubject = ghostHum end)
+    
+    if char:FindFirstChild("Animate") then
+        char.Animate:Clone().Parent = godGhost
     end
-
+    
+    char.Humanoid.PlatformStand = true
+    camera.CameraSubject = godGhost.Humanoid
+    
     godNoclipConn = RunService.Stepped:Connect(function()
-        if player.Character then
-            for _, v in pairs(player.Character:GetChildren()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
-            end
-        end
-    end)
-
-    godHeartbeatConn = RunService.Heartbeat:Connect(function()
-        if not godGhost or not char or not char:FindFirstChild("HumanoidRootPart") then
-            disableGodMode(); return
-        end
-
-        local current_char = player.Character
-        if not current_char or not current_char:FindFirstChild("Humanoid") then
-            disableGodMode(); return
-        end
-
-        local moveDir = current_char.Humanoid.MoveDirection
-        local ghostHumanoid = godGhost:FindFirstChild("Humanoid")
-        if ghostHumanoid then
-            pcall(function()
-                ghostHumanoid:Move(moveDir, false)
-                ghostHumanoid.Jump = current_char.Humanoid.Jump
-            end)
-        end
-
-        local ghostHRP = godGhost:FindFirstChild("HumanoidRootPart")
-        if moveDir.Magnitude > 0 and ghostHRP then
-            local targetRot = CFrame.lookAt(ghostHRP.Position, ghostHRP.Position + moveDir)
-            ghostHRP.CFrame = ghostHRP.CFrame:Lerp(targetRot, 0.25)
-        end
-
-        if tick() - god_lastPromptUpdate > 0.5 then
-            for _, p in pairs(workspace:GetDescendants()) do
-                if p:IsA("ProximityPrompt") then
-                    p.MaxActivationDistance = 25
-                    p.RequiresLineOfSight = false
+        if char then
+            for _, v in pairs(char:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
                 end
             end
-            god_lastPromptUpdate = tick()
-        end
-
-        local charHRP = current_char:FindFirstChild("HumanoidRootPart")
-        if ghostHRP and charHRP then
-            pcall(function()
-                charHRP.CFrame = ghostHRP.CFrame * CFrame.new(0, -15, 0)
-                charHRP.Velocity = Vector3.zero
-            end)
         end
     end)
-
+    
+    godHeartbeatConn = RunService.Heartbeat:Connect(function()
+        if godGhost and char:FindFirstChild("HumanoidRootPart") then
+            local moveDir = char.Humanoid.MoveDirection
+            godGhost.Humanoid:Move(moveDir, false)
+            godGhost.Humanoid.Jump = char.Humanoid.Jump
+            
+            if moveDir.Magnitude > 0 then
+                local targetRot = CFrame.lookAt(godGhost.HumanoidRootPart.Position, godGhost.HumanoidRootPart.Position + moveDir)
+                godGhost.HumanoidRootPart.CFrame = godGhost.HumanoidRootPart.CFrame:Lerp(targetRot, 0.25)
+            end
+            
+            if tick() - god_lastPromptUpdate > 0.5 then
+                for _, p in pairs(workspace:GetDescendants()) do
+                    if p:IsA("ProximityPrompt") then
+                        p.MaxActivationDistance = 25
+                        p.RequiresLineOfSight = false
+                    end
+                end
+                god_lastPromptUpdate = tick()
+            end
+            
+            char.HumanoidRootPart.CFrame = godGhost.HumanoidRootPart.CFrame * CFrame.new(0, -15, 0)
+            char.HumanoidRootPart.Velocity = Vector3.zero
+        else
+            disableGodMode()
+        end
+    end)
+    
     godDeathConn = char.Humanoid.Died:Connect(disableGodMode)
     WindUI:Notify({ Title = "God Mode", Content = "Enabled", Icon = "check", Duration = 2 })
 end
