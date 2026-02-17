@@ -95,8 +95,6 @@ local defaultSettings = {
     -- Auto Remove VIP Walls
     autoRemoveVIPWalls = false,
     sellRarities = {},
-    -- God Mode (decoy + noclip)
-    godMode = false,
 }
 
 local function loadSettings()
@@ -3230,13 +3228,16 @@ _G.XuanHub_DisableGodMode = disableGodMode
 -- Lightweight God Mode GUI (open from Utilities)
 
 
-UtilitiesSection:Toggle({
+UtilitiesSection:Button({
     Title = "God Mode",
-    Desc = "GOD MOOOOOOOOOOD",
-    Icon = "shield-check",
-    Value = savedSettings.godMode,
-    Callback = function(state)
-        if state then enableGodMode() else disableGodMode() end
+    Desc = "Toggle God Mode on/off",
+    Locked = false,
+    Callback = function()
+        if not isGodmode then
+            enableGodMode()
+        else
+            disableGodMode()
+        end
     end
 })
 
@@ -4617,11 +4618,6 @@ task.spawn(function()
     -- Apply Auto Spin Valentines Wheel
     if savedSettings.autoSpinValentinesWheel then
         autoSpinValentinesWheel = true
-    end
-
-    -- Apply God Mode
-    if savedSettings.godMode then
-        enableGodMode()
     end
 
     -- Apply Unlock Zoom
