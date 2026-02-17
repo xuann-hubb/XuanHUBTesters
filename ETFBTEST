@@ -3145,6 +3145,13 @@ local god_lastPromptUpdate = 0
 local function disableGodMode()
     if not godmodeActive then return end
     godmodeActive = false
+    -- sync GUI button (if present)
+    if godModeButton then
+        pcall(function()
+            godModeButton.Text = "Godmode: OFF"
+            godModeButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        end)
+    end
     savedSettings.godMode = false; pcall(saveSettings, savedSettings)
 
     if godHeartbeatConn then godHeartbeatConn:Disconnect(); godHeartbeatConn = nil end
@@ -3254,9 +3261,20 @@ end
 _G.XuanHub_EnableGodMode = enableGodMode
 _G.XuanHub_DisableGodMode = disableGodMode
 
+-- Re-apply god mode automatically on respawn if setting is enabled
+player.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    if savedSettings.godMode then
+        pcall(enableGodMode)
+    end
+end)
+
+-- Lightweight God Mode GUI (open from Utilities)
+
+
 UtilitiesSection:Toggle({
     Title = "God Mode",
-    Desc = "Enable decoy + noclip (persists)",
+    Desc = "GOD MOOOOOOOOOOD",
     Icon = "shield-check",
     Value = savedSettings.godMode,
     Callback = function(state)
@@ -3264,6 +3282,8 @@ UtilitiesSection:Toggle({
         savedSettings.godMode = state; saveSettings(savedSettings)
     end
 })
+
+
 
 -- Wider hitbox helpers
 local RunService = game:GetService("RunService")
