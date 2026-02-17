@@ -639,9 +639,6 @@ autoRejoinAfterMoneyObby = false
 autoUpgradeBrainrot = false
 upgradeBrainrotTargets = {}
 
--- Camera subject backup for God Mode (so we can restore the original view)
-prevCameraSubject = nil
-
 -- Global machine flags
 _G.ArcadeAutoSubmitActive = false
 _G.ValentineAutoSubmitActive = false
@@ -3148,8 +3145,6 @@ local god_lastPromptUpdate = 0
 local function disableGodMode()
     if not godmodeActive then return end
     godmodeActive = false
-    savedSettings.godMode = false
-    pcall(saveSettings, savedSettings)
     
     if godHeartbeatConn then godHeartbeatConn:Disconnect(); godHeartbeatConn = nil end
     if godNoclipConn then godNoclipConn:Disconnect(); godNoclipConn = nil end
@@ -3184,8 +3179,6 @@ local function enableGodMode()
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     
     godmodeActive = true
-    savedSettings.godMode = true
-    pcall(saveSettings, savedSettings)
     
     char.Archivable = true
     godGhost = char:Clone()
@@ -3275,7 +3268,6 @@ UtilitiesSection:Toggle({
     Value = savedSettings.godMode,
     Callback = function(state)
         if state then enableGodMode() else disableGodMode() end
-        savedSettings.godMode = state; saveSettings(savedSettings)
     end
 })
 
