@@ -3221,9 +3221,7 @@ local function disableGodMode()
     end
 end
 
--- Expose globals for console / auto-reapply
-_G.XuanHub_EnableGodMode = enableGodMode
-_G.XuanHub_DisableGodMode = disableGodMode
+
 
 -- Lightweight God Mode GUI (open from Utilities)
 
