@@ -3171,11 +3171,7 @@ local function enableGodMode()
         
         for _, v in pairs(ghostClone:GetDescendants()) do
             if v:IsA("BasePart") then
-                if v.Name:lower():find("root") or v.Name:lower():find("collision") then
-                    v.Transparency = 0.5 
-                else
-                    v.Transparency = 0
-                end
+                v.Transparency = 1
                 v.CanCollide = true
             end
         end
