@@ -1,3 +1,10 @@
+-- ================= XUAN HUB GUI (WindUI Version) =================
+-- Disabled PlaceId check for testing
+-- if game.PlaceId ~= 131623223084840 then
+--     game:GetService("Players").LocalPlayer:Kick("Xuan Hub not supported this game!")
+--     return
+-- end
+
 print("--===== XUAN HUB LOADED (WindUI) =====--")
 
 local Players = game:GetService("Players")
@@ -1195,14 +1202,11 @@ task.spawn(function()
                                     -- Check if notification contains candy submission message
                                     if text:find("candies") or text:find("submit your current candies first") then
                                         -- Teleport to CandyGramStation.Main and fire ProximityPrompt instantly
-                                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                                         local station = workspace:FindFirstChild("ValentinesMap")
                                             and workspace.ValentinesMap:FindFirstChild("CandyGramStation")
-                                        if hrp and station then
+                                        if station then
                                             local main = station:FindFirstChild("Main")
                                             if main then
-                                                hrp.CFrame = main.CFrame + Vector3.new(0, 3, 0)
-                                                task.wait(0.2)
                                                 local prompt = main:FindFirstChild("Prompts")
                                                     and main.Prompts:FindFirstChild("ProximityPrompt")
                                                 if prompt then
