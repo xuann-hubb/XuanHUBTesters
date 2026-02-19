@@ -262,151 +262,151 @@ local GearSection = GearTab:Section({ Title = "Gear Shop", Opened = true })
 
 -- Local gear shop data (use this to avoid requiring the game's module at runtime)
 local gearShop = {
-	["GearNames"] = {
-		"Metal Coil",
-		"Slap Hand",
-		"Lightning Coil",
-		"Blood Slap Hand",
-		"Ice Coil",
-		"Poison Slap Hand",
-		"Flame Coil",
-		"Dark Slap Hand",
-		"Poison Coil",
-		"Ice Slap Hand",
-		"Blood Coil",
-		"Flame Slap Hand",
-		"Dark Coil",
-		"Cosmic Slap Hand",
-		"Rainbow Coil",
-		"Glitch Slap Hand",
-		"Twin Coil",
-		"Lightning Slap Hand",
-		"Rainbow Slap Hand",
-		"Freeze Ray",
-		"Invisibility Cloak",
-		"Laser Gun",
-		"Galaxy Bat",
-		"Basic Bat",
-		"Wave Shield",
-		"Bat",
-		"BIG Rainbow Slap Hand",
-		"Green Light Megaphone",
-		"Rainbow Magic Carpet",
-		"Trident"
-	},
-	["Descriptions"] = {
-		["Metal Coil"] = "+10% Speed",
-		["Slap Hand"] = "+5% Power",
-		["Lightning Coil"] = "+20% Speed",
-		["Blood Slap Hand"] = "+10% Power",
-		["Ice Coil"] = "+30% Speed",
-		["Poison Slap Hand"] = "+15% Power",
-		["Flame Coil"] = "+40% Speed",
-		["Dark Slap Hand"] = "+20% Power",
-		["Poison Coil"] = "+50% Speed",
-		["Ice Slap Hand"] = "+25% Power",
-		["Blood Coil"] = "+65% Speed",
-		["Flame Slap Hand"] = "+30% Power",
-		["Dark Coil"] = "+80% Speed",
-		["Cosmic Slap Hand"] = "+35% Power",
-		["Rainbow Coil"] = "+100% Speed",
-		["Glitch Slap Hand"] = "+40% Power",
-		["Twin Coil"] = "+120% Speed",
-		["Lightning Slap Hand"] = "+45% Power",
-		["Rainbow Slap Hand"] = "+50% Power",
-		["Freeze Ray"] = "Freeze players",
-		["Invisibility Cloak"] = "Be invisible",
-		["Laser Gun"] = "Fling players",
-		["Galaxy Bat"] = "Cash Multiplier",
-		["Basic Bat"] = "The basic bat",
-		["Wave Shield"] = "Get ragdolled if hit by waves",
-		["Bat"] = "A mutated bat!",
-		["BIG Rainbow Slap Hand"] = "",
-		["Green Light Megaphone"] = "",
-		["Rainbow Magic Carpet"] = "",
-		["Trident"] = "Shoot a mini wave!"
-	},
-	["Costs"] = {
-		["Metal Coil"] = 500,
-		["Slap Hand"] = 1000,
-		["Lightning Coil"] = 5000,
-		["Blood Slap Hand"] = 25000,
-		["Ice Coil"] = 50000,
-		["Poison Slap Hand"] = 100000,
-		["Flame Coil"] = 250000,
-		["Dark Slap Hand"] = 500000,
-		["Poison Coil"] = 1000000,
-		["Ice Slap Hand"] = 3000000,
-		["Blood Coil"] = 10000000,
-		["Flame Slap Hand"] = 25000000,
-		["Dark Coil"] = 50000000,
-		["Cosmic Slap Hand"] = 100000000,
-		["Rainbow Coil"] = 150000000,
-		["Glitch Slap Hand"] = 300000000,
-		["Twin Coil"] = 500000000,
-		["Lightning Slap Hand"] = 750000000,
-		["Rainbow Slap Hand"] = 1000000000,
-		["Freeze Ray"] = 2500000000,
-		["Invisibility Cloak"] = 5000000000,
-		["Laser Gun"] = 10000000000
-	},
-	["IconIDs"] = {
-		["Metal Coil"] = 85798561547243,
-		["Slap Hand"] = 76979732732065,
-		["Lightning Coil"] = 77983606202892,
-		["Blood Slap Hand"] = 116402512485925,
-		["Ice Coil"] = 114056432462175,
-		["Poison Slap Hand"] = 114724622409595,
-		["Flame Coil"] = 111880281856457,
-		["Dark Slap Hand"] = 82132025234886,
-		["Poison Coil"] = 112261035697704,
-		["Ice Slap Hand"] = 85359683661843,
-		["Blood Coil"] = 138486306829721,
-		["Flame Slap Hand"] = 74081111310407,
-		["Dark Coil"] = 138917729213952,
-		["Cosmic Slap Hand"] = 81693414611645,
-		["Rainbow Coil"] = 80505582605424,
-		["Glitch Slap Hand"] = 130243871642722,
-		["Twin Coil"] = 137923105546413,
-		["Lightning Slap Hand"] = 76195019068029,
-		["Rainbow Slap Hand"] = 79661774384004,
-		["Freeze Ray"] = 119957553974380,
-		["Invisibility Cloak"] = 98289456139228,
-		["Laser Gun"] = 97850392972040,
-		["Galaxy Bat"] = 85815965209830,
-		["Basic Bat"] = 14434989783,
-		["BIG Rainbow Slap Hand"] = 79661774384004,
-		["Green Light Megaphone"] = 85049285168293,
-		["Rainbow Magic Carpet"] = 223080070,
-		["Wave Shield"] = 75615672416500,
-		["Trident"] = 103093762676359,
-		["Bat#Admin"] = 131406578534874,
-		["Bat#Blood"] = 127181031078521,
-		["Bat#Diamond"] = 121464546843561,
-		["Bat#Electric"] = 128846904597740,
-		["Bat#Emerald"] = 114687030117609,
-		["Bat#Gold"] = 92707664984673,
-		["Bat#Money"] = 136154208030685,
-		["Bat#Toxic"] = 82725857337987,
-		["Bat#Radioactive"] = 82725857337987,
-		["Bat#Gamer"] = 120274446838583,
-		["Bat#Candy"] = 116241724294207,
-		["Wave Shield#Admin"] = 75615672416500,
-		["Wave Shield#Blood"] = 75615672416500,
-		["Wave Shield#Diamond"] = 75615672416500,
-		["Wave Shield#Electric"] = 75615672416500,
-		["Wave Shield#Emerald"] = 75615672416500,
-		["Wave Shield#Gold"] = 75615672416500,
-		["Wave Shield#Money"] = 75615672416500,
-		["Wave Shield#Toxic"] = 75615672416500,
-		["Wave Shield#Radioactive"] = 75615672416500,
-		["Wave Shield#Candy"] = 132232278564949,
-		["__PLUS_BUTTON"] = 72773973290770
-	},
-	["SpawnableGearMutations"] = {
-		["Bat"] = true,
-		["Wave Shield"] = true
-	}
+    ["GearNames"] = {
+        "Metal Coil",
+        "Slap Hand",
+        "Lightning Coil",
+        "Blood Slap Hand",
+        "Ice Coil",
+        "Poison Slap Hand",
+        "Flame Coil",
+        "Dark Slap Hand",
+        "Poison Coil",
+        "Ice Slap Hand",
+        "Blood Coil",
+        "Flame Slap Hand",
+        "Dark Coil",
+        "Cosmic Slap Hand",
+        "Rainbow Coil",
+        "Glitch Slap Hand",
+        "Twin Coil",
+        "Lightning Slap Hand",
+        "Rainbow Slap Hand",
+        "Freeze Ray",
+        "Invisibility Cloak",
+        "Laser Gun",
+        "Galaxy Bat",
+        "Basic Bat",
+        "Wave Shield",
+        "Bat",
+        "BIG Rainbow Slap Hand",
+        "Green Light Megaphone",
+        "Rainbow Magic Carpet",
+        "Trident"
+    },
+    ["Descriptions"] = {
+        ["Metal Coil"] = "+10% Speed",
+        ["Slap Hand"] = "+5% Power",
+        ["Lightning Coil"] = "+20% Speed",
+        ["Blood Slap Hand"] = "+10% Power",
+        ["Ice Coil"] = "+30% Speed",
+        ["Poison Slap Hand"] = "+15% Power",
+        ["Flame Coil"] = "+40% Speed",
+        ["Dark Slap Hand"] = "+20% Power",
+        ["Poison Coil"] = "+50% Speed",
+        ["Ice Slap Hand"] = "+25% Power",
+        ["Blood Coil"] = "+65% Speed",
+        ["Flame Slap Hand"] = "+30% Power",
+        ["Dark Coil"] = "+80% Speed",
+        ["Cosmic Slap Hand"] = "+35% Power",
+        ["Rainbow Coil"] = "+100% Speed",
+        ["Glitch Slap Hand"] = "+40% Power",
+        ["Twin Coil"] = "+120% Speed",
+        ["Lightning Slap Hand"] = "+45% Power",
+        ["Rainbow Slap Hand"] = "+50% Power",
+        ["Freeze Ray"] = "Freeze players",
+        ["Invisibility Cloak"] = "Be invisible",
+        ["Laser Gun"] = "Fling players",
+        ["Galaxy Bat"] = "Cash Multiplier",
+        ["Basic Bat"] = "The basic bat",
+        ["Wave Shield"] = "Get ragdolled if hit by waves",
+        ["Bat"] = "A mutated bat!",
+        ["BIG Rainbow Slap Hand"] = "",
+        ["Green Light Megaphone"] = "",
+        ["Rainbow Magic Carpet"] = "",
+        ["Trident"] = "Shoot a mini wave!"
+    },
+    ["Costs"] = {
+        ["Metal Coil"] = 500,
+        ["Slap Hand"] = 1000,
+        ["Lightning Coil"] = 5000,
+        ["Blood Slap Hand"] = 25000,
+        ["Ice Coil"] = 50000,
+        ["Poison Slap Hand"] = 100000,
+        ["Flame Coil"] = 250000,
+        ["Dark Slap Hand"] = 500000,
+        ["Poison Coil"] = 1000000,
+        ["Ice Slap Hand"] = 3000000,
+        ["Blood Coil"] = 10000000,
+        ["Flame Slap Hand"] = 25000000,
+        ["Dark Coil"] = 50000000,
+        ["Cosmic Slap Hand"] = 100000000,
+        ["Rainbow Coil"] = 150000000,
+        ["Glitch Slap Hand"] = 300000000,
+        ["Twin Coil"] = 500000000,
+        ["Lightning Slap Hand"] = 750000000,
+        ["Rainbow Slap Hand"] = 1000000000,
+        ["Freeze Ray"] = 2500000000,
+        ["Invisibility Cloak"] = 5000000000,
+        ["Laser Gun"] = 10000000000
+    },
+    ["IconIDs"] = {
+        ["Metal Coil"] = 85798561547243,
+        ["Slap Hand"] = 76979732732065,
+        ["Lightning Coil"] = 77983606202892,
+        ["Blood Slap Hand"] = 116402512485925,
+        ["Ice Coil"] = 114056432462175,
+        ["Poison Slap Hand"] = 114724622409595,
+        ["Flame Coil"] = 111880281856457,
+        ["Dark Slap Hand"] = 82132025234886,
+        ["Poison Coil"] = 112261035697704,
+        ["Ice Slap Hand"] = 85359683661843,
+        ["Blood Coil"] = 138486306829721,
+        ["Flame Slap Hand"] = 74081111310407,
+        ["Dark Coil"] = 138917729213952,
+        ["Cosmic Slap Hand"] = 81693414611645,
+        ["Rainbow Coil"] = 80505582605424,
+        ["Glitch Slap Hand"] = 130243871642722,
+        ["Twin Coil"] = 137923105546413,
+        ["Lightning Slap Hand"] = 76195019068029,
+        ["Rainbow Slap Hand"] = 79661774384004,
+        ["Freeze Ray"] = 119957553974380,
+        ["Invisibility Cloak"] = 98289456139228,
+        ["Laser Gun"] = 97850392972040,
+        ["Galaxy Bat"] = 85815965209830,
+        ["Basic Bat"] = 14434989783,
+        ["BIG Rainbow Slap Hand"] = 79661774384004,
+        ["Green Light Megaphone"] = 85049285168293,
+        ["Rainbow Magic Carpet"] = 223080070,
+        ["Wave Shield"] = 75615672416500,
+        ["Trident"] = 103093762676359,
+        ["Bat#Admin"] = 131406578534874,
+        ["Bat#Blood"] = 127181031078521,
+        ["Bat#Diamond"] = 121464546843561,
+        ["Bat#Electric"] = 128846904597740,
+        ["Bat#Emerald"] = 114687030117609,
+        ["Bat#Gold"] = 92707664984673,
+        ["Bat#Money"] = 136154208030685,
+        ["Bat#Toxic"] = 82725857337987,
+        ["Bat#Radioactive"] = 82725857337987,
+        ["Bat#Gamer"] = 120274446838583,
+        ["Bat#Candy"] = 116241724294207,
+        ["Wave Shield#Admin"] = 75615672416500,
+        ["Wave Shield#Blood"] = 75615672416500,
+        ["Wave Shield#Diamond"] = 75615672416500,
+        ["Wave Shield#Electric"] = 75615672416500,
+        ["Wave Shield#Emerald"] = 75615672416500,
+        ["Wave Shield#Gold"] = 75615672416500,
+        ["Wave Shield#Money"] = 75615672416500,
+        ["Wave Shield#Toxic"] = 75615672416500,
+        ["Wave Shield#Radioactive"] = 75615672416500,
+        ["Wave Shield#Candy"] = 132232278564949,
+        ["__PLUS_BUTTON"] = 72773973290770
+    },
+    ["SpawnableGearMutations"] = {
+        ["Bat"] = true,
+        ["Wave Shield"] = true
+    }
 }
 
 -- Function to fetch gear data from the local gearShop table (no require)
@@ -419,7 +419,8 @@ local function getGearListFromModule()
             local cost = (gearShop.Costs and gearShop.Costs[gearName])
             local desc = ((gearShop.Descriptions and gearShop.Descriptions[gearName]) or "")
             if cost then
-                local displayLabel = string.format("%s - $%s%s", gearName, tostring(cost), desc ~= "" and " (" .. desc .. ")" or "")
+                local displayLabel = string.format("%s - $%s%s", gearName, tostring(cost),
+                    desc ~= "" and " (" .. desc .. ")" or "")
                 table.insert(gearList, displayLabel)
                 gearNameMapping[displayLabel] = gearName
             end
@@ -455,15 +456,16 @@ GearSection:Button({
             WindUI:Notify({ Title = "Gear Shop", Content = "No gears selected", Icon = "alert-triangle", Duration = 3 })
             return
         end
-        
+
         local successCount = 0
         local failCount = 0
-        
+
         for _, displayName in ipairs(selectedGears) do
             local gearName = gearNameMapping[displayName]
             if gearName then
                 local success = pcall(function()
-                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyGear"):InvokeServer(gearName)
+                    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("BuyGear")
+                        :InvokeServer(gearName)
                 end)
                 if success then
                     successCount = successCount + 1
@@ -473,21 +475,21 @@ GearSection:Button({
                 task.wait(0.1)
             end
         end
-        
+
         if successCount > 0 then
-            WindUI:Notify({ 
-                Title = "Gear Shop", 
-                Content = string.format("Purchased %d gear(s)", successCount), 
-                Icon = "check", 
-                Duration = 3 
+            WindUI:Notify({
+                Title = "Gear Shop",
+                Content = string.format("Purchased %d gear(s)", successCount),
+                Icon = "check",
+                Duration = 3
             })
         end
         if failCount > 0 then
-            WindUI:Notify({ 
-                Title = "Gear Shop", 
-                Content = string.format("%d purchase(s) failed", failCount), 
-                Icon = "alert-triangle", 
-                Duration = 3 
+            WindUI:Notify({
+                Title = "Gear Shop",
+                Content = string.format("%d purchase(s) failed", failCount),
+                Icon = "alert-triangle",
+                Duration = 3
             })
         end
     end
@@ -523,7 +525,7 @@ local State = {
     autoSpinValentinesWheel = false,
     autoSpinUFO = false,
     autoSpinMoneyWheel = false,
-    
+
     -- Upgrades
     autoUpgradeBase = false,
     autoUpgradeCarry = false,
@@ -531,32 +533,32 @@ local State = {
     upgradeSpeedAmount = 1,
     autoUpgradeJump = false,
     autoRebirth = false,
-    
+
     -- Hitbox
     widerHitboxEnabled = false,
     widerHitboxWidth = 70,
     widerHitboxConn = nil,
     widerHitbox_tracking = {},
-    
+
     -- Zoom
     unlockZoomEnabled = false,
     prevCameraMin = nil,
     prevCameraMax = nil,
-    
+
     -- Flight
     flyMode = false,
     flyBodyVelocity = nil,
     flyConnection = nil,
     noclipConnection = nil,
-    
+
     -- Obby/Events
     autoCompleteMoneyObby = false,
-    
+
     -- Lucky Block
     autoOpenLuckyBlock = false,
     autoOpenLuckyBlockTarget = "Radioactive Block",
     autoOpenLuckyBlockDelay = 0.6,
-    
+
     -- Selling
     autoSellByRarity = false,
     sellRarities = {},
@@ -564,33 +566,33 @@ local State = {
     sellBrainrotNames = {},
     selectedRarityForNames = "Common",
     lastSellAllClick = 0,
-    
+
     -- VIP Walls
     autoRemoveVIPWalls = false,
-    
+
     -- Brainrot
     autoUpgradeBrainrot = false,
     upgradeBrainrotTargets = {},
     brainrotSlotData = {},
     BrainrotUpgradeDropdown = nil,
-    
+
     -- Machines
     autoMachine = false,
     machineTargetTime = "60:00",
     machineBrainrot1 = "",
     machineBrainrot2 = "",
     machineBrainrot3 = "",
-    
+
     autoArcadeMachine = false,
     arcadeBrainrot1 = "",
     arcadeBrainrot2 = "",
     arcadeBrainrot3 = "",
-    
+
     autoValentineMachine = false,
     valentineBrainrot1 = "",
     valentineBrainrot2 = "",
     valentineBrainrot3 = "",
-    
+
     -- Candy Submit
     autoSubmitCandy = false,
 }
@@ -950,7 +952,7 @@ task.spawn(function()
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
                 if not hrp then return end
-                
+
                 -- Check EventParts.RadioactiveCoinsFolder
                 local eventParts = workspace:FindFirstChild("EventParts")
                 if eventParts then
@@ -983,7 +985,7 @@ task.spawn(function()
                         end
                     end
                 end
-                
+
                 -- Fallback: check old location (RadioactiveEventParts)
                 local folder = workspace:FindFirstChild("RadioactiveEventParts")
                 if folder then
@@ -1183,7 +1185,7 @@ end)
 -- Auto Submit Candy Loop
 task.spawn(function()
     local autoInteractSetup = false
-    
+
     while scriptRunning do
         if State.autoSubmitCandy then
             pcall(function()
@@ -1196,7 +1198,7 @@ task.spawn(function()
                         candyCount = tonumber(candyStat.Value) or 0
                     end
                 end
-                
+
                 -- If candy count is 100 or more, teleport and submit
                 if candyCount >= 100 then
                     -- Teleport to candy station
@@ -1216,11 +1218,11 @@ task.spawn(function()
                                 end
                             end
                         end
-                        
+
                         -- Setup auto-interact for ProximityPrompts (only once)
                         if not autoInteractSetup then
                             autoInteractSetup = true
-                            
+
                             -- Handle existing prompts
                             for _, descendant in pairs(workspace:GetDescendants()) do
                                 if descendant:IsA("ProximityPrompt") then
@@ -1231,7 +1233,7 @@ task.spawn(function()
                                     end)
                                 end
                             end
-                            
+
                             -- Handle new prompts as they're added
                             workspace.DescendantAdded:Connect(function(descendant)
                                 if descendant:IsA("ProximityPrompt") then
@@ -2540,32 +2542,47 @@ local lastPromptUpdate = 0
 
 local function cleanup()
     isGodmode = false
-    if connection then connection:Disconnect() connection = nil end
-    if noclipConn then noclipConn:Disconnect() noclipConn = nil end
-    if deathConn then deathConn:Disconnect() deathConn = nil end
+    if connection then
+        connection:Disconnect()
+        connection = nil
+    end
+    if noclipConn then
+        noclipConn:Disconnect()
+        noclipConn = nil
+    end
+    if deathConn then
+        deathConn:Disconnect()
+        deathConn = nil
+    end
     local char = player.Character
     if char then
         local root = char:FindFirstChild("HumanoidRootPart")
         if root and ghostClone then root.CFrame = ghostClone.HumanoidRootPart.CFrame end
-        if char:FindFirstChild("Humanoid") then char.Humanoid.PlatformStand = false camera.CameraSubject = char.Humanoid end
+        if char:FindFirstChild("Humanoid") then
+            char.Humanoid.PlatformStand = false
+            camera.CameraSubject = char.Humanoid
+        end
     end
-    if ghostClone then ghostClone:Destroy() ghostClone = nil end
+    if ghostClone then
+        ghostClone:Destroy()
+        ghostClone = nil
+    end
     WindUI:Notify({ Title = "God Mode", Content = "Disabled", Icon = "info", Duration = 2 })
 end
 
 local function enableGodMode()
     local char = player.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
+
     if not isGodmode then
         isGodmode = true
-        
+
         char.Archivable = true
         ghostClone = char:Clone()
         ghostClone.Name = "GhostDecoy"
         ghostClone.Parent = workspace
         char.Archivable = false
-        
+
         for _, v in pairs(ghostClone:GetDescendants()) do
             if v:IsA("BasePart") then
                 v.Transparency = 1
@@ -2576,7 +2593,7 @@ local function enableGodMode()
         if char:FindFirstChild("Animate") then char.Animate:Clone().Parent = ghostClone end
         char.Humanoid.PlatformStand = true
         camera.CameraSubject = ghostClone.Humanoid
-        
+
         noclipConn = RunService.Stepped:Connect(function()
             if char then for _, v in pairs(char:GetChildren()) do if v:IsA("BasePart") then v.CanCollide = false end end end
         end)
@@ -2586,12 +2603,13 @@ local function enableGodMode()
                 local moveDir = char.Humanoid.MoveDirection
                 ghostClone.Humanoid:Move(moveDir, false)
                 ghostClone.Humanoid.Jump = char.Humanoid.Jump
-                
+
                 if moveDir.Magnitude > 0 then
-                    local targetRot = CFrame.lookAt(ghostClone.HumanoidRootPart.Position, ghostClone.HumanoidRootPart.Position + moveDir)
+                    local targetRot = CFrame.lookAt(ghostClone.HumanoidRootPart.Position,
+                        ghostClone.HumanoidRootPart.Position + moveDir)
                     ghostClone.HumanoidRootPart.CFrame = ghostClone.HumanoidRootPart.CFrame:Lerp(targetRot, 0.25)
                 end
-                
+
                 if tick() - lastPromptUpdate > 0.5 then
                     for _, p in pairs(workspace:GetDescendants()) do
                         if p:IsA("ProximityPrompt") then
@@ -2601,10 +2619,12 @@ local function enableGodMode()
                     end
                     lastPromptUpdate = tick()
                 end
-                
+
                 char.HumanoidRootPart.CFrame = ghostClone.HumanoidRootPart.CFrame * CFrame.new(0, -15, 0)
                 char.HumanoidRootPart.Velocity = Vector3.zero
-            else cleanup() end
+            else
+                cleanup()
+            end
         end)
         deathConn = char.Humanoid.Died:Connect(cleanup)
         WindUI:Notify({ Title = "God Mode", Content = "Enabled", Icon = "check", Duration = 2 })
@@ -2719,7 +2739,8 @@ local function _applyWiderHitboxes()
                 end
                 targetPos = total / #nearby
             end
-            local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or MAX_SIZE
+            local finalSize = (#nearby == 1) and Vector3.new(widerHitboxWidth, widerHitboxWidth, widerHitboxWidth + 8) or
+            MAX_SIZE
             hb.Size = finalSize
             hb.Position = targetPos
             hb.Transparency = 0.7
@@ -3531,7 +3552,7 @@ AutoSection:Space()
 local cachedBrainrotNames = nil
 local function getBrainrotNamesForMachines()
     if cachedBrainrotNames then return cachedBrainrotNames end
-    
+
     local names = { "" }
     -- Build complete list from all rarities
     for _, rarityList in pairs(BrainrotsByRarity) do
@@ -3540,7 +3561,7 @@ local function getBrainrotNamesForMachines()
         end
     end
     table.sort(names)
-    
+
     cachedBrainrotNames = names
     return names
 end
@@ -3550,7 +3571,8 @@ local BrainrotSection = AutoTab:Section({ Title = "Brainrot", Opened = true, })
 
 -- Get rarities from BrainrotsByRarity (sorted in correct order)
 local function getRarities()
-    return {"Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial", "Divine", "Infinity"}
+    return { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial", "Divine",
+        "Infinity" }
 end
 
 -- Auto Sell by Rarity Dropdown
@@ -3564,7 +3586,8 @@ BrainrotSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(selected)
         sellRarities = selected
-        print("[DEBUG] Dropdown set sellRarities =>", (type(selected) == 'table' and table.concat(selected, ', ') or tostring(selected)))
+        print("[DEBUG] Dropdown set sellRarities =>",
+            (type(selected) == 'table' and table.concat(selected, ', ') or tostring(selected)))
 
         if #selected > 0 then
             local rarityList = table.concat(selected, ", ")
@@ -3585,7 +3608,8 @@ BrainrotSection:Toggle({
     Icon = "check",
     Value = false,
     Callback = function(state)
-        print("[DEBUG] Toggle AutoSellByRarity pressed ->", tostring(state), "current sellRarities=", (type(sellRarities)=='table' and table.concat(sellRarities, ', ') or tostring(sellRarities)))
+        print("[DEBUG] Toggle AutoSellByRarity pressed ->", tostring(state), "current sellRarities=",
+            (type(sellRarities) == 'table' and table.concat(sellRarities, ', ') or tostring(sellRarities)))
         autoSellByRarity = state
 
         if state then
@@ -4455,10 +4479,10 @@ end)
 local function findArcadeGapsFolder()
     local arcadeMap = workspace:FindFirstChild("ArcadeMap")
     if not arcadeMap then return nil end
-    
+
     local gaps = arcadeMap:FindFirstChild("Gaps")
     if not gaps then return nil end
-    
+
     return gaps
 end
 
@@ -4549,7 +4573,7 @@ local function depositArcadeBrainrot()
             workspace:WaitForChild("SpawnMachines"):WaitForChild("Arcade")
         }
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4563,7 +4587,7 @@ local function combineArcadeBrainrots()
             workspace:WaitForChild("SpawnMachines"):WaitForChild("Arcade")
         }
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4576,8 +4600,13 @@ task.spawn(function()
             pcall(function()
                 -- Check if player is alive
                 if not isPlayerAlive() then
-                    WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - stopping auto submit", Icon =
-                    "alert-triangle", Duration = 3 })
+                    WindUI:Notify({
+                        Title = "Arcade Machine",
+                        Content = "Player died - stopping auto submit",
+                        Icon =
+                        "alert-triangle",
+                        Duration = 3
+                    })
                     autoArcadeMachine = false
                     _G.ArcadeAutoSubmitActive = false
                     return
@@ -4589,8 +4618,13 @@ task.spawn(function()
                 local gapSuccess = true
                 for gapNum = 1, 5 do
                     if not _G.ArcadeAutoSubmitActive or not isPlayerAlive() then
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "Stopped during gap teleport", Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Arcade Machine",
+                            Content = "Stopped during gap teleport",
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         autoArcadeMachine = false
                         _G.ArcadeAutoSubmitActive = false
                         return
@@ -4606,8 +4640,13 @@ task.spawn(function()
                         if not teleported then
                             -- Gap blocked by tsunami, wait at Gap 5 if we're past it
                             if gapNum > 1 then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Gap " ..
-                                gapNum .. " blocked - returning to Gap 5", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Gap " ..
+                                        gapNum .. " blocked - returning to Gap 5",
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 teleportToArcadeGap(5)
                                 task.wait(2)
                             else
@@ -4618,8 +4657,13 @@ task.spawn(function()
                     end
 
                     if not teleported then
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to reach Gap " .. gapNum, Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Arcade Machine",
+                            Content = "Failed to reach Gap " .. gapNum,
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         gapSuccess = false
                         break
                     end
@@ -4639,7 +4683,7 @@ task.spawn(function()
                     -- Make sure we're at Gap 5
                     teleportToArcadeGap(5)
                     task.wait(0.5)
-                    
+
                     -- Check if path from Gap 5 to Arcade Machine (Gap 5 to 6) is safe
                     local arcadeMachine = workspace:FindFirstChild("SpawnMachines") and
                         workspace.SpawnMachines:FindFirstChild("Arcade")
@@ -4654,15 +4698,25 @@ task.spawn(function()
 
                                 -- Wait at Gap 5 until path is clear
                                 while not IsPathClear(targetPos) and _G.ArcadeAutoSubmitActive and isPlayerAlive() do
-                                    WindUI:Notify({ Title = "Arcade Machine", Content =
-                                    "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
+                                    WindUI:Notify({
+                                        Title = "Arcade Machine",
+                                        Content =
+                                        "Gap 5 to machine blocked! Waiting at Gap 5...",
+                                        Icon = "alert-triangle",
+                                        Duration = 3
+                                    })
                                     teleportToArcadeGap(5)
                                     task.wait(2)
                                 end
 
                                 if _G.ArcadeAutoSubmitActive and isPlayerAlive() then
-                                    WindUI:Notify({ Title = "Arcade Machine", Content =
-                                    "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
+                                    WindUI:Notify({
+                                        Title = "Arcade Machine",
+                                        Content =
+                                        "Path is safe! Moving to machine...",
+                                        Icon = "check",
+                                        Duration = 3
+                                    })
                                     pathIsSafe = true
                                 end
                             end
@@ -4676,12 +4730,22 @@ task.spawn(function()
 
                     -- Teleport to Arcade Machine
                     if not teleportToArcadeMachine() then
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to teleport to machine", Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Arcade Machine",
+                            Content = "Failed to teleport to machine",
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         task.wait(2)
                     else
-                        WindUI:Notify({ Title = "Arcade Machine", Content = "At Arcade Machine - depositing...", Icon =
-                        "info", Duration = 2 })
+                        WindUI:Notify({
+                            Title = "Arcade Machine",
+                            Content = "At Arcade Machine - depositing...",
+                            Icon =
+                            "info",
+                            Duration = 2
+                        })
                         task.wait(1)
 
                         -- Deposit brainrots
@@ -4690,71 +4754,136 @@ task.spawn(function()
                         -- Deposit Brainrot 1
                         if arcadeBrainrot1 ~= "" and _G.ArcadeAutoSubmitActive then
                             if not equipBrainrotTool(arcadeBrainrot1) then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 1 not found: " ..
-                                arcadeBrainrot1, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Brainrot 1 not found: " ..
+                                        arcadeBrainrot1,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositArcadeBrainrot() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 1", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Failed to deposit Brainrot 1",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 1", Icon =
-                                "check", Duration = 2 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Deposited Brainrot 1",
+                                    Icon =
+                                    "check",
+                                    Duration = 2
+                                })
                             end
                         end
 
                         -- Deposit Brainrot 2
                         if depositSuccess and arcadeBrainrot2 ~= "" and _G.ArcadeAutoSubmitActive then
                             if not equipBrainrotTool(arcadeBrainrot2) then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 2 not found: " ..
-                                arcadeBrainrot2, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Brainrot 2 not found: " ..
+                                        arcadeBrainrot2,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositArcadeBrainrot() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 2", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Failed to deposit Brainrot 2",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 2", Icon =
-                                "check", Duration = 2 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Deposited Brainrot 2",
+                                    Icon =
+                                    "check",
+                                    Duration = 2
+                                })
                             end
                         end
 
                         -- Deposit Brainrot 3
                         if depositSuccess and arcadeBrainrot3 ~= "" and _G.ArcadeAutoSubmitActive then
                             if not equipBrainrotTool(arcadeBrainrot3) then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Brainrot 3 not found: " ..
-                                arcadeBrainrot3, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Brainrot 3 not found: " ..
+                                        arcadeBrainrot3,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositArcadeBrainrot() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to deposit Brainrot 3", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Failed to deposit Brainrot 3",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Deposited Brainrot 3", Icon =
-                                "check", Duration = 2 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Deposited Brainrot 3",
+                                    Icon =
+                                    "check",
+                                    Duration = 2
+                                })
                             end
                         end
 
                         -- Combine brainrots
                         if depositSuccess and _G.ArcadeAutoSubmitActive then
                             if not combineArcadeBrainrots() then
-                                WindUI:Notify({ Title = "Arcade Machine", Content = "Failed to combine brainrots", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content = "Failed to combine brainrots",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                             else
-                                WindUI:Notify({ Title = "Arcade Machine", Content =
-                                "Successfully combined!", Icon = "check", Duration = 3 })
-                                
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content =
+                                    "Successfully combined!",
+                                    Icon = "check",
+                                    Duration = 3
+                                })
+
                                 -- Return to Gap 5 after combining
                                 task.wait(1)
                                 teleportToArcadeGap(5)
-                                WindUI:Notify({ Title = "Arcade Machine", Content =
-                                "Returned to Gap 5. Waiting 31s for cooldown...", Icon = "info", Duration = 3 })
-                                
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content =
+                                    "Returned to Gap 5. Waiting 31s for cooldown...",
+                                    Icon = "info",
+                                    Duration = 3
+                                })
+
                                 -- Wait 31 seconds for machine cooldown (30s + 1s buffer)
                                 task.wait(31)
-                                
-                                WindUI:Notify({ Title = "Arcade Machine", Content =
-                                "Cooldown complete! Continuing loop...", Icon = "check", Duration = 3 })
+
+                                WindUI:Notify({
+                                    Title = "Arcade Machine",
+                                    Content =
+                                    "Cooldown complete! Continuing loop...",
+                                    Icon = "check",
+                                    Duration = 3
+                                })
                             end
                         end
                     end
@@ -4775,8 +4904,13 @@ player.CharacterAdded:Connect(function(char)
         if _G.ArcadeAutoSubmitActive then
             _G.ArcadeAutoSubmitActive = false
             autoArcadeMachine = false
-            WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - auto submit stopped", Icon =
-            "alert-triangle", Duration = 3 })
+            WindUI:Notify({
+                Title = "Arcade Machine",
+                Content = "Player died - auto submit stopped",
+                Icon =
+                "alert-triangle",
+                Duration = 3
+            })
         end
     end)
 end)
@@ -4789,8 +4923,13 @@ if player.Character then
             if _G.ArcadeAutoSubmitActive then
                 _G.ArcadeAutoSubmitActive = false
                 autoArcadeMachine = false
-                WindUI:Notify({ Title = "Arcade Machine", Content = "Player died - auto submit stopped", Icon =
-                "alert-triangle", Duration = 3 })
+                WindUI:Notify({
+                    Title = "Arcade Machine",
+                    Content = "Player died - auto submit stopped",
+                    Icon =
+                    "alert-triangle",
+                    Duration = 3
+                })
             end
         end)
     end
@@ -4800,10 +4939,10 @@ end
 local function findValentineGapsFolder()
     local valentineMap = workspace:FindFirstChild("ValentinesMap_SharedInstances")
     if not valentineMap then return nil end
-    
+
     local gaps = valentineMap:FindFirstChild("Gaps")
     if not gaps then return nil end
-    
+
     return gaps
 end
 
@@ -4881,7 +5020,7 @@ local function depositValentineBrainrot()
             workspace:WaitForChild("SpawnMachines"):WaitForChild("Valentines")
         }
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4895,7 +5034,7 @@ local function combineValentineBrainrots()
             workspace:WaitForChild("SpawnMachines"):WaitForChild("Valentines")
         }
         game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-        "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4908,8 +5047,13 @@ task.spawn(function()
             pcall(function()
                 -- Check if player is alive
                 if not isPlayerAlive() then
-                    WindUI:Notify({ Title = "Valentine Machine", Content = "Player died - stopping auto submit", Icon =
-                    "alert-triangle", Duration = 3 })
+                    WindUI:Notify({
+                        Title = "Valentine Machine",
+                        Content = "Player died - stopping auto submit",
+                        Icon =
+                        "alert-triangle",
+                        Duration = 3
+                    })
                     autoValentineMachine = false
                     _G.ValentineAutoSubmitActive = false
                     return
@@ -4921,8 +5065,13 @@ task.spawn(function()
                 local gapSuccess = true
                 for gapNum = 1, 5 do
                     if not _G.ValentineAutoSubmitActive or not isPlayerAlive() then
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "Stopped during gap teleport", Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Valentine Machine",
+                            Content = "Stopped during gap teleport",
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         autoValentineMachine = false
                         _G.ValentineAutoSubmitActive = false
                         return
@@ -4938,8 +5087,13 @@ task.spawn(function()
                         if not teleported then
                             -- Gap blocked by tsunami, wait at Gap 5 if we're past it
                             if gapNum > 1 then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Gap " ..
-                                gapNum .. " blocked - returning to Gap 5", Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Gap " ..
+                                        gapNum .. " blocked - returning to Gap 5",
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 teleportToValentineGap(5)
                                 task.wait(2)
                             else
@@ -4950,8 +5104,13 @@ task.spawn(function()
                     end
 
                     if not teleported then
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to reach Gap " .. gapNum, Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Valentine Machine",
+                            Content = "Failed to reach Gap " .. gapNum,
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         gapSuccess = false
                         break
                     end
@@ -4971,7 +5130,7 @@ task.spawn(function()
                     -- Make sure we're at Gap 5
                     teleportToValentineGap(5)
                     task.wait(0.5)
-                    
+
                     -- Check if path from Gap 5 to Valentine Machine is safe
                     local valentineMachine = workspace:FindFirstChild("SpawnMachines") and
                         workspace.SpawnMachines:FindFirstChild("Valentines")
@@ -4986,15 +5145,25 @@ task.spawn(function()
 
                                 -- Wait at Gap 5 until path is clear
                                 while not IsPathClear(targetPos) and _G.ValentineAutoSubmitActive and isPlayerAlive() do
-                                    WindUI:Notify({ Title = "Valentine Machine", Content =
-                                    "Gap 5 to machine blocked! Waiting at Gap 5...", Icon = "alert-triangle", Duration = 3 })
+                                    WindUI:Notify({
+                                        Title = "Valentine Machine",
+                                        Content =
+                                        "Gap 5 to machine blocked! Waiting at Gap 5...",
+                                        Icon = "alert-triangle",
+                                        Duration = 3
+                                    })
                                     teleportToValentineGap(5)
                                     task.wait(2)
                                 end
 
                                 if _G.ValentineAutoSubmitActive and isPlayerAlive() then
-                                    WindUI:Notify({ Title = "Valentine Machine", Content =
-                                    "Path is safe! Moving to machine...", Icon = "check", Duration = 3 })
+                                    WindUI:Notify({
+                                        Title = "Valentine Machine",
+                                        Content =
+                                        "Path is safe! Moving to machine...",
+                                        Icon = "check",
+                                        Duration = 3
+                                    })
                                     pathIsSafe = true
                                 end
                             end
@@ -5008,12 +5177,22 @@ task.spawn(function()
 
                     -- Teleport to Valentine Machine (PromptZone.Radius)
                     if not teleportToValentineMachine() then
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to teleport to machine", Icon =
-                        "alert-triangle", Duration = 3 })
+                        WindUI:Notify({
+                            Title = "Valentine Machine",
+                            Content = "Failed to teleport to machine",
+                            Icon =
+                            "alert-triangle",
+                            Duration = 3
+                        })
                         task.wait(2)
                     else
-                        WindUI:Notify({ Title = "Valentine Machine", Content = "At Valentine Machine - depositing...", Icon =
-                        "info", Duration = 2 })
+                        WindUI:Notify({
+                            Title = "Valentine Machine",
+                            Content = "At Valentine Machine - depositing...",
+                            Icon =
+                            "info",
+                            Duration = 2
+                        })
                         task.wait(1)
 
                         -- Deposit brainrots
@@ -5022,71 +5201,136 @@ task.spawn(function()
                         -- Deposit Brainrot 1
                         if valentineBrainrot1 ~= "" and _G.ValentineAutoSubmitActive then
                             if not equipBrainrotTool(valentineBrainrot1) then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Brainrot 1 not found: " ..
-                                valentineBrainrot1, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Brainrot 1 not found: " ..
+                                        valentineBrainrot1,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositValentineBrainrot() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to deposit Brainrot 1", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Failed to deposit Brainrot 1",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Deposited Brainrot 1", Icon =
-                                "check", Duration = 2 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Deposited Brainrot 1",
+                                    Icon =
+                                    "check",
+                                    Duration = 2
+                                })
                             end
                         end
 
                         -- Deposit Brainrot 2
                         if depositSuccess and valentineBrainrot2 ~= "" and _G.ValentineAutoSubmitActive then
                             if not equipBrainrotTool(valentineBrainrot2) then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Brainrot 2 not found: " ..
-                                valentineBrainrot2, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Brainrot 2 not found: " ..
+                                        valentineBrainrot2,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositValentineBrainrot() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to deposit Brainrot 2", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Failed to deposit Brainrot 2",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Deposited Brainrot 2", Icon =
-                                "check", Duration = 2 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Deposited Brainrot 2",
+                                    Icon =
+                                    "check",
+                                    Duration = 2
+                                })
                             end
                         end
 
                         -- Deposit Brainrot 3
                         if depositSuccess and valentineBrainrot3 ~= "" and _G.ValentineAutoSubmitActive then
                             if not equipBrainrotTool(valentineBrainrot3) then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Brainrot 3 not found: " ..
-                                valentineBrainrot3, Icon = "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Brainrot 3 not found: " ..
+                                        valentineBrainrot3,
+                                    Icon = "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             elseif not depositValentineBrainrot() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to deposit Brainrot 3", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Failed to deposit Brainrot 3",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                                 depositSuccess = false
                             else
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Deposited Brainrot 3", Icon =
-                                "check", Duration = 2 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Deposited Brainrot 3",
+                                    Icon =
+                                    "check",
+                                    Duration = 2
+                                })
                             end
                         end
 
                         -- Combine brainrots
                         if depositSuccess and _G.ValentineAutoSubmitActive then
                             if not combineValentineBrainrots() then
-                                WindUI:Notify({ Title = "Valentine Machine", Content = "Failed to combine brainrots", Icon =
-                                "alert-triangle", Duration = 3 })
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content = "Failed to combine brainrots",
+                                    Icon =
+                                    "alert-triangle",
+                                    Duration = 3
+                                })
                             else
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Successfully combined!", Icon = "check", Duration = 3 })
-                                
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content =
+                                    "Successfully combined!",
+                                    Icon = "check",
+                                    Duration = 3
+                                })
+
                                 -- Return to Gap 5 after combining
                                 task.wait(1)
                                 teleportToValentineGap(5)
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Returned to Gap 5. Waiting 31s for cooldown...", Icon = "info", Duration = 3 })
-                                
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content =
+                                    "Returned to Gap 5. Waiting 31s for cooldown...",
+                                    Icon = "info",
+                                    Duration = 3
+                                })
+
                                 -- Wait 31 seconds for machine cooldown (30s + 1s buffer)
                                 task.wait(31)
-                                
-                                WindUI:Notify({ Title = "Valentine Machine", Content =
-                                "Cooldown complete! Checking path again...", Icon = "check", Duration = 3 })
+
+                                WindUI:Notify({
+                                    Title = "Valentine Machine",
+                                    Content =
+                                    "Cooldown complete! Checking path again...",
+                                    Icon = "check",
+                                    Duration = 3
+                                })
                             end
                         end
                     end
@@ -5107,8 +5351,13 @@ player.CharacterAdded:Connect(function(char)
         if _G.ValentineAutoSubmitActive then
             _G.ValentineAutoSubmitActive = false
             autoValentineMachine = false
-            WindUI:Notify({ Title = "Valentine Machine", Content = "Player died - auto submit stopped", Icon =
-            "alert-triangle", Duration = 3 })
+            WindUI:Notify({
+                Title = "Valentine Machine",
+                Content = "Player died - auto submit stopped",
+                Icon =
+                "alert-triangle",
+                Duration = 3
+            })
         end
     end)
 end)
@@ -5121,8 +5370,13 @@ if player.Character then
             if _G.ValentineAutoSubmitActive then
                 _G.ValentineAutoSubmitActive = false
                 autoValentineMachine = false
-                WindUI:Notify({ Title = "Valentine Machine", Content = "Player died - auto submit stopped", Icon =
-                "alert-triangle", Duration = 3 })
+                WindUI:Notify({
+                    Title = "Valentine Machine",
+                    Content = "Player died - auto submit stopped",
+                    Icon =
+                    "alert-triangle",
+                    Duration = 3
+                })
             end
         end)
     end
@@ -5162,8 +5416,9 @@ AboutTab:Divider()
 
 AboutTab:Paragraph({
     Title = gradient("Credits", Color3.fromHex("#1ABC9C"), Color3.fromHex("#9B59B6")),
-    Desc = "Script Developer: Xuan | UI Library: WindUI | Community: Kayden's Den Discord Server\n\nThank you for using Xuan Hub! Special thanks to all contributors and testers.",
-    Image = "rbxassetid://103402394111566",
+    Desc =
+    "Script Developer: Xuan | UI Library: WindUI | Community: Kayden's Den Discord Server\n\nThank you for using Xuan Hub! Special thanks to all contributors and testers.",
+    Image = "rbxassetid://125172781064564",
     TextXAlignment = "Center",
     TextSize = 15,
 })
