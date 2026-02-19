@@ -1201,19 +1201,25 @@ task.spawn(function()
                                     local text = textLabel.Text:lower()
                                     -- Check if notification contains candy submission message
                                     if text:find("candies") or text:find("submit your current candies first") then
-                                        -- Fire the candy deposit remote
-                                        local ok, result = pcall(function()
-                                            local depositRemote = game:GetService("ReplicatedStorage").Packages.Net:FindFirstChild("RE/CandyGramDeposit")
-                                            if depositRemote then
-                                                depositRemote:FireServer()
-                                                return true
+                                        -- Teleport to CandyGramStation.Main and fire ProximityPrompt instantly
+                                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                                        local station = workspace:FindFirstChild("ValentinesMap")
+                                            and workspace.ValentinesMap:FindFirstChild("CandyGramStation")
+                                        if hrp and station then
+                                            local main = station:FindFirstChild("Main")
+                                            if main then
+                                                hrp.CFrame = main.CFrame + Vector3.new(0, 3, 0)
+                                                task.wait(0.2)
+                                                local prompt = main:FindFirstChild("Prompts")
+                                                    and main.Prompts:FindFirstChild("ProximityPrompt")
+                                                if prompt then
+                                                    fireproximityprompt(prompt, 0)
+                                                    WindUI:Notify({ Title = "Candy Submitted", Content = "Successfully submitted candy!", Icon = "check", Duration = 3 })
+                                                    task.wait(2)
+                                                else
+                                                    WindUI:Notify({ Title = "Candy Submit", Content = "ProximityPrompt not found!", Icon = "alert-triangle", Duration = 3 })
+                                                end
                                             end
-                                            return false
-                                        end)
-                                        
-                                        if ok and result then
-                                            WindUI:Notify({ Title = "Candy Submitted", Content = "Successfully submitted candy!", Icon = "check", Duration = 3 })
-                                            task.wait(2) -- Wait before next check
                                         end
                                         break
                                     end
