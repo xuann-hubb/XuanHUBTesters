@@ -5383,19 +5383,12 @@ if player.Character then
 end
 
 -- ================= ABOUT TAB =================
--- Large image at top
-AboutTab:Paragraph({
-    Title = "",
-    Desc = "",
-    Image = "rbxassetid://125172781064564",
-    TextXAlignment = "Center",
-})
 
 AboutTab:Divider()
 
 -- Credits section below image
 AboutTab:Paragraph({
-    Title = gradient("Credits", Color3.fromHex("#1ABC9C"), Color3.fromHex("#9B59B6")),
+    Title = "Credits",
     Desc = "Script Developer: Xuan | UI Library: WindUI | Community: Kayden's Den Discord Server\n\nThank you for using Xuan Hub! Special thanks to all contributors and testers.",
     TextXAlignment = "Center",
     TextSize = 15,
@@ -5405,7 +5398,7 @@ AboutTab:Divider()
 
 -- Discord section below credits
 AboutTab:Paragraph({
-    Title = gradient("Join our discord server!", Color3.fromHex("#25fa00"), Color3.fromHex("#25fa00")),
+    Title = "Join our discord server!", 
     Desc = "Join our Discord for updates, giveaways, questions, support and more!",
     TextXAlignment = "Center",
     TextSize = 17,
