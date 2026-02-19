@@ -25,6 +25,8 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
+
+
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
@@ -3217,7 +3219,7 @@ ValentinesSection:Toggle({
 
 ValentinesSection:Toggle({
     Title = "Auto Submit Candy",
-    Desc = "Auto submit candy when notification detected",
+    Desc = "Auto submit candy when it reach 100/100",
     Icon = "check",
     Value = savedSettings.autoSubmitCandy or false,
     Callback = function(state)
