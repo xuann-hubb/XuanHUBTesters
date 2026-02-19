@@ -949,29 +949,63 @@ task.spawn(function()
         if autoCollectRadioactive then
             pcall(function()
                 local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                local folder = workspace:FindFirstChild("RadioactiveEventParts")
-                if not hrp or not folder then return end
-
-                for _, coin in ipairs(folder:GetChildren()) do
-                    if coin.Name == "Radioactive Coin" or coin.Name:lower():find("coin") or coin.Name == "coins" then
-                        -- prefer the 'hitbox' part
-                        local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
-                        if hitboxPart and hitboxPart:IsA("BasePart") then
-                            pcall(function()
-                                firetouchinterest(hrp, hitboxPart, 0)
-                                firetouchinterest(hrp, hitboxPart, 1)
-                            end)
-                            task.wait(0.01)
-                        else
-                            -- fallback: find any BasePart descendant (or TouchInterest owner)
-                            for _, d in ipairs(coin:GetDescendants()) do
-                                if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                if not hrp then return end
+                
+                -- Check EventParts.RadioactiveCoinsFolder
+                local eventParts = workspace:FindFirstChild("EventParts")
+                if eventParts then
+                    local radioactiveFolder = eventParts:FindFirstChild("RadioactiveCoinsFolder")
+                    if radioactiveFolder then
+                        for _, coin in ipairs(radioactiveFolder:GetChildren()) do
+                            if coin.Name == "Radioactive Coin" or coin.Name:lower():find("coin") then
+                                -- prefer the 'hitbox' part
+                                local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
+                                if hitboxPart and hitboxPart:IsA("BasePart") then
                                     pcall(function()
-                                        firetouchinterest(hrp, d, 0)
-                                        firetouchinterest(hrp, d, 1)
+                                        firetouchinterest(hrp, hitboxPart, 0)
+                                        firetouchinterest(hrp, hitboxPart, 1)
                                     end)
                                     task.wait(0.01)
-                                    break
+                                else
+                                    -- fallback: find any BasePart descendant (or TouchInterest owner)
+                                    for _, d in ipairs(coin:GetDescendants()) do
+                                        if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                                            pcall(function()
+                                                firetouchinterest(hrp, d, 0)
+                                                firetouchinterest(hrp, d, 1)
+                                            end)
+                                            task.wait(0.01)
+                                            break
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                
+                -- Fallback: check old location (RadioactiveEventParts)
+                local folder = workspace:FindFirstChild("RadioactiveEventParts")
+                if folder then
+                    for _, coin in ipairs(folder:GetChildren()) do
+                        if coin.Name == "Radioactive Coin" or coin.Name:lower():find("coin") or coin.Name == "coins" then
+                            local hitboxPart = coin:FindFirstChild("hitbox") or coin:FindFirstChild("Hitbox")
+                            if hitboxPart and hitboxPart:IsA("BasePart") then
+                                pcall(function()
+                                    firetouchinterest(hrp, hitboxPart, 0)
+                                    firetouchinterest(hrp, hitboxPart, 1)
+                                end)
+                                task.wait(0.01)
+                            else
+                                for _, d in ipairs(coin:GetDescendants()) do
+                                    if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin")) then
+                                        pcall(function()
+                                            firetouchinterest(hrp, d, 0)
+                                            firetouchinterest(hrp, d, 1)
+                                        end)
+                                        task.wait(0.01)
+                                        break
+                                    end
                                 end
                             end
                         end
