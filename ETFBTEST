@@ -76,6 +76,7 @@ local defaultSettings = {
     autoCollectCandy = false,
     autoCollectValentinesCoin = false,
     autoSpinValentinesWheel = false,
+    autoSubmitCandy = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
     autoOpenLuckyBlockTarget = "Radioactive Block",
@@ -84,11 +85,6 @@ local defaultSettings = {
     autoRejoinAfterMoneyObby = false,
     -- Unlock Zoom
     unlockZoom = false,
-    -- Tsunami tracker
-    autoTsunamiTracker = false,
-    -- Auto-teleport by rarity (Tsunami) — maps rarities to gap indices
-    autoTeleportByRarity = false,
-    autoTeleportByRarityTarget = "Common",
     -- Wider hitbox (tool reach)
     hitboxEnabled = false,
     hitboxWidth = 70,
@@ -234,12 +230,6 @@ local EventTab = Window:Tab({
 local AutoTab = Window:Tab({
     Title = "Auto",
     Icon = "refresh-cw",
-    Locked = false,
-})
-
-local TsunamiTab = Window:Tab({
-    Title = "Tsunami",
-    Icon = "cloud-lightning",
     Locked = false,
 })
 
@@ -601,9 +591,8 @@ local State = {
     valentineBrainrot2 = "",
     valentineBrainrot3 = "",
     
-    -- Tsunami
-    autoTeleportByRarity = false,
-    autoTeleportByRarityTarget = "Common",
+    -- Candy Submit
+    autoSubmitCandy = false,
 }
 
 -- Module-level variables for loops (set by UI callbacks)
@@ -1153,6 +1142,79 @@ task.spawn(function()
             task.wait(delayValue)
         else
             task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Submit Candy Loop
+task.spawn(function()
+    local autoInteractSetup = false
+    
+    while scriptRunning do
+        if State.autoSubmitCandy then
+            pcall(function()
+                -- Get candy count from player's leaderstats or attribute
+                local candyCount = 0
+                local leaderstats = player:FindFirstChild("leaderstats")
+                if leaderstats then
+                    local candyStat = leaderstats:FindFirstChild("Candy") or leaderstats:FindFirstChild("candy")
+                    if candyStat then
+                        candyCount = tonumber(candyStat.Value) or 0
+                    end
+                end
+                
+                -- If candy count is 100 or more, teleport and submit
+                if candyCount >= 100 then
+                    -- Teleport to candy station
+                    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        local valentinesMap = workspace:FindFirstChild("ValentinesMap")
+                        if valentinesMap then
+                            local candyStation = valentinesMap:FindFirstChild("CandyGramStation")
+                            if candyStation then
+                                local targetPart = candyStation:GetChildren()[7]
+                                if targetPart then
+                                    local finalTarget = targetPart:GetChildren()[4]
+                                    if finalTarget and finalTarget:IsA("BasePart") then
+                                        hrp.CFrame = finalTarget.CFrame + Vector3.new(0, 3, 0)
+                                        task.wait(0.5)
+                                    end
+                                end
+                            end
+                        end
+                        
+                        -- Setup auto-interact for ProximityPrompts (only once)
+                        if not autoInteractSetup then
+                            autoInteractSetup = true
+                            
+                            -- Handle existing prompts
+                            for _, descendant in pairs(workspace:GetDescendants()) do
+                                if descendant:IsA("ProximityPrompt") then
+                                    descendant.PromptButtonHoldBegan:Connect(function()
+                                        if State.autoSubmitCandy and descendant.HoldDuration > 0 then
+                                            fireproximityprompt(descendant, 0)
+                                        end
+                                    end)
+                                end
+                            end
+                            
+                            -- Handle new prompts as they're added
+                            workspace.DescendantAdded:Connect(function(descendant)
+                                if descendant:IsA("ProximityPrompt") then
+                                    descendant.PromptButtonHoldBegan:Connect(function()
+                                        if State.autoSubmitCandy and descendant.HoldDuration > 0 then
+                                            fireproximityprompt(descendant, 0)
+                                        end
+                                    end)
+                                end
+                            end)
+                        end
+                    end
+                end
+            end)
+            task.wait(2)
+        else
+            task.wait(1)
         end
     end
 end)
@@ -1848,173 +1910,13 @@ local function disableUnlockZoom()
     end
 end
 
--- ================= TSUNAMI TRACKER =================
--- Creates a small ScreenGui that shows distance & color-coded status for nearby tsunamis
-local RunService = game:GetService("RunService")
-local tsunamiGui = nil
-local tsunamiBox = nil
-local tsunamiText = nil
-local tsunamiHeartbeatConn = nil
-local tsunamiEnabled = false
-
-local function getTsunamiDistance()
-    local character = player.Character
-    if not character then return math.huge end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    if not root then return math.huge end
-
-    local closest = math.huge
-    local activeTsunamis = workspace:FindFirstChild("ActiveTsunamis")
-    if activeTsunamis then
-        for i = 1, 6 do
-            local wave = activeTsunamis:FindFirstChild("Wave" .. i)
-            if wave then
-                local hitbox = wave:FindFirstChild("Hitbox")
-                if hitbox and hitbox:IsA("BasePart") then
-                    local dist = (hitbox.Position - root.Position).Magnitude
-                    if dist < closest then
-                        closest = dist
-                    end
-                end
-            end
-        end
-    end
-
-    if closest == math.huge then
-        for _, obj in pairs(workspace:GetChildren()) do
-            if obj:IsA("Model") then
-                if obj.Name:lower():find("tsunami") or obj.Name:lower():find("wave") then
-                    for _, part in pairs(obj:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            local dist = (part.Position - root.Position).Magnitude
-                            if dist < closest then
-                                closest = dist
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return closest
-end
-
-local function createTsunamiGui()
-    if tsunamiGui then return end
-    tsunamiGui = Instance.new("ScreenGui")
-    tsunamiGui.Name = "XuanTsunamiTracker"
-    tsunamiGui.ResetOnSpawn = false
-    tsunamiGui.Parent = player:WaitForChild("PlayerGui")
-
-    tsunamiBox = Instance.new("Frame")
-    tsunamiBox.Name = "TsunamiBox"
-    tsunamiBox.Size = UDim2.fromOffset(220, 26)
-    tsunamiBox.Position = UDim2.fromOffset(12, 12)
-    tsunamiBox.BackgroundColor3 = Color3.fromRGB(30, 34, 45)
-    tsunamiBox.BorderSizePixel = 0
-    tsunamiBox.Parent = tsunamiGui
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = tsunamiBox
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(80, 80, 100)
-    stroke.LineJoinMode = Enum.LineJoinMode.Round
-    stroke.Parent = tsunamiBox
-
-    tsunamiText = Instance.new("TextLabel")
-    tsunamiText.Name = "TsunamiText"
-    tsunamiText.Size = UDim2.new(1, -10, 1, -4)
-    tsunamiText.Position = UDim2.fromOffset(8, 1)
-    tsunamiText.BackgroundTransparency = 1
-    tsunamiText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    tsunamiText.Text = "Tsunami: Safe (>1500m)"
-    tsunamiText.Font = Enum.Font.Gotham
-    tsunamiText.TextSize = 13
-    tsunamiText.TextXAlignment = Enum.TextXAlignment.Left
-    tsunamiText.TextYAlignment = Enum.TextYAlignment.Center
-    tsunamiText.Parent = tsunamiBox
-
-    tsunamiHeartbeatConn = RunService.Heartbeat:Connect(function()
-        local dist = getTsunamiDistance()
-        if dist < 1500 then
-            if dist <= 500 then
-                tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-                tsunamiText.TextColor3 = Color3.new(1, 1, 1)
-                tsunamiText.Text = "⚠️ Tsunami: " .. math.floor(dist) .. "m (DANGER)"
-            elseif dist <= 1000 then
-                tsunamiBox.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
-                tsunamiText.TextColor3 = Color3.new(0, 0, 0)
-                tsunamiText.Text = "Tsunami: " .. math.floor(dist) .. "m (WARNING)"
-            else
-                tsunamiBox.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-                tsunamiText.TextColor3 = Color3.new(0, 0, 0)
-                tsunamiText.Text = "Tsunami: " .. math.floor(dist) .. "m (SAFE)"
-            end
-        else
-            tsunamiBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-            tsunamiText.TextColor3 = Color3.new(1, 1, 1)
-            tsunamiText.Text = "Tsunami: Safe (>1500m)"
-        end
-    end)
-end
-
-local function destroyTsunamiGui()
-    if tsunamiHeartbeatConn then
-        tsunamiHeartbeatConn:Disconnect()
-        tsunamiHeartbeatConn = nil
-    end
-    if tsunamiGui then
-        tsunamiGui:Destroy()
-        tsunamiGui = nil
-        tsunamiBox = nil
-        tsunamiText = nil
-    end
-end
-
-local function enableTsunamiTracker()
-    if tsunamiEnabled then return end
-    tsunamiEnabled = true
-    createTsunamiGui()
-    WindUI:Notify({
-        Title = "Tsunami",
-        Content = "Tsunami tracker enabled",
-        Icon = "check",
-        Duration = 3,
-    })
-end
-
-local function disableTsunamiTracker()
-    if not tsunamiEnabled then return end
-    tsunamiEnabled = false
-    destroyTsunamiGui()
-    WindUI:Notify({
-        Title = "Tsunami",
-        Content = "Tsunami tracker disabled",
-        Icon = "check",
-        Duration = 3,
-    })
-end
-
--- Add a section + toggle in the Tsunami tab
-local TsunamiSection = TsunamiTab:Section({ Title = "Tsunami Tracker", Opened = true, })
-TsunamiSection:Toggle({
-    Title = "Tsunami Tracker",
-    Desc = "Toggle tsunami tracker display",
-    Icon = "check",
-    Value = savedSettings.autoTsunamiTracker,
-    Callback = function(state)
-        if state then
-            enableTsunamiTracker()
-        else
-            disableTsunamiTracker()
-        end
-        savedSettings.autoTsunamiTracker = state
-        saveSettings(savedSettings)
-    end
-})
+-- ================= HELPER FUNCTIONS FOR MACHINE TAB =================
+-- Smart-tour helpers (used by Machine tab)
+local TweenService = game:GetService("TweenService")
+_G.BaseTweenSpeed = 0.15
+_G.AutoTourActive = false
+_G.ReverseTourActive = false
+_G.PostWaveBuffer = 0.05
 
 local function findGapsFolder()
     -- return the first existing 'Gaps' folder from known map locations
@@ -2030,30 +1932,6 @@ local function findGapsFolder()
     end
     return nil
 end
-
--- TP Next Gap button removed by user request. Use `XuanHub_TPNextGap()` from console or rebind later.
-
--- Teleport to previous gap (behind player) — single-step SmartMove (uses same ordering/safety as Smart Teleport)
--- TP Previous Gap button removed by user request. Use `XuanHub_TPPrevGap()` from console or rebind later.
-
--- Teleport to your base
-TsunamiSection:Button({
-    Title = "Teleport to Base",
-    Desc = "Teleport to your base",
-    Locked = false,
-    Callback = function()
-        teleportToBaseSmooth()
-    end
-})
-
--- Smart-tour helpers (used by the Auto Tour toggles)
-local TweenService = game:GetService("TweenService")
-_G.BaseTweenSpeed = 0.15
-_G.AutoTourActive = false
-_G.ReverseTourActive = false
-_G.PostWaveBuffer = 0.05
-
-
 
 -- Generic collector: returns array of { idx = number, name = string, part = BasePart, inst = Instance }
 local function collectGapEntries(folder)
@@ -2214,521 +2092,6 @@ local function SmartMove(targetPos, areaName)
             end
         end
     end
-end
-
--- Death detection for smart teleport reset
-player.CharacterAdded:Connect(function(char)
-    local humanoid = char:WaitForChild("Humanoid")
-    humanoid.Died:Connect(function()
-        if _G.AutoTourActive then
-            -- Teleport to first gap when player dies
-            task.wait(2) -- Wait for respawn
-            local newChar = player.Character
-            if newChar then
-                local gapsFolder = findGapsFolder()
-                if gapsFolder then
-                    local entries = collectGapEntries(gapsFolder)
-                    if #entries > 0 then
-                        local firstGap = entries[1]
-                        local ok, pos = pcall(function()
-                            if firstGap.inst and firstGap.inst.GetModelCFrame then
-                                return firstGap.inst:GetModelCFrame().Position
-                            elseif firstGap.part then
-                                return firstGap.part.Position
-                            end
-                        end)
-                        if ok and pos then
-                            local targetPos = pos + Vector3.new(0, 3, 0)
-                            local root = newChar:FindFirstChild("HumanoidRootPart")
-                            if root then
-                                root.CFrame = CFrame.new(targetPos)
-                                WindUI:Notify({ Title = "Teleport", Content = "Respawned at Gap 1 - continuing teleport", Icon =
-                                "info", Duration = 3 })
-                            end
-                        end
-                    end
-                end
-            end
-        end
-        if _G.ReverseTourActive then
-            _G.ReverseTourActive = false
-            WindUI:Notify({ Title = "Teleport", Content = "Smart teleport stopped (player died)", Icon = "alert-triangle", Duration = 3 })
-        end
-    end)
-end)
-
--- Also set up for current character if it exists
-if player.Character then
-    local humanoid = player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid.Died:Connect(function()
-            if _G.AutoTourActive then
-                -- Teleport to first gap when player dies
-                task.wait(2) -- Wait for respawn
-                local newChar = player.Character
-                if newChar then
-                    local gapsFolder = findGapsFolder()
-                    if gapsFolder then
-                        local entries = collectGapEntries(gapsFolder)
-                        if #entries > 0 then
-                            local firstGap = entries[1]
-                            local ok, pos = pcall(function()
-                                if firstGap.inst and firstGap.inst.GetModelCFrame then
-                                    return firstGap.inst:GetModelCFrame().Position
-                                elseif firstGap.part then
-                                    return firstGap.part.Position
-                                end
-                            end)
-                            if ok and pos then
-                                local targetPos = pos + Vector3.new(0, 3, 0)
-                                local root = newChar:FindFirstChild("HumanoidRootPart")
-                                if root then
-                                    root.CFrame = CFrame.new(targetPos)
-                                    WindUI:Notify({ Title = "Teleport", Content =
-                                    "Respawned at Gap 1 - continuing teleport", Icon = "info", Duration = 3 })
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-            if _G.ReverseTourActive then
-                _G.ReverseTourActive = false
-                WindUI:Notify({ Title = "Teleport", Content = "Smart teleport stopped (player died)", Icon =
-                "alert-triangle", Duration = 3 })
-            end
-        end)
-    end
-end
-
-
--- Teleport to last gap (button)
-TsunamiSection:Button({
-    Title = "Smart Teleport to Last Gap",
-    Desc = "Press to start teleport through gaps to the last gap",
-    Locked = false,
-    Callback = function()
-        if _G.AutoTourActive then
-            _G.AutoTourActive = false
-            WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap stopped", Icon = "check", Duration = 2 })
-            return
-        end
-
-        _G.AutoTourActive = true
-        _G.ReverseTourActive = false
-        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to Last Gap started", Icon = "check", Duration = 2 })
-        task.spawn(function()
-            local gapsFolder = findGapsFolder()
-            if not gapsFolder then
-                _G.AutoTourActive = false; return
-            end
-
-            local entries = collectGapEntries(gapsFolder)
-            if #entries == 0 then
-                _G.AutoTourActive = false; return
-            end
-
-            -- determine range and current index
-            local maxIdx = entries[#entries].idx
-            while _G.AutoTourActive do
-                local currentPosIndex = GetNearestGapIndex()
-
-                -- iterate only over entries with idx > currentPosIndex up to maxIdx
-                for _, e in ipairs(entries) do
-                    if not _G.AutoTourActive then break end
-                    if e.idx > currentPosIndex and e.idx <= maxIdx then
-                        local ok, pos = pcall(function()
-                            if e.inst and e.inst.GetModelCFrame then
-                                return e.inst:GetModelCFrame().Position
-                            elseif e.part then
-                                return e.part.Position
-                            end
-                        end)
-                        if ok and pos then
-                            local targetPos = (pos + Vector3.new(0, 3, 0))
-
-                            -- notify once while waiting for the gap to become safe
-                            local blockedNotified = false
-                            while not IsPathClear(targetPos) and _G.AutoTourActive do
-                                if not blockedNotified then
-                                    pcall(function()
-                                        WindUI:Notify({
-                                            Title = "Teleport",
-                                            Content = "Gap blocked — waiting: " ..
-                                                tostring(e.name),
-                                            Icon = "alert-triangle",
-                                            Duration = 3
-                                        })
-                                    end)
-                                    print("[XuanHub] SmartTeleport: waiting for gap to clear:", e.name)
-                                    blockedNotified = true
-                                end
-                                task.wait(0.1)
-                            end
-
-                            if blockedNotified and _G.AutoTourActive then
-                                pcall(function()
-                                    WindUI:Notify({
-                                        Title = "Teleport",
-                                        Content = "Gap is now clear: " ..
-                                            tostring(e.name),
-                                        Icon = "check",
-                                        Duration = 2
-                                    })
-                                end)
-                                print("[XuanHub] SmartTeleport: gap cleared:", e.name)
-                            end
-
-                            SmartMove(targetPos, e.name)
-                            task.wait(1.5)
-                        end
-                    end
-                end
-
-                -- stop if we've reached the last gap
-                local nearest = GetNearestGapIndex()
-                if nearest >= maxIdx then
-                    _G.AutoTourActive = false
-                    WindUI:Notify({ Title = "Teleport", Content = "Reached last gap — stopped", Icon = "check", Duration = 3 })
-                    break
-                end
-
-                task.wait(2)
-            end
-        end)
-    end,
-})
-
--- Teleport to first gap (reverse) - button
-TsunamiSection:Button({
-    Title = "Smart Teleport to First Gap",
-    Desc = "Press to Automatically teleport through gaps to the first gap",
-    Locked = false,
-    Callback = function()
-        if _G.ReverseTourActive then
-            _G.ReverseTourActive = false
-            WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap stopped", Icon = "check", Duration = 2 })
-            return
-        end
-
-        _G.ReverseTourActive = true
-        _G.AutoTourActive = false
-        WindUI:Notify({ Title = "Teleport", Content = "Smart Teleport to First Gap started", Icon = "check", Duration = 2 })
-        task.spawn(function()
-            local gapsFolder = findGapsFolder()
-            if not gapsFolder then
-                _G.ReverseTourActive = false; return
-            end
-
-            local entries = collectGapEntries(gapsFolder)
-            if #entries == 0 then
-                _G.ReverseTourActive = false; return
-            end
-
-            local minIdx = entries[1].idx
-            while _G.ReverseTourActive do
-                local currentPosIndex = GetNearestGapIndex()
-
-                -- iterate entries with idx < currentPosIndex in descending order
-                for i = #entries, 1, -1 do
-                    if not _G.ReverseTourActive then break end
-                    local e = entries[i]
-                    if e.idx < currentPosIndex then
-                        local ok, pos = pcall(function()
-                            if e.inst and e.inst.GetModelCFrame then
-                                return e.inst:GetModelCFrame().Position
-                            elseif e.part then
-                                return e.part.Position
-                            end
-                        end)
-                        if ok and pos then
-                            local targetPos = (pos + Vector3.new(0, 3, 0))
-
-                            -- notify once while waiting for the gap to become safe
-                            local blockedNotified = false
-                            while not IsPathClear(targetPos) and _G.ReverseTourActive do
-                                if not blockedNotified then
-                                    pcall(function()
-                                        WindUI:Notify({
-                                            Title = "Teleport",
-                                            Content = "Gap blocked — waiting: " ..
-                                                tostring(e.name),
-                                            Icon = "alert-triangle",
-                                            Duration = 3
-                                        })
-                                    end)
-                                    print("[XuanHub] SmartTeleport (reverse): waiting for gap to clear:", e.name)
-                                    blockedNotified = true
-                                end
-                                task.wait(0.1)
-                            end
-
-                            if blockedNotified and _G.ReverseTourActive then
-                                pcall(function()
-                                    WindUI:Notify({
-                                        Title = "Teleport",
-                                        Content = "Gap is now clear: " ..
-                                            tostring(e.name),
-                                        Icon = "check",
-                                        Duration = 2
-                                    })
-                                end)
-                                print("[XuanHub] SmartTeleport (reverse): gap cleared:", e.name)
-                            end
-
-                            SmartMove(targetPos, e.name)
-                            task.wait(1.5)
-                        end
-                    end
-                end
-
-                -- stop if we've reached the first gap
-                local nearest = GetNearestGapIndex()
-                if nearest <= minIdx then
-                    _G.ReverseTourActive = false
-                    WindUI:Notify({ Title = "Teleport", Content = "Reached first gap — stopped", Icon = "check", Duration = 3 })
-                    break
-                end
-
-                task.wait(2)
-            end
-        end)
-    end,
-})
-
--- Teleport-by-Rarity (Tsunami)
--- Mapping (fixed): Common=Gap1 .. Celestial=Gap9
-local RARITY_TO_GAP = { Common = 1, Uncommon = 2, Rare = 3, Epic = 4, Legendary = 5, Mythical = 6, Cosmic = 7, Secret = 8, Celestial = 9 }
-
--- Read-only UI element (shows configured target rarity)
--- NOTE: WindUI's Section may not expose a Tag method at runtime; place the tag in the Window header instead.
-
-
--- Dropdown to choose target rarity (persisted)
-TsunamiSection:Dropdown({
-    Title = "Teleport target rarity",
-    Desc = "Which gap to stop at when using teleport-by-rarity",
-    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret", "Celestial" },
-    Value = tostring(savedSettings.autoTeleportByRarityTarget or "Common"),
-    Multi = false,
-    AllowNone = false,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        autoTeleportByRarityTarget = option
-        savedSettings.autoTeleportByRarityTarget = option
-        saveSettings(savedSettings)
-        TeleportByRarityLabel:SetTitle("Target: " .. tostring(option))
-    end,
-})
-
--- Button: start a one-shot smart-teleport to the selected rarity's gap
-TsunamiSection:Button({
-    Title = "Teleport to Selected Rarity",
-    Desc = "Smart-teleport forward until the selected rarity's gap",
-    Callback = function()
-        local r = autoTeleportByRarityTarget or savedSettings.autoTeleportByRarityTarget or "Common"
-        local ok = pcall(function() return _G.XuanHub_TeleportToRarity and _G.XuanHub_TeleportToRarity(r) end)
-        if ok and _G.XuanHub_TeleportToRarity then
-            TeleportByRarityLabel:SetTitle("Target: " .. tostring(r) .. " (running)")
-            WindUI:Notify({ Title = "Teleport", Content = "Starting teleport to " .. tostring(r), Icon = "check", Duration = 2 })
-        else
-            WindUI:Notify({ Title = "Teleport", Content = "Failed to start teleport", Icon = "alert-triangle", Duration = 2 })
-        end
-    end,
-})
-
--- Button: stop all teleporting (rarity, smart tours, reverse tours, console-run teleports)
-TsunamiSection:Button({
-    Title = "Stop Teleport",
-    Desc = "Stop any running teleport operation (all modes)",
-    Callback = function()
-        -- disable all teleporting flags (short-circuit running loops)
-        local stopped = {}
-        if autoTeleportByRarity then
-            autoTeleportByRarity = false; savedSettings.autoTeleportByRarity = false; table.insert(stopped, "rarity")
-        end
-        if _G.AutoTourActive then
-            _G.AutoTourActive = false; table.insert(stopped, "auto-tour")
-        end
-        if _G.ReverseTourActive then
-            _G.ReverseTourActive = false; table.insert(stopped, "reverse-tour")
-        end
-
-        -- persist and update UI status
-        pcall(function() saveSettings(savedSettings) end)
-        pcall(function() TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common")) end)
-
-        -- best-effort: inform any external console toggles (no-ops if not present)
-        pcall(function() if type(_G.XuanHub_ToggleTeleportByRarity) == "function" then _G.XuanHub_ToggleTeleportByRarity() end end)
-
-        -- unified notification
-        local msg = (#stopped > 0) and ("Stopped: " .. table.concat(stopped, ", ")) or
-            "No teleport operations were active"
-        WindUI:Notify({ Title = "Teleport", Content = msg, Icon = "info", Duration = 3 })
-    end,
-})
-
-
--- Background loop: behaves like "Smart Teleport to Last Gap" but stops at mapped gap index
-task.spawn(function()
-    while scriptRunning do
-        if autoTeleportByRarity then
-            local ok, err = pcall(function()
-                local gapsFolder = findGapsFolder()
-                if not gapsFolder then
-                    autoTeleportByRarity = false
-                    savedSettings.autoTeleportByRarity = false
-                    saveSettings(savedSettings)
-                    WindUI:Notify({ Title = "Teleport", Content = "No gaps found", Icon = "alert-triangle", Duration = 3 })
-                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
-                    return
-                end
-
-                local entries = collectGapEntries(gapsFolder)
-                if #entries == 0 then
-                    autoTeleportByRarity = false
-                    savedSettings.autoTeleportByRarity = false
-                    saveSettings(savedSettings)
-                    WindUI:Notify({ Title = "Teleport", Content = "No gap entries", Icon = "alert-triangle", Duration = 3 })
-                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
-                    return
-                end
-
-                local targetRarity = tostring(autoTeleportByRarityTarget or "Common")
-                local targetIdx = RARITY_TO_GAP[targetRarity]
-                if not targetIdx then
-                    WindUI:Notify({ Title = "Teleport", Content = "Invalid target rarity", Icon = "alert-triangle", Duration = 3 })
-                    autoTeleportByRarity = false
-                    return
-                end
-
-                -- clamp target to available range
-                local maxIdx = entries[#entries].idx
-                if targetIdx > maxIdx then
-                    WindUI:Notify({
-                        Title = "Teleport",
-                        Content = "Target gap out of range: " .. tostring(targetIdx),
-                        Icon =
-                        "alert-triangle",
-                        Duration = 3
-                    })
-                    autoTeleportByRarity = false
-                    TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
-                    return
-                end
-
-                -- perform forward tour until reaching targetIdx
-                while autoTeleportByRarity do
-                    local currentPosIndex = GetNearestGapIndex()
-                    if currentPosIndex >= targetIdx then
-                        WindUI:Notify({
-                            Title = "Teleport",
-                            Content = "Reached target gap (" ..
-                                tostring(targetRarity) .. ")",
-                            Icon = "check",
-                            Duration = 2
-                        })
-                        autoTeleportByRarity = false
-                        savedSettings.autoTeleportByRarity = false
-                        saveSettings(savedSettings)
-                        TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or targetRarity))
-                        break
-                    end
-
-                    for _, e in ipairs(entries) do
-                        if not autoTeleportByRarity then break end
-                        if e.idx > currentPosIndex and e.idx <= targetIdx then
-                            local ok2, pos = pcall(function()
-                                if e.inst and e.inst.GetModelCFrame then
-                                    return e.inst:GetModelCFrame().Position
-                                elseif e.part then
-                                    return e.part.Position
-                                end
-                            end)
-                            if ok2 and pos then
-                                local targetPos = (pos + Vector3.new(0, 3, 0))
-
-                                local blockedNotified = false
-                                while not IsPathClear(targetPos) and autoTeleportByRarity do
-                                    if not blockedNotified then
-                                        pcall(function()
-                                            WindUI:Notify({
-                                                Title = "Teleport",
-                                                Content = "Gap blocked — waiting: " ..
-                                                    tostring(e.name),
-                                                Icon = "alert-triangle",
-                                                Duration = 3
-                                            })
-                                        end)
-                                        print("[XuanHub] TeleportByRarity: waiting for gap to clear:", e.name)
-                                        blockedNotified = true
-                                    end
-                                    task.wait(0.12)
-                                end
-
-                                if blockedNotified and autoTeleportByRarity then
-                                    pcall(function()
-                                        WindUI:Notify({
-                                            Title = "Teleport",
-                                            Content = "Gap is now clear: " ..
-                                                tostring(e.name),
-                                            Icon = "check",
-                                            Duration = 2
-                                        })
-                                    end)
-                                    print("[XuanHub] TeleportByRarity: gap cleared:", e.name)
-                                end
-
-                                SmartMove(targetPos, e.name)
-                                task.wait(1.2)
-                            end
-                        end
-                    end
-
-                    task.wait(1)
-                end
-            end)
-            if not ok then
-                warn("TeleportByRarity error:", err)
-                autoTeleportByRarity = false
-                TeleportByRarityLabel:SetTitle("Target: " .. tostring(autoTeleportByRarityTarget or "Common"))
-            end
-        else
-            task.wait(1)
-        end
-    end
-end)
-
--- Console helpers
-_G.XuanHub_TeleportToRarity = function(rarity)
-    if rarity and type(rarity) == "string" then
-        autoTeleportByRarityTarget = rarity
-        savedSettings.autoTeleportByRarityTarget = rarity
-        saveSettings(savedSettings)
-        autoTeleportByRarity = true
-        savedSettings.autoTeleportByRarity = true
-        saveSettings(savedSettings)
-        return true
-    end
-    return false
-end
-
-_G.XuanHub_ToggleTeleportByRarity = function()
-    autoTeleportByRarity = not autoTeleportByRarity
-    savedSettings.autoTeleportByRarity = autoTeleportByRarity
-    saveSettings(savedSettings)
-    return autoTeleportByRarity
-end
-
--- Debug helper: reports which Gaps folder would be used and child count (non-destructive)
-_G.XuanHub_FindGapsFolderInfo = function()
-    local f = findGapsFolder()
-    if not f then
-        return nil, "no gaps found"
-    end
-    local parentName = f.Parent and f.Parent.Name or "<unknown>"
-    local count = #f:GetChildren()
-    return f, string.format("found: %s (parent: %s) — children=%d", f:GetFullName(), parentName, count)
 end
 
 -- ================= BASE TAB =================
@@ -3819,6 +3182,18 @@ ValentinesSection:Toggle({
     end
 })
 
+ValentinesSection:Toggle({
+    Title = "Auto Submit Candy",
+    Desc = "Auto teleport and submit when candy reaches 100",
+    Icon = "check",
+    Value = savedSettings.autoSubmitCandy or false,
+    Callback = function(state)
+        State.autoSubmitCandy = state
+        savedSettings.autoSubmitCandy = state
+        saveSettings(savedSettings)
+    end
+})
+
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
@@ -4617,28 +3992,14 @@ task.spawn(function()
         autoSpinValentinesWheel = true
     end
 
+    -- Apply Auto Submit Candy
+    if savedSettings.autoSubmitCandy then
+        State.autoSubmitCandy = true
+    end
+
     -- Apply Unlock Zoom
     if savedSettings.unlockZoom then
         enableUnlockZoom()
-    end
-
-    -- Apply Tsunami Tracker
-    if savedSettings.autoTsunamiTracker then
-        enableTsunamiTracker()
-    end
-
-    -- Apply Teleport-by-Rarity (Tsunami)
-    if savedSettings.autoTeleportByRarity then
-        autoTeleportByRarity = true
-        autoTeleportByRarityTarget = tostring(savedSettings.autoTeleportByRarityTarget or "Common")
-        -- start loop asynchronously (UI toggle removed — console/config controlled)
-        task.spawn(function()
-            -- reuse same logic as the runtime loop (non-blocking)
-            if autoTeleportByRarity then
-                _G.XuanHub_TeleportToRarity = _G.XuanHub_TeleportToRarity or function(r) end -- ensure exists
-                _G.XuanHub_ToggleTeleportByRarity = _G.XuanHub_ToggleTeleportByRarity or function() end
-            end
-        end)
     end
 
     -- Apply Wider Hitbox
