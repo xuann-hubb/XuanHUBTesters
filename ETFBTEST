@@ -618,8 +618,6 @@ autoCollectArcadeTicket = false
 autoSpinArcadeWheel = false
 autoCollectCandy = false
 autoCollectValentinesCoin = false
-local candyCounter = 0 -- Track candy collected since it's not in leaderstats
-local candyNotified = false -- Track if we've notified at 100
 autoSpinValentinesWheel = false
 autoSpinUFO = false
 autoSpinMoneyWheel = false
@@ -1184,36 +1182,48 @@ task.spawn(function()
     end
 end)
 
--- Auto Submit Candy Loop
+-- Auto Submit Candy Loop (Notification Detection)
 task.spawn(function()
     while scriptRunning do
         if State.autoSubmitCandy then
             pcall(function()
-                -- Use local candy counter since it's not in leaderstats
-                local candyCount = candyCounter
-
-                -- If candy count is 100 or more, submit candy
-                if candyCount >= 100 then
-                    -- Fire the candy deposit remote
-                    local ok, result = pcall(function()
-                        local depositRemote = game:GetService("ReplicatedStorage").Packages.Net:FindFirstChild("RE/CandyGramDeposit")
-                        if depositRemote then
-                            depositRemote:FireServer()
-                            return true
+                -- Check notification GUI for candy submission message
+                local playerGui = player:FindFirstChild("PlayerGui")
+                if playerGui then
+                    local newNotifs = playerGui:FindFirstChild("NewNotifications")
+                    if newNotifs then
+                        local items = newNotifs:FindFirstChild("Items")
+                        if items then
+                            -- Check all notification children
+                            for _, notif in ipairs(items:GetChildren()) do
+                                local textLabel = notif:FindFirstChild("TextLabel")
+                                if textLabel and textLabel.Text then
+                                    local text = textLabel.Text:lower()
+                                    -- Check if notification contains candy submission message
+                                    if text:find("candies") or text:find("submit your current candies first") then
+                                        -- Fire the candy deposit remote
+                                        local ok, result = pcall(function()
+                                            local depositRemote = game:GetService("ReplicatedStorage").Packages.Net:FindFirstChild("RE/CandyGramDeposit")
+                                            if depositRemote then
+                                                depositRemote:FireServer()
+                                                return true
+                                            end
+                                            return false
+                                        end)
+                                        
+                                        if ok and result then
+                                            WindUI:Notify({ Title = "Candy Submitted", Content = "Successfully submitted candy!", Icon = "check", Duration = 3 })
+                                            task.wait(2) -- Wait before next check
+                                        end
+                                        break
+                                    end
+                                end
+                            end
                         end
-                        return false
-                    end)
-                    
-                    if ok and result then
-                        -- Reset candy counter after submitting
-                        candyCounter = 0
-                        candyNotified = false
-                        WindUI:Notify({ Title = "Candy Submitted", Content = "Successfully submitted 100 candy!", Icon = "check", Duration = 3 })
-                        task.wait(2) -- Wait before next submission
                     end
                 end
             end)
-            task.wait(1)
+            task.wait(0.5)
         else
             task.wait(1)
         end
@@ -1237,13 +1247,6 @@ task.spawn(function()
                             pcall(function()
                                 firetouchinterest(hrp, heartPart, 0)
                                 firetouchinterest(hrp, heartPart, 1)
-                                -- Increment candy counter
-                                candyCounter = candyCounter + 1
-                                -- Notify at 100 candy
-                                if candyCounter >= 100 and not candyNotified then
-                                    candyNotified = true
-                                    WindUI:Notify({ Title = "Candy Ready!", Content = "You have collected 100 candy! Ready to submit.", Icon = "gift", Duration = 5 })
-                                end
                             end)
                             task.wait(0.01)
                         else
@@ -1253,13 +1256,6 @@ task.spawn(function()
                                     pcall(function()
                                         firetouchinterest(hrp, d, 0)
                                         firetouchinterest(hrp, d, 1)
-                                        -- Increment candy counter
-                                        candyCounter = candyCounter + 1
-                                        -- Notify at 100 candy
-                                        if candyCounter >= 100 and not candyNotified then
-                                            candyNotified = true
-                                            WindUI:Notify({ Title = "Candy Ready!", Content = "You have collected 100 candy! Ready to submit.", Icon = "gift", Duration = 5 })
-                                        end
                                     end)
                                     task.wait(0.01)
                                     break
@@ -3218,40 +3214,13 @@ ValentinesSection:Toggle({
 
 ValentinesSection:Toggle({
     Title = "Auto Submit Candy",
-    Desc = "Auto teleport and submit when candy reaches 100",
+    Desc = "Auto submit candy when notification detected",
     Icon = "check",
     Value = savedSettings.autoSubmitCandy or false,
     Callback = function(state)
         State.autoSubmitCandy = state
         savedSettings.autoSubmitCandy = state
         saveSettings(savedSettings)
-    end
-})
-
--- Candy Counter Display
-local CandyCounterParagraph = ValentinesSection:Paragraph({
-    Title = "Candy Counter",
-    Desc = "Collected: 0 / 100",
-})
-
--- Update candy counter display every second
-task.spawn(function()
-    while scriptRunning do
-        pcall(function()
-            CandyCounterParagraph:SetDesc(string.format("Collected: %d / 100", candyCounter))
-        end)
-        task.wait(1)
-    end
-end)
-
--- Reset candy counter button
-ValentinesSection:Button({
-    Title = "Reset Candy Counter",
-    Desc = "Manually reset the candy counter to 0",
-    Callback = function()
-        candyCounter = 0
-        candyNotified = false
-        WindUI:Notify({ Title = "Counter Reset", Content = "Candy counter has been reset to 0", Icon = "refresh-cw", Duration = 2 })
     end
 })
 
