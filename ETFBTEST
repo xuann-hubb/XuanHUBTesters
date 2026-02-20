@@ -25,8 +25,6 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
-
-
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
     Name = "Holographic", -- theme name
@@ -2113,6 +2111,101 @@ end
 -- ================= BASE TAB =================
 local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })
 
+-- Go To Section (Celestials & Safe Zone)
+local GoToSection = BaseTab:Section({ Title = "Go To", Opened = true })
+
+-- Helper: Fly through waypoints
+local function flyThroughWaypoints(waypoints, speed)
+    local player = LocalPlayer
+    local character = player.Character or player.CharacterAdded:Wait()
+    local root = character:WaitForChild("HumanoidRootPart")
+    speed = speed or 1000
+    local noclip = true
+    local noclipConn = RunService.Stepped:Connect(function()
+        if noclip and character then
+            for _, part in ipairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+        end
+    end)
+    for i, targetPos in ipairs(waypoints) do
+        while (root.Position - targetPos).Magnitude > 2 do
+            local direction = (targetPos - root.Position).Unit
+            local dt = RunService.Heartbeat:Wait()
+            root.CFrame = root.CFrame + (direction * speed * dt)
+            root.Velocity = Vector3.new(0, 0, 0)
+        end
+        if i < #waypoints then
+            task.wait(0.25)
+        end
+    end
+    noclip = false
+    noclipConn:Disconnect()
+    for _, part in ipairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+            part.CanCollide = true
+        end
+    end
+end
+
+-- Button: Go to Celestials Area
+GoToSection:Button({
+    Title = "Go to Celestials Area",
+    Desc = "Teleport to the Celestials area",
+    Locked = false,
+    Callback = function()
+        local player = LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+        WindUI:Notify({ Title = "Go To", Content = "Going to Celestials area...", Icon = "info", Duration = 2 })
+        task.spawn(function()
+            local gap9 = workspace:FindFirstChild("DefaultMap_SharedInstances")
+                and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")
+                and workspace.DefaultMap_SharedInstances.Gaps:FindFirstChild("Gap9")
+            local destPart = gap9 and gap9:GetChildren()[2]
+            if destPart and destPart:IsA("BasePart") then
+                local waypoints = {
+                    Vector3.new(root.Position.X, destPart.Position.Y, destPart.Position.Z),
+                    destPart.Position + Vector3.new(0, 2, 0)
+                }
+                flyThroughWaypoints(waypoints, 1000)
+                WindUI:Notify({ Title = "Go To", Content = "Arrived at Celestials area!", Icon = "check", Duration = 2 })
+            else
+                WindUI:Notify({ Title = "Go To", Content = "Celestials area not found!", Icon = "alert-triangle", Duration = 3 })
+            end
+        end)
+    end
+})
+
+-- Button: Go to Safe Zone/Base
+GoToSection:Button({
+    Title = "Go to Safe Zone/Base",
+    Desc = "Teleport safely back to your base",
+    Locked = false,
+    Callback = function()
+        local player = LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        local root = character:WaitForChild("HumanoidRootPart")
+        WindUI:Notify({ Title = "Go To", Content = "Going back to base...", Icon = "info", Duration = 2 })
+        task.spawn(function()
+            local base = findMyBase()
+            local home = getHomePart(base)
+            if home then
+                local waypoints = {
+                    Vector3.new(root.Position.X, home.Position.Y, home.Position.Z),
+                    home.Position + Vector3.new(0, 2, 0)
+                }
+                flyThroughWaypoints(waypoints, 1000)
+                WindUI:Notify({ Title = "Go To", Content = "Arrived at base!", Icon = "check", Duration = 2 })
+            else
+                WindUI:Notify({ Title = "Go To", Content = "Base not found!", Icon = "alert-triangle", Duration = 3 })
+            end
+        end)
+    end
+})
+
 -- VIP Walls section
 local VIPWallsSection = BaseTab:Section({ Title = "VIP Walls", Opened = true, })
 
@@ -3219,7 +3312,7 @@ ValentinesSection:Toggle({
 
 ValentinesSection:Toggle({
     Title = "Auto Submit Candy",
-    Desc = "Auto submit candy when it reach 100/100",
+    Desc = "Auto submit candy when notification detected",
     Icon = "check",
     Value = savedSettings.autoSubmitCandy or false,
     Callback = function(state)
