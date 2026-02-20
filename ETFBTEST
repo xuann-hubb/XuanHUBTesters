@@ -2153,28 +2153,22 @@ end
 -- Button: Go to Celestials Area
 GoToSection:Button({
     Title = "Go to Celestials Area",
-    Desc = "Teleport to the Celestials area",
+    Desc = "Goes to the celestial area",
     Locked = false,
     Callback = function()
         local player = LocalPlayer
         local character = player.Character or player.CharacterAdded:Wait()
         local root = character:WaitForChild("HumanoidRootPart")
-        WindUI:Notify({ Title = "Go To", Content = "Going to Celestials area...", Icon = "info", Duration = 2 })
+        WindUI:Notify({ Title = "Go To", Content = "Going to celestial area...", Icon = "info", Duration = 2 })
         task.spawn(function()
-            local gap9 = workspace:FindFirstChild("DefaultMap_SharedInstances")
-                and workspace.DefaultMap_SharedInstances:FindFirstChild("Gaps")
-                and workspace.DefaultMap_SharedInstances.Gaps:FindFirstChild("Gap9")
-            local destPart = gap9 and gap9:GetChildren()[2]
-            if destPart and destPart:IsA("BasePart") then
-                local waypoints = {
-                    Vector3.new(root.Position.X, destPart.Position.Y, destPart.Position.Z),
-                    destPart.Position + Vector3.new(0, 2, 0)
-                }
-                flyThroughWaypoints(waypoints, 1000)
-                WindUI:Notify({ Title = "Go To", Content = "Arrived at Celestials area!", Icon = "check", Duration = 2 })
-            else
-                WindUI:Notify({ Title = "Go To", Content = "Celestials area not found!", Icon = "alert-triangle", Duration = 3 })
-            end
+            local celestialPos = Vector3.new(4022.5, -9.024967193603516, 0.00011749687837436795)
+            local waypoints = {
+                Vector3.new(root.Position.X, -20, 0),
+                Vector3.new(celestialPos.X, -20, 0),
+                Vector3.new(celestialPos.X, celestialPos.Y, celestialPos.Z)
+            }
+            flyThroughWaypoints(waypoints, 1000)
+            WindUI:Notify({ Title = "Go To", Content = "Arrived at celestial area!", Icon = "check", Duration = 2 })
         end)
     end
 })
@@ -2190,18 +2184,13 @@ GoToSection:Button({
         local root = character:WaitForChild("HumanoidRootPart")
         WindUI:Notify({ Title = "Go To", Content = "Going back to base...", Icon = "info", Duration = 2 })
         task.spawn(function()
-            local base = findMyBase()
-            local home = getHomePart(base)
-            if home then
-                local waypoints = {
-                    Vector3.new(root.Position.X, home.Position.Y, home.Position.Z),
-                    home.Position + Vector3.new(0, 2, 0)
-                }
-                flyThroughWaypoints(waypoints, 1000)
-                WindUI:Notify({ Title = "Go To", Content = "Arrived at base!", Icon = "check", Duration = 2 })
-            else
-                WindUI:Notify({ Title = "Go To", Content = "Base not found!", Icon = "alert-triangle", Duration = 3 })
-            end
+            local waypoints = {
+                Vector3.new(root.Position.X, -20, 0),
+                Vector3.new(125, -20, 0),
+                Vector3.new(125, 3.3, 0)
+            }
+            flyThroughWaypoints(waypoints, 1000)
+            WindUI:Notify({ Title = "Go To", Content = "Arrived at base!", Icon = "check", Duration = 2 })
         end)
     end
 })
