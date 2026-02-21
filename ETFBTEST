@@ -8,7 +8,7 @@
 print("--===== XUAN HUB LOADED (WindUI) =====--")
 
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+local player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -24,6 +24,8 @@ local WindUI = loadstring(game:HttpGet(
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
+
+
 
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
 WindUI:AddTheme({
@@ -1182,297 +1184,140 @@ task.spawn(function()
     end
 end)
 
--- Enhanced candy automation (collection & submission) ------------------------------------------------
--- state vars
-local lastCollectedCandy, lastCollectedValentineCoin
-local moveLocked = false
-
-local function acquireMoveLock()
-    while moveLocked do task.wait(0.02) end
-    moveLocked = true
-end
-local function releaseMoveLock()
-    moveLocked = false
-end
-
-if player then
-    player.CharacterAdded:Connect(function()
-        moveLocked = false
-        lastCollectedCandy = nil
-        lastCollectedValentineCoin = nil
-    end)
-end
-
-local function getPosition(obj)
-    if obj:IsA("BasePart") then
-        return obj.Position
-    elseif obj:IsA("Model") then
-        if obj.PrimaryPart then return obj.PrimaryPart.Position end
-        local part = obj:FindFirstChildWhichIsA("BasePart", true)
-        if part then return part.Position end
+-- Auto Submit Candy Loop (Notification Detection)
+task.spawn(function()
+    while scriptRunning do
+        if State.autoSubmitCandy then
+            pcall(function()
+                -- Check notification GUI for candy submission message
+                local playerGui = player:FindFirstChild("PlayerGui")
+                if playerGui then
+                    local newNotifs = playerGui:FindFirstChild("NewNotifications")
+                    if newNotifs then
+                        local items = newNotifs:FindFirstChild("Items")
+                        if items then
+                            -- Check all notification children
+                            for _, notif in ipairs(items:GetChildren()) do
+                                local textLabel = notif:FindFirstChild("TextLabel")
+                                if textLabel and textLabel.Text then
+                                    local text = textLabel.Text:lower()
+                                    -- Check if notification contains candy submission message
+                                    if text:find("candies") or text:find("submit your current candies first") then
+                                        -- Teleport to CandyGramStation.Main and fire ProximityPrompt instantly
+                                        local station = workspace:FindFirstChild("ValentinesMap")
+                                            and workspace.ValentinesMap:FindFirstChild("CandyGramStation")
+                                        if station then
+                                            local main = station:FindFirstChild("Main")
+                                            if main then
+                                                local prompt = main:FindFirstChild("Prompts")
+                                                    and main.Prompts:FindFirstChild("ProximityPrompt")
+                                                if prompt then
+                                                    fireproximityprompt(prompt, 0)
+                                                    WindUI:Notify({ Title = "Candy Submitted", Content = "Successfully submitted candy!", Icon = "check", Duration = 3 })
+                                                    task.wait(2)
+                                                else
+                                                    WindUI:Notify({ Title = "Candy Submit", Content = "ProximityPrompt not found!", Icon = "alert-triangle", Duration = 3 })
+                                                end
+                                            end
+                                        end
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end)
+            task.wait(0.5)
+        else
+            task.wait(1)
+        end
     end
-    return nil
-end
+end)
 
-local function isCharacterAlive(root, humanoid)
-    if not root or not root.Parent then return false end
-    if not humanoid or not humanoid.Parent then return false end
-    if humanoid.Health <= 0 then return false end
-    return true
-end
-
-local function getCharacterRoots()
-    local character = LocalPlayer.Character
-    if not character then return nil, nil end
-    local root = character:FindFirstChild("HumanoidRootPart")
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
-    return root, humanoid
-end
-
-local function waitForCharacterSafe()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = character:WaitForChild("HumanoidRootPart", 10)
-    local humanoid = character:WaitForChild("Humanoid", 10)
-    if not root or not humanoid then return nil, nil end
-    local elapsed = 0
-    while humanoid.Health <= 0 do
-        local dt = RunService.Heartbeat:Wait()
-        elapsed = elapsed + dt
-        if elapsed > 10 then return nil, nil end
-        if LocalPlayer.Character ~= character then return nil, nil end
-    end
-    task.wait(0.2)
-    return root, humanoid
-end
-
-local function flyToPos(targetPos, speed)
-    speed = speed or 4000
-    local root, humanoid = getCharacterRoots()
-    if not isCharacterAlive(root, humanoid) then return false end
-
-    while (root.Position - targetPos).Magnitude > 1.5 do
-        local dt = RunService.Heartbeat:Wait()
-        if not isCharacterAlive(root, humanoid) then return false end
-        local remaining = (targetPos - root.Position)
-        local step = math.min(speed * dt, remaining.Magnitude)
-        root.CFrame = root.CFrame + remaining.Unit * step
-        root.AssemblyLinearVelocity = Vector3.zero
-    end
-
-    if isCharacterAlive(root, humanoid) then
-        root.CFrame = CFrame.new(targetPos)
-        root.AssemblyLinearVelocity = Vector3.zero
-        root.AssemblyAngularVelocity = Vector3.zero
-    end
-    return true
-end
-
-local function collectItem(targetPos, heightOffset)
-    local root = waitForCharacterSafe()
-    if not root then return end
-
-    acquireMoveLock()
-    local ok, err = pcall(function()
-        local cx, cz = root.Position.X, root.Position.Z
-        flyToPos(Vector3.new(cx, -25, cz), 1000)
-        task.wait(0.01)
-        flyToPos(Vector3.new(targetPos.X, -25, targetPos.Z), 1000)
-        task.wait(0.01)
-        flyToPos(Vector3.new(targetPos.X, heightOffset, targetPos.Z), 1000)
-        task.wait(0.01)
-    end)
-    releaseMoveLock()
-
-    if not ok then warn("[collectItem] Movement error: " .. tostring(err)) end
-end
-
--- collection loops
-
+-- Auto Collect Candy (Valentines Event)
 task.spawn(function()
     while scriptRunning do
         if autoCollectCandy then
-            local root = getCharacterRoots()
-            if root then
-                local candyEventParts = workspace:FindFirstChild("CandyEventParts")
-                if candyEventParts then
-                    local candyPriority = {"Candy3", "Candy2", "Candy1"}
-                    local allCandies = {}
-                    for _, t in ipairs(candyPriority) do allCandies[t] = {} end
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local folder = workspace:FindFirstChild("CandyEventParts")
+                if not hrp or not folder then return end
 
-                    for _, candy in ipairs(candyEventParts:GetChildren()) do
-                        if candy.Parent then
-                            for _, candyType in ipairs(candyPriority) do
-                                if candy.Name == candyType then
-                                    local pos = getPosition(candy)
-                                    if pos then
-                                        table.insert(allCandies[candyType], {
-                                            obj = candy,
-                                            pos = pos,
-                                            dist = (root.Position - pos).Magnitude
-                                        })
-                                    end
+                for _, candy in ipairs(folder:GetChildren()) do
+                    if candy.Name:lower():find("candy") then
+                        -- Look for HeartCandy1 part
+                        local heartPart = candy:FindFirstChild("HeartCandy1")
+                        if heartPart and heartPart:IsA("BasePart") then
+                            pcall(function()
+                                firetouchinterest(hrp, heartPart, 0)
+                                firetouchinterest(hrp, heartPart, 1)
+                            end)
+                            task.wait(0.01)
+                        else
+                            -- fallback: find any BasePart with TouchInterest
+                            for _, d in ipairs(candy:GetDescendants()) do
+                                if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
                                     break
                                 end
                             end
                         end
                     end
-
-                    local candy3List = allCandies["Candy3"]
-                    local nearestCandy3Dist = math.huge
-                    if #candy3List > 0 then
-                        table.sort(candy3List, function(a, b) return a.dist < b.dist end)
-                        nearestCandy3Dist = candy3List[1].dist
-                    end
-                    local candy3TooFar = (nearestCandy3Dist > 500)
-
-                    local target = nil
-                    for _, candyType in ipairs(candyPriority) do
-                        local list = allCandies[candyType]
-                        if #list > 0 then
-                            table.sort(list, function(a, b) return a.dist < b.dist end)
-                            if not (candyType == "Candy3" and candy3TooFar) then
-                                if lastCollectedCandy and list[1] and list[1].obj == lastCollectedCandy and list[2] then
-                                    target = list[2]
-                                elseif list[1] then
-                                    target = list[1]
-                                end
-                                if target then break end
-                            end
-                        end
-                    end
-
-                    if target and target.obj.Parent then
-                        collectItem(target.pos, 5)
-                        lastCollectedCandy = target.obj
-                    else
-                        lastCollectedCandy = nil
-                        task.wait(1)
-                    end
                 end
-            end
+            end)
+            task.wait(0.05)
+        else
+            task.wait(0.5)
         end
-        task.wait(0.02)
     end
 end)
 
-
- task.spawn(function()
-    while scriptRunning do
-        if autoCollectValentinesCoin then
-            local root = getCharacterRoots()
-            if root then
-                local valentinesCoinParts = workspace:FindFirstChild("ValentinesCoinParts")
-                if valentinesCoinParts then
-                    local coins = {}
-                    for _, coin in ipairs(valentinesCoinParts:GetChildren()) do
-                        if coin.Name == "ValentinesCoin" and coin.Parent then
-                            local pos = getPosition(coin)
-                            if pos then
-                                table.insert(coins, {
-                                    obj = coin,
-                                    pos = pos,
-                                    dist = (root.Position - pos).Magnitude
-                                })
-                            end
-                        end
-                    end
-
-                    if #coins > 0 then
-                        table.sort(coins, function(a, b) return a.dist < b.dist end)
-                        local target = nil
-                        if lastCollectedValentineCoin and coins[1] and coins[1].obj == lastCollectedValentineCoin and coins[2] then
-                            target = coins[2]
-                        elseif coins[1] then
-                            target = coins[1]
-                        end
-                        if target and target.obj.Parent then
-                            collectItem(target.pos, 3.3)
-                            lastCollectedValentineCoin = target.obj
-                        end
-                    else
-                        lastCollectedValentineCoin = nil
-                        task.wait(1)
-                    end
-                end
-            end
-        end
-        task.wait(0.02)
-    end
-end)
-
-
--- deposit/submission loop
-local DEPOSIT_POS = Vector3.new(355, 3.3, -26)
-
-local function getDepositPrompt()
-    local ok, prompt = pcall(function()
-        return workspace
-            :WaitForChild("ValentinesMap", 5)
-            :WaitForChild("CandyGramStation", 5)
-            :WaitForChild("Main", 5)
-            :WaitForChild("Prompts", 5)
-            :WaitForChild("ProximityPrompt", 5)
-    end)
-    return ok and prompt or nil
-end
-
-local function getEventCoinCount()
-    local ok, result = pcall(function()
-        local hud = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("HUD")
-        if not hud then return nil end
-        local bottomLeft = hud:FindFirstChild("BottomLeft")
-        if not bottomLeft then return nil end
-        for _, child in ipairs(bottomLeft:GetChildren()) do
-            if child.Name == "EventCoins" then
-                for _, obj in ipairs(child:GetDescendants()) do
-                    if obj:IsA("TextLabel") then
-                        local current = obj.Text:match("(%d+)%s*/%s*%d+")
-                        if current then return tonumber(current) end
-                    end
-                end
-            end
-        end
-        return nil
-    end)
-    return ok and result or nil
-end
-
+-- Auto Collect Valentines Coin (Love Token)
 task.spawn(function()
     while scriptRunning do
-        task.wait(0.3)
-        if autoSubmitCandy then
-            local val = getEventCoinCount()
-            if val and val >= 100 then
-                local prompt = getDepositPrompt()
-                if not prompt then
-                    task.wait(2)
-                else
-                    acquireMoveLock()
-                    pcall(function()
-                        local root = getCharacterRoots()
-                        if root then
-                            local cx, cz = root.Position.X, root.Position.Z
-                            flyToPos(Vector3.new(cx, -25, cz), 1000)
+        if autoCollectValentinesCoin then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                local folder = workspace:FindFirstChild("ValentinesCoinParts")
+                if not hrp or not folder then return end
+
+                for _, coin in ipairs(folder:GetChildren()) do
+                    if coin.Name:lower():find("valentine") or coin.Name:lower():find("coin") then
+                        -- Look for lovetoken part
+                        local tokenPart = coin:FindFirstChild("lovetoken")
+                        if tokenPart and tokenPart:IsA("BasePart") then
+                            pcall(function()
+                                firetouchinterest(hrp, tokenPart, 0)
+                                firetouchinterest(hrp, tokenPart, 1)
+                            end)
                             task.wait(0.01)
-                            flyToPos(Vector3.new(DEPOSIT_POS.X, -25, DEPOSIT_POS.Z), 1000)
-                            task.wait(0.01)
-                            flyToPos(DEPOSIT_POS, 1000)
-                            task.wait(0.5)
+                        else
+                            -- fallback: find any BasePart with TouchInterest
+                            for _, d in ipairs(coin:GetDescendants()) do
+                                if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                                    pcall(function()
+                                        firetouchinterest(hrp, d, 0)
+                                        firetouchinterest(hrp, d, 1)
+                                    end)
+                                    task.wait(0.01)
+                                    break
+                                end
+                            end
                         end
-                        for _ = 1, 3 do
-                            local ok = pcall(fireproximityprompt, prompt)
-                            if ok then break end
-                            task.wait(0.3)
-                        end
-                    end)
-                    releaseMoveLock()
+                    end
                 end
-                task.wait(2)
-            end
+            end)
+            task.wait(0.05)
+        else
+            task.wait(0.5)
         end
     end
 end)
-
 
 -- Auto Spin Money Wheel Loop
 task.spawn(function()
@@ -2267,90 +2112,6 @@ end
 
 -- ================= BASE TAB =================
 local UpgBase = BaseTab:Section({ Title = "Main", Opened = true, })
-
--- Go To Section (Celestials & Safe Zone)
-local GoToSection = BaseTab:Section({ Title = "Go To", Opened = true })
-
--- Helper: Fly through waypoints
-local function flyThroughWaypoints(waypoints, speed)
-    local player = LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local root = character:WaitForChild("HumanoidRootPart")
-    speed = speed or 1000
-    local noclip = true
-    local noclipConn = RunService.Stepped:Connect(function()
-        if noclip and character then
-            for _, part in ipairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-    end)
-    for i, targetPos in ipairs(waypoints) do
-        while (root.Position - targetPos).Magnitude > 2 do
-            local direction = (targetPos - root.Position).Unit
-            local dt = RunService.Heartbeat:Wait()
-            root.CFrame = root.CFrame + (direction * speed * dt)
-            root.Velocity = Vector3.new(0, 0, 0)
-        end
-        if i < #waypoints then
-            task.wait(0.25)
-        end
-    end
-    noclip = false
-    noclipConn:Disconnect()
-    for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            part.CanCollide = true
-        end
-    end
-end
-
--- Button: Go to Celestials Area
-GoToSection:Button({
-    Title = "Go to Celestials Area",
-    Desc = "Goes to the celestial area",
-    Locked = false,
-    Callback = function()
-        local player = LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local root = character:WaitForChild("HumanoidRootPart")
-        WindUI:Notify({ Title = "Go To", Content = "Going to celestial area...", Icon = "info", Duration = 2 })
-        task.spawn(function()
-            local celestialPos = Vector3.new(4022.5, -9.024967193603516, 0.00011749687837436795)
-            local waypoints = {
-                Vector3.new(root.Position.X, -20, 0),
-                Vector3.new(celestialPos.X, -20, 0),
-                Vector3.new(celestialPos.X, celestialPos.Y, celestialPos.Z)
-            }
-            flyThroughWaypoints(waypoints, 1000)
-            WindUI:Notify({ Title = "Go To", Content = "Arrived at celestial area!", Icon = "check", Duration = 2 })
-        end)
-    end
-})
-
--- Button: Go to Safe Zone/Base
-GoToSection:Button({
-    Title = "Go to Safe Zone/Base",
-    Desc = "Goes back to your base safely",
-    Locked = false,
-    Callback = function()
-        local player = LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        local root = character:WaitForChild("HumanoidRootPart")
-        WindUI:Notify({ Title = "Go To", Content = "Going back to base...", Icon = "info", Duration = 2 })
-        task.spawn(function()
-            local waypoints = {
-                Vector3.new(root.Position.X, -20, 0),
-                Vector3.new(125, -20, 0),
-                Vector3.new(125, 3.3, 0)
-            }
-            flyThroughWaypoints(waypoints, 1000)
-            WindUI:Notify({ Title = "Go To", Content = "Arrived at base!", Icon = "check", Duration = 2 })
-        end)
-    end
-})
 
 -- VIP Walls section
 local VIPWallsSection = BaseTab:Section({ Title = "VIP Walls", Opened = true, })
@@ -3458,7 +3219,7 @@ ValentinesSection:Toggle({
 
 ValentinesSection:Toggle({
     Title = "Auto Submit Candy",
-    Desc = "Auto submit candy when notification detected",
+    Desc = "Auto submit candy when it reach 100/100",
     Icon = "check",
     Value = savedSettings.autoSubmitCandy or false,
     Callback = function(state)
