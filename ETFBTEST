@@ -8,7 +8,7 @@
 print("--===== XUAN HUB LOADED (WindUI) =====--")
 
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -1195,11 +1195,13 @@ local function releaseMoveLock()
     moveLocked = false
 end
 
-LocalPlayer.CharacterAdded:Connect(function()
-    moveLocked = false
-    lastCollectedCandy = nil
-    lastCollectedValentineCoin = nil
-end)
+if player then
+    player.CharacterAdded:Connect(function()
+        moveLocked = false
+        lastCollectedCandy = nil
+        lastCollectedValentineCoin = nil
+    end)
+end
 
 local function getPosition(obj)
     if obj:IsA("BasePart") then
