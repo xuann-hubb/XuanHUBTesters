@@ -1,3 +1,12 @@
+-- ================= XUAN HUB GUI (WindUI Version) =================
+-- Disabled PlaceId check for testing
+-- if game.PlaceId ~= 131623223084840 then
+--     game:GetService("Players").LocalPlayer:Kick("Xuan Hub not supported this game!")
+--     return
+-- end
+
+print("--===== XUAN HUB LOADED (WindUI) =====--")
+
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
@@ -15,6 +24,26 @@ local WindUI = loadstring(game:HttpGet(
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
+
+
+
+-- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
+
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
+})
 
 
 -- ================= SETTINGS PERSISTENCE =================
@@ -48,7 +77,9 @@ local defaultSettings = {
     -- Valentines Event
     autoCollectCandy = false,
     autoCollectValentinesCoin = false,
+    autoCollectDoom = false,
     autoSpinValentinesWheel = false,
+    autoSpinDoomWheel = false,
     autoSubmitCandy = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
@@ -110,7 +141,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Dark",
+    Theme = "Holographic", -- Use custom holographic theme
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -199,6 +230,8 @@ local EventTab = Window:Tab({
     Icon = "star",
     Locked = false,
 })
+
+
 
 local AutoTab = Window:Tab({
     Title = "Auto",
@@ -442,6 +475,9 @@ GearSection:Button({
                 end)
                 if success then
                     successCount = successCount + 1
+           
+            
+
                 else
                     failCount = failCount + 1
                 end
@@ -496,6 +532,8 @@ local State = {
     autoCollectCandy = false,
     autoCollectValentinesCoin = false,
     autoSpinValentinesWheel = false,
+    autoCollectDoom = false,
+    autoSpinDoomWheel = false,
     autoSpinUFO = false,
     autoSpinMoneyWheel = false,
 
@@ -594,6 +632,8 @@ autoCollectValentinesCoin = false
 autoSpinValentinesWheel = false
 autoSpinUFO = false
 autoSpinMoneyWheel = false
+autoSpinDoomWheel = false
+autoCollectDoom = false
 spinning = false
 active = false
 PullDelay = 0.1
@@ -1290,6 +1330,46 @@ task.spawn(function()
     end
 end)
 
+
+task.spawn(function()
+                while scriptRunning do
+                    if autoCollectDoom then
+                        pcall(function()
+                            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                            local folder = workspace:FindFirstChild("DoomEventParts")
+                            if not hrp or not folder then return end
+
+                            for _, doom in ipairs(folder:GetChildren()) do
+                                if doom.Name:lower():find("DoomCoin") or doom.Name:lower():find("doom") or doom.Name:lower():find("coin") then
+                                    local mainPart = doom:FindFirstChild("Main")
+                                    if mainPart and mainPart:IsA("BasePart") then
+                                        pcall(function()
+                                            firetouchinterest(hrp, mainPart, 0)
+                                            firetouchinterest(hrp, mainPart, 1)
+                                        end)
+                                        task.wait(0.01)
+                                    else
+                                        for _, d in ipairs(doom:GetDescendants()) do
+                                            if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
+                                                pcall(function()
+                                                    firetouchinterest(hrp, d, 0)
+                                                    firetouchinterest(hrp, d, 1)
+                                                end)
+                                                task.wait(0.01)
+                                                break
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end)
+                        task.wait(0.05)
+                    else
+                        task.wait(0.5)
+                    end
+                end
+            end)
+
 -- Auto Spin Money Wheel Loop
 task.spawn(function()
     while scriptRunning do
@@ -1320,6 +1400,30 @@ task.spawn(function()
             pcall(function()
                 local success, args = pcall(function()
                     return { "UFO", false }
+                end)
+                if success and args then
+                    pcall(function()
+                        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
+                            "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
+                    end)
+                end
+            end)
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Spin Doom Wheel Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSpinDoomWheel then
+            pcall(function()
+                local success, args = pcall(function()
+                    return { "Doom", false }
                 end)
                 if success and args then
                     pcall(function()
@@ -3200,6 +3304,32 @@ ValentinesSection:Toggle({
     end
 })
 
+local DoomSection = EventTab:Section({ Title = "Doom Event", Opened = true })
+
+DoomSection:Toggle({
+    Title = "Auto Collect Doom Coin",
+    Desc = "Automatically collect Doom coins",
+    Value = savedSettings.autoCollectDoom or false,
+    Callback = function(v)
+        State.autoCollectDoom = v
+        autoCollectDoom = v
+        savedSettings.autoCollectDoom = v
+        saveSettings(savedSettings)
+    end
+})
+
+DoomSection:Toggle({
+    Title = "Auto Spin Doom Wheel",
+    Desc = "Automatically spin the Doom wheel",
+    Icon = "check",
+    Value = savedSettings.autoSpinDoomWheel or false,
+    Callback = function(state)
+        autoSpinDoomWheel = state
+        savedSettings.autoSpinDoomWheel = state
+        saveSettings(savedSettings)
+    end
+})
+
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
@@ -3986,6 +4116,16 @@ task.spawn(function()
         autoSpinUFO = true
     end
 
+    -- Apply Auto Spin Doom Wheel
+    if savedSettings.autoSpinDoomWheel then
+        autoSpinDoomWheel = true
+    end
+
+    -- Apply Auto Collect Doom
+    if savedSettings.autoCollectDoom then
+        autoCollectDoom = true
+    end
+
     -- Apply Auto Collect Candy (Valentines Event)
     if savedSettings.autoCollectCandy then
         autoCollectCandy = true
@@ -3999,6 +4139,11 @@ task.spawn(function()
     -- Apply Auto Spin Valentines Wheel
     if savedSettings.autoSpinValentinesWheel then
         autoSpinValentinesWheel = true
+    end
+
+    -- Apply Auto Spin Doom Wheel
+    if savedSettings.autoSpinDoomWheel then
+        autoSpinDoomWheel = true
     end
 
     -- Apply Auto Submit Candy
