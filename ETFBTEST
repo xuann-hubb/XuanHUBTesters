@@ -1,12 +1,3 @@
--- ================= XUAN HUB GUI (WindUI Version) =================
--- Disabled PlaceId check for testing
--- if game.PlaceId ~= 131623223084840 then
---     game:GetService("Players").LocalPlayer:Kick("Xuan Hub not supported this game!")
---     return
--- end
-
-print("--===== XUAN HUB LOADED (WindUI) =====--")
-
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local HttpService = game:GetService("HttpService")
@@ -24,10 +15,6 @@ local WindUI = loadstring(game:HttpGet(
 -- ================= SET FONT (IMPORTANT) =================
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
-
-
-
-
 
 
 -- ================= SETTINGS PERSISTENCE =================
