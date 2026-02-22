@@ -1,0 +1,330 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local camera = workspace.CurrentCamera
+
+-- ================= LOAD WINDUI =================
+local WindUI = loadstring(game:HttpGet(
+    "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
+))()
+
+-- ================= SET FONT (IMPORTANT) =================
+-- WindUI text font
+WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
+
+-- ================= CREATE WINDUI WINDOW =================
+local Window = WindUI:CreateWindow({
+    Folder = "XuanHub",
+    Title = "XUAN HUB",
+    Author = "by discord.gg/kaydensdens",
+    Icon = "rbxassetid://103326199885496",
+    Theme = "Dark",
+    Size = UDim2.fromOffset(640, 480),
+    Draggable = true,
+    HasOutline = true,
+    HideSearchBar = false,
+    OutlineThickness = 3,
+    Resizable = true,
+    Transparent = true,
+    User = {
+        Enabled = true,
+    },
+
+
+})
+
+Window:EditOpenButton({
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
+})
+
+-- Add version tag with FPS and Ping counter
+local version = game.PlaceVersion -- Server version
+local fps = 0
+local ping = 0
+local Stats = game:GetService("Stats")
+
+local VersionTag = Window:Tag({
+    Title = string.format("v%d | Ping: 0 | FPS: 0", version),
+    Icon = "solar:server-bold",
+    Color = Color3.fromRGB(255, 105, 180), -- Pink color
+    Border = true,
+})
+
+local frames = 0
+local last = os.clock()
+
+RunService.RenderStepped:Connect(function()
+    frames = frames + 1
+    local now = os.clock()
+    if now - last >= 1 then
+        fps = frames
+        frames = 0
+        last = now
+
+        -- Get ping
+        pcall(function()
+            local item = Stats.Network.ServerStatsItem:FindFirstChild("Data Ping")
+            if item then
+                ping = math.floor(item:GetValue())
+            end
+        end)
+
+        -- Update tag
+        VersionTag:SetTitle(string.format("v%d | Ping: %d | FPS: %d", version, ping, fps))
+    end
+end)
+
+local MiscTab = Window:Tab({
+    Title = "Settings",
+    Icon = "settings",
+    Locked = false,
+})
+
+-- Anti-AFK (Always Enabled - Prevents 20 min AFK kick)
+local vu = game:GetService("VirtualUser")
+player.Idled:Connect(function()
+    vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    task.wait(1)
+    vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+end)
+
+-- Auto Reconnect (Always Enabled)
+pcall(function()
+    game.CoreGui.RobloxPromptGui.promptOverlay.ChildAdded:Connect(function(child)
+        if child.Name == 'ErrorPrompt' and child:FindFirstChild('MessageArea') and child.MessageArea:FindFirstChild("ErrorFrame") then
+            game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+        end
+    end)
+end)
+
+local MiscSettings = MiscTab:Section({
+    Title = "Game Settings",
+    Opened = true,
+})
+
+-- Anti-AFK (Always On)
+MiscSettings:Button({
+    Title = "Anti-AFK (Always On)",
+    Desc = "Prevents AFK kick - Always enabled",
+    Callback = function()
+        WindUI:Notify({ Title = "Info", Content = "Anti-AFK is always enabled", Icon = "info", Duration = 2 })
+    end
+})
+
+MiscSettings:Space()
+
+-- Auto Reconnect (Always On)
+MiscSettings:Button({
+    Title = "Auto Reconnect (Always On)",
+    Desc = "Auto rejoin on disconnect - Always enabled",
+    Callback = function()
+        WindUI:Notify({ Title = "Info", Content = "Auto Reconnect is always enabled", Icon = "info", Duration = 2 })
+    end
+})
+
+MiscTab:Space()
+
+MiscTab:Section({
+    Title = "Server Actions",
+    Opened = true,
+})
+
+local ServerGroup = MiscTab:Group()
+
+ServerGroup:Button({
+    Title = "Server Hop",
+    Icon = "solar:refresh-bold",
+    Callback = function()
+        Window:ServerHop()
+    end
+
+
+})
+
+ServerGroup:Space()
+
+ServerGroup:Button({
+    Title = "Rejoin",
+    Icon = "solar:restart-bold",
+    Callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+    end
+})
+
+-- ================= MAIN TAB (Shop) =================
+local MainTab = Window:Tab({
+    Title = "Main Tab",
+    Icon = "shopping-cart",
+    Locked = false,
+})
+
+local ShopSection = MainTab:Section({ Title = "Shop Section", Opened = true })
+
+-- State
+local selectedGearItem = ""
+local selectedSeedItem = ""
+local autoBuyGear = false
+local autoBuySeed = false
+local shopRefreshInterval = 2 -- seconds between automated purchase attempts
+
+-- Helpers: fetch shop items heuristically
+local function fetchShopItems(shopId)
+    local items = {}
+    -- Try ReplicatedStorage folder
+    local rep = game:GetService("ReplicatedStorage")
+    local candidate = rep:FindFirstChild(shopId)
+    if candidate and #candidate:GetChildren() > 0 then
+        for _, v in ipairs(candidate:GetChildren()) do
+            if v and v.Name then table.insert(items, v.Name) end
+        end
+        table.sort(items)
+        return items
+    end
+
+    -- Try workspace
+    candidate = workspace:FindFirstChild(shopId)
+    if candidate and #candidate:GetChildren() > 0 then
+        for _, v in ipairs(candidate:GetChildren()) do
+            if v and v.Name then table.insert(items, v.Name) end
+        end
+        table.sort(items)
+        return items
+    end
+
+    -- Search for obvious instances named like items (fallback)
+    for _, v in ipairs(rep:GetDescendants()) do
+        if v:IsA("Folder") and v.Name:lower():find(shopId:lower()) then
+            for _, c in ipairs(v:GetChildren()) do if c.Name then table.insert(items, c.Name) end end
+        end
+    end
+
+    -- Last resort: well-known gear defaults (from provided data)
+    if shopId == "GearShop" then
+        items = { "Watering Can", "Basic Sprinkler", "Harvest Bell", "Turbo Sprinkler", "Favorite Tool", "Super Sprinkler" }
+    elseif shopId == "SeedShop" then
+        items = { "Carrot Seed", "Tomato Seed", "Pumpkin Seed", "Lettuce Seed" }
+    end
+
+    table.sort(items)
+    return items
+end
+
+local gearList = fetchShopItems("GearShop")
+local seedList = fetchShopItems("SeedShop")
+
+local GearDropdown = ShopSection:Dropdown({
+    Title = "Gear Item",
+    Desc = "Select gear to auto-buy",
+    Values = gearList,
+    Value = "",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedGearItem = option or ""
+    end,
+})
+
+local SeedDropdown = ShopSection:Dropdown({
+    Title = "Seed Item",
+    Desc = "Select seed to auto-buy",
+    Values = seedList,
+    Value = "",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedSeedItem = option or ""
+    end,
+})
+
+ShopSection:Button({
+    Title = "Refresh Shop Lists",
+    Desc = "Re-scan game for shop items",
+    Callback = function()
+        gearList = fetchShopItems("GearShop")
+        seedList = fetchShopItems("SeedShop")
+        GearDropdown:Refresh(gearList)
+        SeedDropdown:Refresh(seedList)
+        WindUI:Notify({ Title = "Shop", Content = "Shop lists refreshed", Icon = "check", Duration = 2 })
+    end,
+})
+
+ShopSection:Slider({
+    Title = "Auto Buy Delay (s)",
+    Desc = "Delay between auto-buy attempts",
+    Step = 0.5,
+    Value = { Min = 0.5, Max = 10, Default = shopRefreshInterval },
+    Callback = function(value)
+        shopRefreshInterval = tonumber(value) or 2
+    end,
+})
+
+ShopSection:Toggle({
+    Title = "Auto Buy Gear",
+    Desc = "Automatically purchase selected gear",
+    Icon = "check",
+    Value = false,
+    Callback = function(state)
+        autoBuyGear = state
+        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy gear enabled" or "Auto-buy gear disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+
+ShopSection:Toggle({
+    Title = "Auto Buy Seed",
+    Desc = "Automatically purchase selected seed",
+    Icon = "check",
+    Value = false,
+    Callback = function(state)
+        autoBuySeed = state
+        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy seed enabled" or "Auto-buy seed disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+
+-- Purchase helper
+local function purchaseShopItem(shopId, itemName)
+    if not itemName or itemName == "" then return false end
+    local ok, err = pcall(function()
+        local rep = game:GetService("ReplicatedStorage")
+        local remote = rep:WaitForChild("RemoteEvents", 2)
+        if not remote then return end
+        local purchase = remote:FindFirstChild("PurchaseShopItem")
+        if not purchase then return end
+        purchase:InvokeServer(shopId, itemName)
+    end)
+    return ok
+end
+
+-- Background loops
+task.spawn(function()
+    while scriptRunning do
+        if autoBuyGear and selectedGearItem and selectedGearItem ~= "" then
+            pcall(function()
+                purchaseShopItem("GearShop", selectedGearItem)
+            end)
+            task.wait(shopRefreshInterval)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
+task.spawn(function()
+    while scriptRunning do
+        if autoBuySeed and selectedSeedItem and selectedSeedItem ~= "" then
+            pcall(function()
+                purchaseShopItem("SeedShop", selectedSeedItem)
+            end)
+            task.wait(shopRefreshInterval)
+        else
+            task.wait(1)
+        end
+    end
+end)
