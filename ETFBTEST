@@ -27,23 +27,6 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
 
 
--- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
-WindUI:AddTheme({
-    Name = "Holographic", -- theme name
-
-    Accent = WindUI:Gradient({
-        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
-        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
-        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
-    }, {
-        Rotation = 45,
-    }),
-    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
-    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
-    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
-    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
-    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
-})
 
 
 -- ================= SETTINGS PERSISTENCE =================
@@ -140,7 +123,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Holographic", -- Use custom holographic theme
+    Theme = "Dark", 
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -3970,20 +3953,33 @@ DefaultMachineSection:Input({
     Value = "60:00",
     Placeholder = "Enter time (e.g., 60:00)",
     Callback = function(value)
-        -- Validate time format (should contain ':')
-        if value and value:match(":") then
-            machineTargetTime = value
-        else
-            -- Default to 60:00 if invalid format
-            machineTargetTime = "60:00"
-            WindUI:Notify({
-                Title = "Auto Machine",
-                Content = "Invalid time format. Defaulted to 60:00",
-                Icon =
-                "alert-triangle",
-                Duration = 3
-            })
-        end
+            -- Validate time format (should contain ':') and enforce minimum 31 seconds
+            if value and value:match("^(%d+):(%d%d)$") then
+                local m, s = value:match("^(%d+):(%d%d)$")
+                m = tonumber(m) or 0
+                s = tonumber(s) or 0
+                local total = m * 60 + s
+                if total < 31 then
+                    machineTargetTime = "0:31"
+                    WindUI:Notify({
+                        Title = "Auto Machine",
+                        Content = "Minimum time is 0:31; set to 0:31",
+                        Icon = "info",
+                        Duration = 3
+                    })
+                else
+                    machineTargetTime = string.format("%d:%02d", m, s)
+                end
+            else
+                -- Default to 60:00 if invalid format
+                machineTargetTime = "60:00"
+                WindUI:Notify({
+                    Title = "Auto Machine",
+                    Content = "Invalid time format. Defaulted to 60:00",
+                    Icon = "alert-triangle",
+                    Duration = 3
+                })
+            end
     end
 })
 
@@ -4145,6 +4141,10 @@ local function combineBrainrots()
             "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
+    -- Machine has ~30s cooldown; ensure script waits slightly longer to avoid re-triggering
+    if ok then
+        task.wait(31)
+    end
     return ok
 end
 
