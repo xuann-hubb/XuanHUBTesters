@@ -284,6 +284,33 @@ local GearDropdown = ShopSection:Dropdown({
     end,
 })
 
+ShopSection:Toggle({
+    Title = "Auto Buy Gear",
+    Desc = "Automatically purchase selected gear",
+    Icon = "check",
+    Value = false,
+    Callback = function(state)
+        autoBuyGear = state
+        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy gear enabled" or "Auto-buy gear disabled"), Icon = "info", Duration = 2 })
+        if state then
+            task.spawn(function()
+                while autoBuyGear and scriptRunning do
+                    if selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
+                        for _, item in ipairs(selectedGearItem) do
+                            pcall(function()
+                                local args = { "GearShop", item }
+                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
+                            end)
+                            task.wait(0.25)
+                        end
+                    end
+                    task.wait(shopRefreshInterval)
+                end
+            end)
+        end
+    end,
+})
+
 local SeedDropdown = ShopSection:Dropdown({
     Title = "Seed Item",
     Desc = "Select seed to auto-buy",
@@ -294,6 +321,33 @@ local SeedDropdown = ShopSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(option)
         selectedSeedItem = option or {}
+    end,
+})
+
+ShopSection:Toggle({
+    Title = "Auto Buy Seed",
+    Desc = "Automatically purchase selected seed",
+    Icon = "check",
+    Value = false,
+    Callback = function(state)
+        autoBuySeed = state
+        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy seed enabled" or "Auto-buy seed disabled"), Icon = "info", Duration = 2 })
+        if state then
+            task.spawn(function()
+                while autoBuySeed and scriptRunning do
+                    if selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
+                        for _, item in ipairs(selectedSeedItem) do
+                            pcall(function()
+                                local args = { "SeedShop", item }
+                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
+                            end)
+                            task.wait(0.25)
+                        end
+                    end
+                    task.wait(shopRefreshInterval)
+                end
+            end)
+        end
     end,
 })
 
@@ -327,7 +381,7 @@ local FruitDropdown = ShopSection:Dropdown({
 })
 
 -- Refresh buttons removed per user request
-
+-- Slider for auto-buy delay
 ShopSection:Slider({
     Title = "Auto Buy Delay (s)",
     Desc = "Delay between auto-buy attempts",
@@ -342,61 +396,16 @@ ShopSection:Slider({
     end,
 })
 
-ShopSection:Toggle({
-    Title = "Auto Buy Gear",
-    Desc = "Automatically purchase selected gear",
-    Icon = "check",
-    Value = false,
-    Callback = function(state)
-        autoBuyGear = state
-        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy gear enabled" or "Auto-buy gear disabled"), Icon = "info", Duration = 2 })
-        if state then
-            task.spawn(function()
-                while autoBuyGear and scriptRunning do
-                    if selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
-                        for _, item in ipairs(selectedGearItem) do
-                            pcall(function()
-                                local args = { "GearShop", item }
-                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
-                            end)
-                            task.wait(0.25)
-                        end
-                    end
-                    task.wait(shopRefreshInterval)
-                end
-            end)
-        end
-    end,
+-- Automation tab: move automation-related toggles here
+local AutomationTab = Window:Tab({
+    Title = "Automation",
+    Icon = "play",
+    Locked = false,
 })
 
-ShopSection:Toggle({
-    Title = "Auto Buy Seed",
-    Desc = "Automatically purchase selected seed",
-    Icon = "check",
-    Value = false,
-    Callback = function(state)
-        autoBuySeed = state
-        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy seed enabled" or "Auto-buy seed disabled"), Icon = "info", Duration = 2 })
-        if state then
-            task.spawn(function()
-                while autoBuySeed and scriptRunning do
-                    if selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
-                        for _, item in ipairs(selectedSeedItem) do
-                            pcall(function()
-                                local args = { "SeedShop", item }
-                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
-                            end)
-                            task.wait(0.25)
-                        end
-                    end
-                    task.wait(shopRefreshInterval)
-                end
-            end)
-        end
-    end,
-})
+local AutomationSection = AutomationTab:Section({ Title = "Automation", Opened = true })
 
-ShopSection:Toggle({
+AutomationSection:Toggle({
     Title = "Auto Sell Fruit",
     Desc = "Automatically sell selected fruits",
     Icon = "check",
@@ -404,13 +413,13 @@ ShopSection:Toggle({
     Callback = function(state)
         if state then
             if not selectedFruitItem or type(selectedFruitItem) ~= "table" or #selectedFruitItem == 0 then
-                WindUI:Notify({ Title = "Shop", Content = "Select fruits first!", Icon = "alert-triangle", Duration = 2 })
+                WindUI:Notify({ Title = "Automation", Content = "Select fruits first!", Icon = "alert-triangle", Duration = 2 })
                 autoSellFruit = false
                 return
             end
         end
         autoSellFruit = state
-        WindUI:Notify({ Title = "Shop", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
     end,
 })
 
