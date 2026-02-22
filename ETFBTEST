@@ -28,22 +28,6 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
 
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
-WindUI:AddTheme({
-    Name = "Holographic", -- theme name
-
-    Accent = WindUI:Gradient({
-        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
-        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
-        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
-    }, {
-        Rotation = 45,
-    }),
-    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
-    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
-    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
-    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
-    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
-})
 
 
 -- ================= SETTINGS PERSISTENCE =================
@@ -140,7 +124,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Holographic", -- Use custom holographic theme
+    Theme = "Dark", 
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -2274,7 +2258,7 @@ local UpgBaseOnce = UpgBase:Button({
     Locked = false,
     Callback = function()
         pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):InvokeServer()
+            game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):FireServer()
         end)
         WindUI:Notify({
             Title = "Upgraded",
