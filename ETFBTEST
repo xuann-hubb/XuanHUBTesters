@@ -3281,7 +3281,8 @@ task.spawn(function()
 
                             -- use updated remote to open the block after equipping
                             pcall(function()
-                                local args = { Instance.new("Tool", nil) }
+                                -- pass the actual tool object we just equipped
+                                local args = { tool }
                                 game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes")
                                     :WaitForChild("Networking"):WaitForChild("RE/LuckyBlocks/OpenLuckyBlockTool"):FireServer(unpack(args))
                             end)
