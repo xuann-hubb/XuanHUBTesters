@@ -1457,8 +1457,7 @@ task.spawn(function()
     while scriptRunning do
         if autoUpgradeBase then
             pcall(function()
-                game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                    "RE/Plot.UpgradeBase"):FireServer()
+                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):FireServer()
             end)
             task.wait(0.5)
         else
@@ -1518,8 +1517,7 @@ task.spawn(function()
     while scriptRunning do
         if autoRebirth then
             pcall(function()
-                game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("Rebirth")
-                    :InvokeServer()
+                game:GetService("ReplicatedStorage").RemoteFunctions.Rebirth:InvokeServer()
             end)
             task.wait(1)
         else
@@ -2276,8 +2274,7 @@ local UpgBaseOnce = UpgBase:Button({
     Locked = false,
     Callback = function()
         pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-                "RE/Plot.UpgradeBase"):FireServer()
+            game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):FireServer()
         end)
         WindUI:Notify({
             Title = "Upgraded",
@@ -3282,20 +3279,11 @@ task.spawn(function()
                             humanoid:EquipTool(tool)
                             task.wait(0.15) -- short wait so game registers the equip
 
-                            -- Random screen click to open (same as executor pattern)
+                            -- use updated remote to open the block after equipping
                             pcall(function()
-                                local cam = workspace.CurrentCamera
-                                if cam and vu then
-                                    -- Random position on screen (viewport size)
-                                    local vpSize = cam.ViewportSize
-                                    local randomX = math.random(vpSize.X * 0.3, vpSize.X * 0.7)
-                                    local randomY = math.random(vpSize.Y * 0.3, vpSize.Y * 0.7)
-                                    local randomPos = Vector2.new(randomX, randomY)
-
-                                    vu:Button1Down(randomPos, cam.CFrame)
-                                    task.wait(0.05)
-                                    vu:Button1Up(randomPos, cam.CFrame)
-                                end
+                                local args = { Instance.new("Tool", nil) }
+                                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes")
+                                    :WaitForChild("Networking"):WaitForChild("RE/LuckyBlocks/OpenLuckyBlockTool"):FireServer(unpack(args))
                             end)
 
                             task.wait(0.2) -- cooldown between opens
