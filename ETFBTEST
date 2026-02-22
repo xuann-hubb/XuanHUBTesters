@@ -123,7 +123,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Dark", 
+    Theme = "Dark",
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -4138,11 +4138,11 @@ local function depositBrainrot()
 
     local args = {
         "Deposit",
-        defaultMachine
+        workspace:WaitForChild("GameObjects"):WaitForChild("PlaceSpecific"):WaitForChild("root"):WaitForChild("SpawnMachines"):WaitForChild("Default")
     }
     local ok = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+        local rep = game:GetService("ReplicatedStorage")
+        rep:WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RF/SpawnMachineAction"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     return ok
@@ -4163,11 +4163,11 @@ local function combineBrainrots()
 
     local args = {
         "Combine",
-        defaultMachine
+        workspace:WaitForChild("GameObjects"):WaitForChild("PlaceSpecific"):WaitForChild("root"):WaitForChild("SpawnMachines"):WaitForChild("Default")
     }
     local ok = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild("Net"):WaitForChild(
-            "RF/SpawnMachine.Action"):InvokeServer(unpack(args))
+        local rep = game:GetService("ReplicatedStorage")
+        rep:WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RF/SpawnMachineAction"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
     -- Machine has ~30s cooldown; ensure script waits slightly longer to avoid re-triggering
