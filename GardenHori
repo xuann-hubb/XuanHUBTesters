@@ -231,8 +231,12 @@ local function fetchShopItems(shopId)
     return items
 end
 
-local gearList = fetchShopItems("GearShop")
-local seedList = fetchShopItems("SeedShop")
+local gearList = {}
+local seedList = {}
+
+-- Populate lists (keep them local tables to avoid accidental global usage)
+gearList = fetchShopItems("GearShop")
+seedList = fetchShopItems("SeedShop")
 
 local GearDropdown = ShopSection:Dropdown({
     Title = "Gear Item",
@@ -294,6 +298,22 @@ ShopSection:Toggle({
     Callback = function(state)
         autoBuyGear = state
         WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy gear enabled" or "Auto-buy gear disabled"), Icon = "info", Duration = 2 })
+        if state then
+            task.spawn(function()
+                if selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
+                    for _, item in ipairs(selectedGearItem) do
+                        pcall(function()
+                            purchaseShopItem("GearShop", item)
+                        end)
+                        task.wait(0.25)
+                    end
+                elseif selectedGearItem and type(selectedGearItem) == "string" and selectedGearItem ~= "" then
+                    pcall(function()
+                        purchaseShopItem("GearShop", selectedGearItem)
+                    end)
+                end
+            end)
+        end
     end,
 })
 
@@ -305,6 +325,22 @@ ShopSection:Toggle({
     Callback = function(state)
         autoBuySeed = state
         WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy seed enabled" or "Auto-buy seed disabled"), Icon = "info", Duration = 2 })
+        if state then
+            task.spawn(function()
+                if selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
+                    for _, item in ipairs(selectedSeedItem) do
+                        pcall(function()
+                            purchaseShopItem("SeedShop", item)
+                        end)
+                        task.wait(0.25)
+                    end
+                elseif selectedSeedItem and type(selectedSeedItem) == "string" and selectedSeedItem ~= "" then
+                    pcall(function()
+                        purchaseShopItem("SeedShop", selectedSeedItem)
+                    end)
+                end
+            end)
+        end
     end,
 })
 
@@ -313,11 +349,12 @@ local function purchaseShopItem(shopId, itemName)
     if not itemName or itemName == "" then return false end
     local ok, err = pcall(function()
         local rep = game:GetService("ReplicatedStorage")
-        local remote = rep:WaitForChild("RemoteEvents", 2)
-        if not remote then return end
+        local remote = rep:WaitForChild("RemoteEvents", 5)
+        if not remote then error("RemoteEvents not found") end
         local purchase = remote:FindFirstChild("PurchaseShopItem")
-        if not purchase then return end
-        purchase:InvokeServer(shopId, itemName)
+        if not purchase then error("PurchaseShopItem remote not found") end
+        local args = { shopId, itemName }
+        purchase:InvokeServer(unpack(args))
     end)
     return ok
 end
