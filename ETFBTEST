@@ -1204,43 +1204,62 @@ end)
 
 
 task.spawn(function()
-                while scriptRunning do
-                    if autoCollectDoom then
-                        pcall(function()
-                            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                            local folder = workspace:FindFirstChild("DoomEventParts")
-                            if not hrp or not folder then return end
+    while scriptRunning do
+        if autoCollectDoom then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
 
-                            for _, doom in ipairs(folder:GetChildren()) do
-                                if doom.Name:lower():find("DoomCoin") or doom.Name:lower():find("doom") or doom.Name:lower():find("coin") then
-                                    local mainPart = doom:FindFirstChild("Main")
-                                    if mainPart and mainPart:IsA("BasePart") then
+                -- Fast path: direct DoomEventParts.DoomCoin.Main (explicit path provided)
+                local doomRootExplicit = workspace:FindFirstChild("DoomEventParts")
+                if doomRootExplicit then
+                    local doomModel = doomRootExplicit:FindFirstChild("DoomCoin")
+                    if doomModel then
+                        local mainPart = doomModel:FindFirstChild("Main")
+                        if mainPart and mainPart:IsA("BasePart") then
+                            pcall(function()
+                                firetouchinterest(hrp, mainPart, 0)
+                                firetouchinterest(hrp, mainPart, 1)
+                            end)
+                            task.wait(0.01)
+                        end
+                    end
+                end
+
+                -- Fallback: old DoomEventParts folder
+                local folder = workspace:FindFirstChild("DoomEventParts")
+                if folder then
+                    for _, coin in ipairs(folder:GetChildren()) do
+                        if coin.Name == "Doom Coin" or coin.Name:lower():find("doom") or coin.Name:lower():find("coin") then
+                            local mainPart = coin:FindFirstChild("Main") or coin:FindFirstChild("Hitbox") or coin:FindFirstChild("hitbox")
+                            if mainPart and mainPart:IsA("BasePart") then
+                                pcall(function()
+                                    firetouchinterest(hrp, mainPart, 0)
+                                    firetouchinterest(hrp, mainPart, 1)
+                                end)
+                                task.wait(0.01)
+                            else
+                                for _, d in ipairs(coin:GetDescendants()) do
+                                    if d:IsA("BasePart") and (d:FindFirstChild("TouchInterest") or d.Name:lower():find("hitbox") or d.Name:lower():find("coin") or d.Name:lower():find("main")) then
                                         pcall(function()
-                                            firetouchinterest(hrp, mainPart, 0)
-                                            firetouchinterest(hrp, mainPart, 1)
+                                            firetouchinterest(hrp, d, 0)
+                                            firetouchinterest(hrp, d, 1)
                                         end)
                                         task.wait(0.01)
-                                    else
-                                        for _, d in ipairs(doom:GetDescendants()) do
-                                            if d:IsA("BasePart") and d:FindFirstChild("TouchInterest") then
-                                                pcall(function()
-                                                    firetouchinterest(hrp, d, 0)
-                                                    firetouchinterest(hrp, d, 1)
-                                                end)
-                                                task.wait(0.01)
-                                                break
-                                            end
-                                        end
+                                        break
                                     end
                                 end
                             end
-                        end)
-                        task.wait(0.05)
-                    else
-                        task.wait(0.5)
+                        end
                     end
                 end
             end)
+            task.wait(0.05)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
 
 -- Auto Spin Money Wheel Loop
 task.spawn(function()
