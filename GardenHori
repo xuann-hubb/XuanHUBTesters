@@ -428,7 +428,33 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
     end,
 })
+-- fruit auto-sell loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSellFruit and selectedFruitItem and type(selectedFruitItem) == "table" and #selectedFruitItem > 0 then
+            for _, fruit in ipairs(selectedFruitItem) do
+                local ok, err = pcall(function()
+                    if equipFruitTool(fruit) then
+                      -- hold fruit then sell
 
+local args = {
+    "SellSingle"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("SellItems"):InvokeServer(unpack(args))
+                    end
+                end)
+
+                if not ok then
+                    warn("Error selling fruit", fruit, err)
+                end
+                task.wait(0.3)
+            end
+            task.wait(fruitSellInterval)
+        else
+            task.wait(1)
+        end
+    end
+end)
 
 AboutTab:Select()
 
