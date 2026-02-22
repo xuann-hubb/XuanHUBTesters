@@ -28,6 +28,22 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
 
 -- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
+
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
+})
 
 
 -- ================= SETTINGS PERSISTENCE =================
@@ -124,7 +140,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Dark", 
+    Theme = "Holographic", -- Use custom holographic theme
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -1520,10 +1536,10 @@ local BrainrotsByRarity = {
     Legendary = { "Frigo Camelo", "Orangutini Ananasini", "Rhino Toasterino", "Bombardiro Crocodilo", "Spioniro Golubiro", "Bombombini Gusini", "Zibra Zubra Zibralini", "Tigrilini Watermelini", "Cavallo Virtuoso", "Gorillo Watermelondrillo", "Avocadorilla", "Ganganzelli Trulala", "Eaglucci Cocosucci" },
     Mythical = { "Cocofanto Elefanto", "Giraffa Celeste", "Tralalero Tralala", "Los Crocodillitos", "Tigroligre Frutonni", "Udin Din Din Dun", "Orcalero Orcala", "Trenostruzzo Turbo 3000", "Trippi Troppi Troppa Trippa", "Ballerino Lololo", "Piccione Macchina", "Tukanno Bananno" },
     Cosmic = { "La Vacca Saturno Saturnita", "Torrtuginni Dragonfrutini", "Los Tralaleritos", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Graipuss Medussi", "Pot Hotspot", "Chicleteira Bicicleteira", "La Grande Combinasion", "Nuclearo Dinossauro", "Garama and Madundung", "Dragon Cannelloni", "Agarrini la Palini", "Chimpanzini Spiderini", "Darlungini Pandanneli", "Vroosh Boosh", "Gatti Marshmallini" },
-    Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini", "Sausaggini Sanitario", "Marietti Frigo", "Tartarughi Attrezzini", "Kissarini Heartini" },
-    Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini", "Polpo Semaforini", "Cioccolatone Draghettone" },
-    Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero", "Rubichetto Cubini", "Glacierello Infernetti", "Freezeti Cobretti", "Biscotti Macarotti", "Cupitron Consoletron" },
-    Infinity = { "Noobini Infeeny", "Anububu", "Meta Technetta" },
+    Secret = { "Matteo", "Gattatino Neonino", "Statutino Libertino", "Unclito Samito", "Gatattino Donutino", "Espresso Signora", "Los Tungtungtungcitos", "Los Combinasionas", "Aura Farma", "Rainbow 67", "Fragola La La La", "Eek Eek Eek Sahur", "Bambooini Bombini", "Mastodontico Telepiedone", "La Vacca Black Hole Goat", "Tractoro Dinosauro", "Capybara Monitora", "Patatino Astronauta", "Patito Dinerito", "Onionello Penguini", "Sausaggini Sanitario", "Marietti Frigo", "Tartarughi Attrezzini", "Kissarini Heartini", "Scaldarino Derpino" },
+    Celestial = { "Job Job Job Sahur", "Dug Dug Dug", "Bisonte Giuppitere", "Alessio", "Esok Sekolah", "Diamantusa", "Caffe Trinity", "Avocadini Antilopini", "Los Orcaleritos", "Zung Zung Zung Lazur", "La Malita", "Money Elephant", "Capuccino Policia", "Rattini Machini", "Polpo Semaforini", "Cioccolatone Draghettone", "Ketupastro Infernetto" },
+    Divine = { "Bulbito Bandito Traktorito", "Burgerini Bearini", "Strawberry Elephant", "Martino Gravitino", "Galactio Fantasma", "Grappellino D'Oro", "Din Din Vaultero", "Rubichetto Cubini", "Glacierello Infernetti", "Freezeti Cobretti", "Biscotti Macarotti", "Cupitron Consoletron", "Explodini Cataclismi", "Pastapot Infernotto", "Draculini Meowlini", "Don Magmito" },
+    Infinity = { "Noobini Infeeny", "Anububu", "Meta Technetta", "Magmew" },
 }
 
 
