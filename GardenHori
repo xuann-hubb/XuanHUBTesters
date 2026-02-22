@@ -592,7 +592,7 @@ AutomationSection:Toggle({
                         local clientPlants = workspace:FindFirstChild("ClientPlants")
                         if clientPlants then
                             for _, obj in ipairs(clientPlants:GetDescendants()) do
-                                if obj and obj.Name == "HarvestPrompt" or obj:IsA("ProximityPrompt") then
+                                if obj and (obj.Name == "HarvestPrompt" or (obj.IsA and obj:IsA("ProximityPrompt"))) then
                                     pcall(function()
                                         fireHarvestPrompt(obj)
                                     end)
