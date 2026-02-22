@@ -1457,7 +1457,7 @@ task.spawn(function()
     while scriptRunning do
         if autoUpgradeBase then
             pcall(function()
-                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):FireServer()
+                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):InvokeServer()
             end)
             task.wait(0.5)
         else
@@ -2274,7 +2274,7 @@ local UpgBaseOnce = UpgBase:Button({
     Locked = false,
     Callback = function()
         pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):FireServer()
+            game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):InvokeServer()
         end)
         WindUI:Notify({
             Title = "Upgraded",
