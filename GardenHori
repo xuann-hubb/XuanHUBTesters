@@ -175,40 +175,11 @@ local shopRefreshInterval = 5 -- seconds between automated purchase attempts (mi
 
 -- Helpers: fetch shop items heuristically
 local function fetchShopItems(shopId)
-    local items = {}
-    -- Try ReplicatedStorage folder
-    local rep = game:GetService("ReplicatedStorage")
-    local candidate = rep:FindFirstChild(shopId)
-    if candidate and #candidate:GetChildren() > 0 then
-        for _, v in ipairs(candidate:GetChildren()) do
-            if v and v.Name then table.insert(items, v.Name) end
-        end
-        table.sort(items)
-        return items
-    end
-
-    -- Try workspace
-    candidate = workspace:FindFirstChild(shopId)
-    if candidate and #candidate:GetChildren() > 0 then
-        for _, v in ipairs(candidate:GetChildren()) do
-            if v and v.Name then table.insert(items, v.Name) end
-        end
-        table.sort(items)
-        return items
-    end
-
-    -- Search for obvious instances named like items (fallback)
-    for _, v in ipairs(rep:GetDescendants()) do
-        if v:IsA("Folder") and v.Name:lower():find(shopId:lower()) then
-            for _, c in ipairs(v:GetChildren()) do if c.Name then table.insert(items, c.Name) end end
-        end
-    end
-
-    -- Last resort: well-known gear defaults (from provided data)
+    -- Return exact, hardcoded lists for GearShop and SeedShop to match server item names
     if shopId == "GearShop" then
-        items = { "Watering Can", "Basic Sprinkler", "Harvest Bell", "Turbo Sprinkler", "Favorite Tool", "Super Sprinkler" }
+        return { "Watering Can", "Basic Sprinkler", "Harvest Bell", "Turbo Sprinkler", "Favorite Tool", "Super Sprinkler" }
     elseif shopId == "SeedShop" then
-        items = {
+        return {
             "Carrot Seed",
             "Corn Seed",
             "Onion Seed",
@@ -226,9 +197,7 @@ local function fetchShopItems(shopId)
             "Cherry Seed",
         }
     end
-
-    table.sort(items)
-    return items
+    return {}
 end
 
 local gearList = {}
@@ -303,14 +272,18 @@ ShopSection:Toggle({
                 if selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
                     for _, item in ipairs(selectedGearItem) do
                         pcall(function()
-                            purchaseShopItem("GearShop", item)
+                            local rep = game:GetService("ReplicatedStorage")
+                            local remote = rep:WaitForChild("RemoteEvents", 5)
+                            if remote then
+                                local purchase = remote:FindFirstChild("PurchaseShopItem")
+                                if purchase then
+                                    local args = {"GearShop", item}
+                                    purchase:InvokeServer(unpack(args))
+                                end
+                            end
                         end)
                         task.wait(0.25)
                     end
-                elseif selectedGearItem and type(selectedGearItem) == "string" and selectedGearItem ~= "" then
-                    pcall(function()
-                        purchaseShopItem("GearShop", selectedGearItem)
-                    end)
                 end
             end)
         end
@@ -330,64 +303,22 @@ ShopSection:Toggle({
                 if selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
                     for _, item in ipairs(selectedSeedItem) do
                         pcall(function()
-                            purchaseShopItem("SeedShop", item)
+                            local rep = game:GetService("ReplicatedStorage")
+                            local remote = rep:WaitForChild("RemoteEvents", 5)
+                            if remote then
+                                local purchase = remote:FindFirstChild("PurchaseShopItem")
+                                if purchase then
+                                    local args = {"SeedShop", item}
+                                    purchase:InvokeServer(unpack(args))
+                                end
+                            end
                         end)
                         task.wait(0.25)
                     end
-                elseif selectedSeedItem and type(selectedSeedItem) == "string" and selectedSeedItem ~= "" then
-                    pcall(function()
-                        purchaseShopItem("SeedShop", selectedSeedItem)
-                    end)
                 end
             end)
         end
     end,
 })
 
--- Purchase helper
-local function purchaseShopItem(shopId, itemName)
-    if not itemName or itemName == "" then return false end
-    local ok, err = pcall(function()
-        local rep = game:GetService("ReplicatedStorage")
-        local remote = rep:WaitForChild("RemoteEvents", 5)
-        if not remote then error("RemoteEvents not found") end
-        local purchase = remote:FindFirstChild("PurchaseShopItem")
-        if not purchase then error("PurchaseShopItem remote not found") end
-        local args = { shopId, itemName }
-        purchase:InvokeServer(unpack(args))
-    end)
-    return ok
-end
 
--- Background loops
-task.spawn(function()
-    while scriptRunning do
-        if autoBuyGear and selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
-            for _, item in ipairs(selectedGearItem) do
-                pcall(function()
-                    purchaseShopItem("GearShop", item)
-                end)
-                task.wait(0.1)
-            end
-            task.wait(shopRefreshInterval)
-        else
-            task.wait(1)
-        end
-    end
-end)
-
-task.spawn(function()
-    while scriptRunning do
-        if autoBuySeed and selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
-            for _, item in ipairs(selectedSeedItem) do
-                pcall(function()
-                    purchaseShopItem("SeedShop", item)
-                end)
-                task.wait(0.1)
-            end
-            task.wait(shopRefreshInterval)
-        else
-            task.wait(1)
-        end
-    end
-end)
