@@ -26,6 +26,26 @@ local WindUI = loadstring(game:HttpGet(
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
 
+
+-- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
+
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
+})
+
+
 -- ================= SETTINGS PERSISTENCE =================
 local settingsFileName = "XuanHubConfig_ETFB.json"
 local defaultSettings = {
@@ -120,7 +140,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Dark", 
+    Theme = "Holographic", -- Use custom holographic theme
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -131,7 +151,6 @@ local Window = WindUI:CreateWindow({
     User = {
         Enabled = true,
     },
- 
 
 
 })
@@ -182,22 +201,6 @@ end)
 
 -- ================= TABS =================
 
--- Helper function for gradient text
-local function gradient(text, colorFrom, colorTo)
-    local result = ""
-    local len = #text
-    for i = 1, len do
-        local ratio = (i - 1) / math.max(len - 1, 1)
-        local r = colorFrom.R + (colorTo.R - colorFrom.R) * ratio
-        local g = colorFrom.G + (colorTo.G - colorFrom.G) * ratio
-        local b = colorFrom.B + (colorTo.B - colorFrom.B) * ratio
-        local color = Color3.new(r, g, b)
-        local hex = string.format("#%02x%02x%02x", math.floor(color.R * 255), math.floor(color.G * 255),
-            math.floor(color.B * 255))
-        result = result .. string.format('<font color="%s">%s</font>', hex, text:sub(i, i))
-    end
-    return result
-end
 
 local BaseTab = Window:Tab({
     Title = "Main",
@@ -487,7 +490,6 @@ GearSection:Button({
 -- ================= FUNCTIONALITY LOGIC =================
 
 -- Script running flag (to stop all loops when GUI is closed)
--- Script running flag
 local scriptRunning = true
 
 -- Character references
@@ -637,32 +639,6 @@ end
 player.CharacterAdded:Connect(setupCharacter)
 
 -- Auto-Obby: finder that targets the new `RadioactiveMap_SharedInstances` layout
-local function findRadioactiveRoot()
-    -- primary: find the shared-instances container and locate the obby model inside it
-    local rms = workspace:FindFirstChild("RadioactiveMap_SharedInstances")
-    if rms then
-        -- prefer a model that contains ObbyEnd or has 'Obby' in its name
-        for _, d in ipairs(rms:GetDescendants()) do
-            if d:IsA("Model") and (d:FindFirstChild("ObbyEnd") or d.Name:lower():find("obby")) then
-                return d
-            end
-        end
-        -- sometimes the obby is a direct child (e.g. Mud -> Obby); check first-level children
-        for _, c in ipairs(rms:GetChildren()) do
-            if c:IsA("Model") and c:FindFirstChild("ObbyEnd") then
-                return c
-            end
-        end
-    end
-
-    -- fallback: top-level legacy names (kept minimal)
-    local legacy = workspace:FindFirstChild("Radioactive") or workspace:FindFirstChild("RadioactiveMap")
-    if legacy and legacy:IsA("Model") then
-        return legacy
-    end
-
-    return nil
-end
 
 -- Find EventParts WITHOUT BLOCKING GUI
 task.spawn(function()
@@ -734,74 +710,7 @@ local function findMyBase()
     return nil
 end
 
--- Improved teleport helpers
-local lastTeleportTime = 0
-local TELEPORT_COOLDOWN = 1 -- seconds
 
-local function getHomePart(base)
-    if not base then return nil end
-    local home = base:FindFirstChild("Home")
-    if home and home:IsA("BasePart") then return home end
-    return nil
-end
-
-local function findSafeCFrame(targetCFrame, upOffset)
-    upOffset = upOffset or 6
-    local origin = targetCFrame.Position + Vector3.new(0, 20, 0)
-    local params = RaycastParams.new()
-    params.FilterDescendantsInstances = { player.Character }
-    params.FilterType = Enum.RaycastFilterType.Blacklist
-    local result = workspace:Raycast(origin, Vector3.new(0, -80, 0), params)
-    if result and result.Position then
-        return CFrame.new(result.Position + Vector3.new(0, upOffset, 0))
-    end
-    return targetCFrame + Vector3.new(0, upOffset, 0)
-end
-
-local function teleportToBaseSmooth()
-    if tick() - lastTeleportTime < TELEPORT_COOLDOWN then
-        WindUI:Notify({ Title = "Teleport", Content = "Teleport cooldown", Icon = "alert-triangle", Duration = 2 })
-        return
-    end
-    lastTeleportTime = tick()
-
-    local base = findMyBase()
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        WindUI:Notify({ Title = "Teleport", Content = "Character not ready", Icon = "alert-triangle", Duration = 3 }); return
-    end
-    if not base then
-        WindUI:Notify({ Title = "Teleport", Content = "No base found", Icon = "alert-triangle", Duration = 3 }); return
-    end
-    local home = getHomePart(base)
-    if not home then
-        WindUI:Notify({ Title = "Teleport", Content = "Base Home not found", Icon = "alert-triangle", Duration = 3 }); return
-    end
-
-    local targetCFrame = findSafeCFrame(home.CFrame, 6)
-    local prevCanCollide = hrp.CanCollide
-    pcall(function() hrp.CanCollide = false end)
-
-    local ok, err = pcall(function()
-        local tween = TweenService:Create(hrp, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-            { CFrame = targetCFrame })
-        tween:Play()
-        tween.Completed:Wait()
-
-        -- briefly disable FallingDown after arriving at base
-        pcall(function()
-            disableFallingForLocalCharacter(2)
-        end)
-    end)
-
-    pcall(function() hrp.CanCollide = prevCanCollide end)
-
-    if ok then
-        WindUI:Notify({ Title = "Teleport", Content = "Teleported to base", Icon = "check", Duration = 3 })
-    else
-        WindUI:Notify({ Title = "Teleport", Content = "Teleport failed: " .. tostring(err), Icon = "alert-triangle", Duration = 3 })
-    end
-end
 
 task.spawn(function()
     while scriptRunning do
@@ -1878,7 +1787,6 @@ end
 
 -- ================= HELPER FUNCTIONS FOR MACHINE TAB =================
 -- Smart-tour helpers (used by Machine tab)
-local TweenService = game:GetService("TweenService")
 _G.BaseTweenSpeed = 0.15
 _G.AutoTourActive = false
 _G.ReverseTourActive = false
@@ -2588,8 +2496,6 @@ UtilitiesSection:Button({
 
 
 -- Wider hitbox helpers
-local RunService = game:GetService("RunService")
-local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
 local BASE_SIZE = Vector3.new(4, 4, 4)
