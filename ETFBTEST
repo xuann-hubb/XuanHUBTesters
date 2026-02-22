@@ -3893,53 +3893,68 @@ local currentMachineTimer = "0.00"
 task.spawn(function()
     while scriptRunning do
         pcall(function()
-            local spawnMachines = workspace:FindFirstChild("SpawnMachines")
-            if spawnMachines then
-                local defaultMachine = spawnMachines:FindFirstChild("Default")
-                if defaultMachine then
-                    local main = defaultMachine:FindFirstChild("Main")
-                    if main then
-                        local billboard = main:FindFirstChild("Billboard")
-                        if billboard then
-                            local billboardGui = billboard:FindFirstChild("BillboardGui")
-                            if billboardGui then
-                                local frame = billboardGui:FindFirstChild("Frame")
-                                if frame then
-                                    local brainrots = frame:FindFirstChild("Brainrots")
-                                    if brainrots then
-                                        local afkLuckContainer = brainrots:FindFirstChild("AFKLuckContainer")
-                                        if afkLuckContainer then
-                                            local timeLabel = afkLuckContainer:FindFirstChild("TimeLabel")
-                                            if timeLabel and timeLabel:IsA("TextLabel") then
-                                                local timerText = timeLabel.Text
-                                                currentMachineTimer = timerText
-                                                MachineLuckTimerParagraph:SetDesc("Current Timer: " .. timerText)
+            local gameObjects = workspace:FindFirstChild("GameObjects")
+            if gameObjects then
+                local placeSpecific = gameObjects:FindFirstChild("PlaceSpecific")
+                if placeSpecific then
+                    local root = placeSpecific:FindFirstChild("root")
+                    if root then
+                        local spawnMachines = root:FindFirstChild("SpawnMachines")
+                        if spawnMachines then
+                            local defaultMachine = spawnMachines:FindFirstChild("Default")
+                            if defaultMachine then
+                                local main = defaultMachine:FindFirstChild("Main")
+                                if main then
+                                    local billboard = main:FindFirstChild("Billboard")
+                                    if billboard then
+                                        local billboardGui = billboard:FindFirstChild("BillboardGui")
+                                        if billboardGui then
+                                            local frame = billboardGui:FindFirstChild("Frame")
+                                            if frame then
+                                                local brainrots = frame:FindFirstChild("Brainrots")
+                                                if brainrots then
+                                                    local afkLuckContainer = brainrots:FindFirstChild("AFKLuckContainer")
+                                                    if afkLuckContainer then
+                                                        local timeLabel = afkLuckContainer:FindFirstChild("TimeLabel")
+                                                        if timeLabel and timeLabel:IsA("TextLabel") then
+                                                            local timerText = timeLabel.Text
+                                                            currentMachineTimer = timerText
+                                                            MachineLuckTimerParagraph:SetDesc("Current Timer: " .. timerText)
+                                                        else
+                                                            MachineLuckTimerParagraph:SetDesc("TimeLabel not found")
+                                                        end
+                                                    else
+                                                        MachineLuckTimerParagraph:SetDesc("AFKLuckContainer not found")
+                                                    end
+                                                else
+                                                    MachineLuckTimerParagraph:SetDesc("Brainrots not found")
+                                                end
                                             else
-                                                MachineLuckTimerParagraph:SetDesc("TimeLabel not found")
+                                                MachineLuckTimerParagraph:SetDesc("Frame not found")
                                             end
                                         else
-                                            MachineLuckTimerParagraph:SetDesc("AFKLuckContainer not found")
+                                            MachineLuckTimerParagraph:SetDesc("BillboardGui not found")
                                         end
                                     else
-                                        MachineLuckTimerParagraph:SetDesc("Brainrots not found")
+                                        MachineLuckTimerParagraph:SetDesc("Billboard not found")
                                     end
                                 else
-                                    MachineLuckTimerParagraph:SetDesc("Frame not found")
+                                    MachineLuckTimerParagraph:SetDesc("Main not found")
                                 end
                             else
-                                MachineLuckTimerParagraph:SetDesc("BillboardGui not found")
+                                MachineLuckTimerParagraph:SetDesc("Default machine not found")
                             end
                         else
-                            MachineLuckTimerParagraph:SetDesc("Billboard not found")
+                            MachineLuckTimerParagraph:SetDesc("SpawnMachines not found under root")
                         end
                     else
-                        MachineLuckTimerParagraph:SetDesc("Main not found")
+                        MachineLuckTimerParagraph:SetDesc("root not found in PlaceSpecific")
                     end
                 else
-                    MachineLuckTimerParagraph:SetDesc("Default machine not found")
+                    MachineLuckTimerParagraph:SetDesc("PlaceSpecific not found in GameObjects")
                 end
             else
-                MachineLuckTimerParagraph:SetDesc("SpawnMachines not found")
+                MachineLuckTimerParagraph:SetDesc("GameObjects not found in workspace")
             end
         end)
         task.wait(0.5)
@@ -4110,8 +4125,15 @@ end
 
 -- Helper function to deposit brainrot
 local function depositBrainrot()
-    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
-        workspace.SpawnMachines:FindFirstChild("Default")
+    local gameObjects = workspace:FindFirstChild("GameObjects")
+    if not gameObjects then return false end
+    local placeSpecific = gameObjects:FindFirstChild("PlaceSpecific")
+    if not placeSpecific then return false end
+    local root = placeSpecific:FindFirstChild("root")
+    if not root then return false end
+    local spawnMachines = root:FindFirstChild("SpawnMachines")
+    if not spawnMachines then return false end
+    local defaultMachine = spawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
 
     local args = {
@@ -4128,8 +4150,15 @@ end
 
 -- Helper function to combine brainrots
 local function combineBrainrots()
-    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
-        workspace.SpawnMachines:FindFirstChild("Default")
+    local gameObjects = workspace:FindFirstChild("GameObjects")
+    if not gameObjects then return false end
+    local placeSpecific = gameObjects:FindFirstChild("PlaceSpecific")
+    if not placeSpecific then return false end
+    local root = placeSpecific:FindFirstChild("root")
+    if not root then return false end
+    local spawnMachines = root:FindFirstChild("SpawnMachines")
+    if not spawnMachines then return false end
+    local defaultMachine = spawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
 
     local args = {
@@ -4150,11 +4179,18 @@ end
 
 -- Helper function to teleport to machine
 local function teleportToMachine()
-    local defaultMachine = workspace:FindFirstChild("SpawnMachines") and
-        workspace.SpawnMachines:FindFirstChild("Default")
+    local gameObjects = workspace:FindFirstChild("GameObjects")
+    if not gameObjects then return false end
+    local placeSpecific = gameObjects:FindFirstChild("PlaceSpecific")
+    if not placeSpecific then return false end
+    local root = placeSpecific:FindFirstChild("root")
+    if not root then return false end
+    local spawnMachines = root:FindFirstChild("SpawnMachines")
+    if not spawnMachines then return false end
+    local defaultMachine = spawnMachines:FindFirstChild("Default")
     if not defaultMachine then return false end
 
-    local targetPart = defaultMachine:GetChildren()[18]
+    local targetPart = defaultMachine:GetChildren()[23]
     if not targetPart or not targetPart:IsA("BasePart") then return false end
 
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
