@@ -834,8 +834,10 @@ task.spawn(function()
                             myBase.Name,
                             tostring(i)
                         }
-                        local PlotAction = game:GetService("ReplicatedStorage"):WaitForChild("Packages"):WaitForChild(
-                            "Net"):WaitForChild("RF/Plot.PlotAction")
+                        -- use the shared networking remote (updated path)
+                        local PlotAction = game:GetService("ReplicatedStorage")
+                            :WaitForChild("Shared"):WaitForChild("Remotes")
+                            :WaitForChild("Networking"):WaitForChild("RF/PlotAction")
                         PlotAction:InvokeServer(unpack(args))
                     end)
                     task.wait(0.01)
