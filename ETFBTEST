@@ -27,7 +27,23 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
 
 
+-- ================= ADD CUSTOM HOLOGRAPHIC THEME =================
+WindUI:AddTheme({
+    Name = "Holographic", -- theme name
 
+    Accent = WindUI:Gradient({
+        ["0"] = { Color = Color3.fromHex("#1ABC9C"), Transparency = 0 },   -- Teal start
+        ["50"] = { Color = Color3.fromHex("#3498DB"), Transparency = 0 },  -- Blue middle
+        ["100"] = { Color = Color3.fromHex("#9B59B6"), Transparency = 0 }, -- Purple end
+    }, {
+        Rotation = 45,
+    }),
+    Outline = Color3.fromHex("#1ABC9C"),     -- Holographic teal outline
+    Text = Color3.fromHex("#FFFFFF"),        -- Pure white text
+    Placeholder = Color3.fromHex("#7F8C8D"), -- Gray placeholder
+    Button = Color3.fromHex("#E70AD5"),      -- Darker holographic teal
+    Icon = Color3.fromHex("#3DFFDC"),        -- Light holographic cyan
+})
 
 
 -- ================= SETTINGS PERSISTENCE =================
@@ -43,7 +59,6 @@ local defaultSettings = {
     autoUpgradeJump = false,
     upgradeSpeedAmount = 1,
     autoRebirth = false,
-    autoObby = false,
     -- UFO Event
     autoCollectUFO = false,
     -- UFO Spin
@@ -125,7 +140,7 @@ local Window = WindUI:CreateWindow({
     Title = "XUAN HUB",
     Author = "by discord.gg/kaydensdens",
     Icon = "rbxassetid://103326199885496",
-    Theme = "Dark",
+    Theme = "Holographic", -- Use custom holographic theme
     Size = UDim2.fromOffset(640, 480),
     Draggable = true,
     HasOutline = true,
@@ -505,7 +520,6 @@ local State = {
     HeightOffset = 3,
     active = false,
     spinning = false,
-    autoObby = false,
     collectingMoney = false,
     autoCollectRadioactive = false,
     autoCollectUFO = false,
@@ -3162,10 +3176,9 @@ DoomSection:Toggle({
     Title = "Auto Collect Doom Coin",
     Desc = "Automatically collect Doom coins",
     Value = savedSettings.autoCollectDoom or false,
-    Callback = function(v)
-        State.autoCollectDoom = v
-        autoCollectDoom = v
-        savedSettings.autoCollectDoom = v
+    Callback = function(state)
+        State.autoCollectDoom = state
+        savedSettings.autoCollectDoom = state
         saveSettings(savedSettings)
     end
 })
@@ -3974,11 +3987,6 @@ task.spawn(function()
     -- Apply Auto Spin Valentines Wheel
     if savedSettings.autoSpinValentinesWheel then
         autoSpinValentinesWheel = true
-    end
-
-    -- Apply Auto Spin Doom Wheel
-    if savedSettings.autoSpinDoomWheel then
-        autoSpinDoomWheel = true
     end
 
     -- Apply Auto Submit Candy
