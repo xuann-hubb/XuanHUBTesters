@@ -1457,7 +1457,7 @@ task.spawn(function()
     while scriptRunning do
         if autoUpgradeBase then
             pcall(function()
-                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):InvokeServer()
+               game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RE/Plots/PlotUpgradeBase"):FireServer()
             end)
             task.wait(0.5)
         else
