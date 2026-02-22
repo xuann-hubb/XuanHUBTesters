@@ -176,10 +176,7 @@ local autoSellFruit = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local scriptRunning = true
-local autoPlantSeed = false
-local plantInterval = 0.8 -- seconds between plant attempts
-local autoHarvest = false
-local harvestInterval = 0.15
+-- autoPlant/autoHarvest removed
 
 -- Helpers: fetch shop items heuristically
 local function fetchShopItems(shopId)
@@ -268,7 +265,11 @@ local function equipFruitTool(fruitName)
     return false
 end
 
+-- find a seed tool in backpack/character whose BaseName attribute matches seedBase
+-- findSeedTool removed (auto-plant disabled)
 
+-- Attempt to trigger a harvest prompt safely using multiple fallbacks
+-- fireHarvestPrompt removed (auto-harvest disabled)
 
 local gearList = {}
 local seedList = {}
@@ -428,6 +429,9 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
     end,
 })
+
+    -- Auto Plant/Harvest removed per request
+
 -- fruit auto-sell loop
 task.spawn(function()
     while scriptRunning do
@@ -455,8 +459,6 @@ game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("
         end
     end
 end)
-
-AboutTab:Select()
 
 
 
