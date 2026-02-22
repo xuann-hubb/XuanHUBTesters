@@ -4170,10 +4170,6 @@ local function combineBrainrots()
         rep:WaitForChild("Shared"):WaitForChild("Remotes"):WaitForChild("Networking"):WaitForChild("RF/SpawnMachineAction"):InvokeServer(unpack(args))
     end)
     task.wait(0.5)
-    -- Machine has ~30s cooldown; ensure script waits slightly longer to avoid re-triggering
-    if ok then
-        task.wait(31)
-    end
     return ok
 end
 
@@ -4309,11 +4305,11 @@ task.spawn(function()
                                 WindUI:Notify({
                                     Title = "Auto Machine",
                                     Content =
-                                    "Fusion completed! Waiting 30s for cooldown...",
+                                    "Fusion completed! Waiting 31s for cooldown...",
                                     Icon = "check",
                                     Duration = 3
                                 })
-                                task.wait(30)
+                                task.wait(31)
                             end
                         else
                             autoMachine = false
