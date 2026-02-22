@@ -167,11 +167,11 @@ local MainTab = Window:Tab({
 local ShopSection = MainTab:Section({ Title = "Shop Section", Opened = true })
 
 -- State
-local selectedGearItem = ""
-local selectedSeedItem = ""
+local selectedGearItem = {}
+local selectedSeedItem = {}
 local autoBuyGear = false
 local autoBuySeed = false
-local shopRefreshInterval = 2 -- seconds between automated purchase attempts
+local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 
 -- Helpers: fetch shop items heuristically
 local function fetchShopItems(shopId)
@@ -208,7 +208,23 @@ local function fetchShopItems(shopId)
     if shopId == "GearShop" then
         items = { "Watering Can", "Basic Sprinkler", "Harvest Bell", "Turbo Sprinkler", "Favorite Tool", "Super Sprinkler" }
     elseif shopId == "SeedShop" then
-        items = { "Carrot Seed", "Tomato Seed", "Pumpkin Seed", "Lettuce Seed" }
+        items = {
+            "Carrot Seed",
+            "Corn Seed",
+            "Onion Seed",
+            "Strawberry Seed",
+            "Mushroom Seed",
+            "Beetroot Seed",
+            "Tomato Seed",
+            "Apple Seed",
+            "Rose Seed",
+            "Wheat Seed",
+            "Banana Seed",
+            "Plum Seed",
+            "Potato Seed",
+            "Cabbage Seed",
+            "Cherry Seed",
+        }
     end
 
     table.sort(items)
@@ -222,12 +238,12 @@ local GearDropdown = ShopSection:Dropdown({
     Title = "Gear Item",
     Desc = "Select gear to auto-buy",
     Values = gearList,
-    Value = "",
+    Value = {},
     Multi = true,
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        selectedGearItem = option or ""
+        selectedGearItem = option or {}
     end,
 })
 
@@ -235,12 +251,12 @@ local SeedDropdown = ShopSection:Dropdown({
     Title = "Seed Item",
     Desc = "Select seed to auto-buy",
     Values = seedList,
-    Value = "",
+    Value = {},
     Multi = true,
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        selectedSeedItem = option or ""
+        selectedSeedItem = option or {}
     end,
 })
 
@@ -260,9 +276,13 @@ ShopSection:Slider({
     Title = "Auto Buy Delay (s)",
     Desc = "Delay between auto-buy attempts",
     Step = 0.5,
-    Value = { Min = 0.5, Max = 10, Default = shopRefreshInterval },
+    Value = { Min = 5, Max = 60, Default = shopRefreshInterval },
     Callback = function(value)
-        shopRefreshInterval = tonumber(value) or 2
+        shopRefreshInterval = tonumber(value) or 5
+        if shopRefreshInterval < 5 then
+            shopRefreshInterval = 5
+            WindUI:Notify({ Title = "Shop", Content = "Minimum auto-buy delay is 5s; set to 5s", Icon = "info", Duration = 2 })
+        end
     end,
 })
 
@@ -305,10 +325,13 @@ end
 -- Background loops
 task.spawn(function()
     while scriptRunning do
-        if autoBuyGear and selectedGearItem and selectedGearItem ~= "" then
-            pcall(function()
-                purchaseShopItem("GearShop", selectedGearItem)
-            end)
+        if autoBuyGear and selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
+            for _, item in ipairs(selectedGearItem) do
+                pcall(function()
+                    purchaseShopItem("GearShop", item)
+                end)
+                task.wait(0.1)
+            end
             task.wait(shopRefreshInterval)
         else
             task.wait(1)
@@ -318,10 +341,13 @@ end)
 
 task.spawn(function()
     while scriptRunning do
-        if autoBuySeed and selectedSeedItem and selectedSeedItem ~= "" then
-            pcall(function()
-                purchaseShopItem("SeedShop", selectedSeedItem)
-            end)
+        if autoBuySeed and selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
+            for _, item in ipairs(selectedSeedItem) do
+                pcall(function()
+                    purchaseShopItem("SeedShop", item)
+                end)
+                task.wait(0.1)
+            end
             task.wait(shopRefreshInterval)
         else
             task.wait(1)
