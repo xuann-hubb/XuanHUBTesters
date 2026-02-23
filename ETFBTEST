@@ -177,6 +177,7 @@ local selectedFruitRarities = {}
 local autoBuyGear = false
 local autoBuySeed = false
 local autoSellFruit = false
+local autoSellRarity = false
 local autoSellAll = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
@@ -546,6 +547,7 @@ local GearDropdown = ShopSection:Dropdown({
         selectedGearItem = normalizeMultiSelection(option, gearList)
     end,
 })
+ShopSection:Space()
 
 ShopSection:Toggle({
     Title = "Auto Buy Gear",
@@ -573,6 +575,7 @@ ShopSection:Toggle({
         end
     end,
 })
+ShopSection:Space()
 
 local SeedDropdown = ShopSection:Dropdown({
     Title = "Seed Item",
@@ -586,6 +589,7 @@ local SeedDropdown = ShopSection:Dropdown({
         selectedSeedItem = normalizeMultiSelection(option, seedList)
     end,
 })
+ShopSection:Space()
 
 ShopSection:Toggle({
     Title = "Auto Buy Seed",
@@ -613,6 +617,7 @@ ShopSection:Toggle({
         end
     end,
 })
+ShopSection:Space()
 
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
@@ -652,6 +657,7 @@ local FruitDropdown = AutomationSection:Dropdown({
         selectedFruitItem = normalizeMultiSelection(option, fruitList)
     end,
 })
+AutomationSection:Space()
 
 local FruitRarityDropdown = AutomationSection:Dropdown({
     Title = "Fruit Rarity",
@@ -665,18 +671,18 @@ local FruitRarityDropdown = AutomationSection:Dropdown({
         selectedFruitRarities = toSelectionSet(option, rarityList)
     end,
 })
+AutomationSection:Space()
 
 AutomationSection:Toggle({
     Title = "Auto Sell Fruit",
-    Desc = "Automatically sell selected fruits",
+    Desc = "Automatically sell manually selected fruits",
     Icon = "check",
     Value = false,
     Callback = function(state)
         if state then
             local hasFruitSelection = selectedFruitItem and type(selectedFruitItem) == "table" and #selectedFruitItem > 0
-            local hasRaritySelection = hasSelection(selectedFruitRarities)
-            if not hasFruitSelection and not hasRaritySelection then
-                WindUI:Notify({ Title = "Automation", Content = "Select fruits or rarities first!", Icon = "alert-triangle", Duration = 2 })
+            if not hasFruitSelection then
+                WindUI:Notify({ Title = "Automation", Content = "Select fruits first!", Icon = "alert-triangle", Duration = 2 })
                 autoSellFruit = false
                 return
             end
@@ -685,6 +691,24 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
     end,
 })
+AutomationSection:Space()
+
+AutomationSection:Toggle({
+    Title = "Auto Sell Rarity",
+    Desc = "Automatically sell fruits from selected rarities",
+    Icon = "check",
+    Value = false,
+    Callback = function(state)
+        if state and not hasSelection(selectedFruitRarities) then
+            WindUI:Notify({ Title = "Automation", Content = "Select rarities first!", Icon = "alert-triangle", Duration = 2 })
+            autoSellRarity = false
+            return
+        end
+        autoSellRarity = state
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell rarity enabled" or "Auto-sell rarity disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+AutomationSection:Space()
 
 AutomationSection:Toggle({
     Title = "Auto Sell All",
@@ -696,6 +720,7 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell all enabled" or "Auto-sell all disabled"), Icon = "info", Duration = 2 })
     end,
 })
+AutomationSection:Space()
 
     -- new seed/plants dropdowns and toggles for snippet logic
     local SeedAutoDropdown = AutomationSection:Dropdown({
@@ -710,6 +735,7 @@ AutomationSection:Toggle({
             selectedSeeds = toSelectionSet(option, plantSeedList)
         end,
     })
+    AutomationSection:Space()
 
     AutomationSection:Toggle({
         Title = "Auto Plant",
@@ -725,6 +751,7 @@ AutomationSection:Toggle({
             WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
         end,
     })
+    AutomationSection:Space()
 
 
     local plantValues = {}
@@ -751,6 +778,7 @@ AutomationSection:Toggle({
             selectedPlants = toSelectionSet(option, plantValues)
         end,
     })
+    AutomationSection:Space()
 
 
 
@@ -769,6 +797,7 @@ AutomationSection:Toggle({
             WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
         end,
     })
+    AutomationSection:Space()
 
     
 -- fruit auto-sell loop
@@ -776,10 +805,10 @@ task.spawn(function()
     while scriptRunning do
         local hasFruitSelection = selectedFruitItem and type(selectedFruitItem) == "table" and #selectedFruitItem > 0
         local hasRaritySelection = hasSelection(selectedFruitRarities)
-        if autoSellFruit and (hasFruitSelection or hasRaritySelection) then
+        if (autoSellFruit and hasFruitSelection) or (autoSellRarity and hasRaritySelection) then
             local fruitsToSell = {}
             local seenFruits = {}
-            if hasFruitSelection then
+            if autoSellFruit and hasFruitSelection then
                 for _, fruit in ipairs(selectedFruitItem) do
                     if type(fruit) == "string" and not seenFruits[fruit] then
                         seenFruits[fruit] = true
@@ -787,7 +816,7 @@ task.spawn(function()
                     end
                 end
             end
-            if hasRaritySelection then
+            if autoSellRarity and hasRaritySelection then
                 for _, fruit in ipairs(getRarityFruitList(selectedFruitRarities)) do
                     if type(fruit) == "string" and not seenFruits[fruit] then
                         seenFruits[fruit] = true
