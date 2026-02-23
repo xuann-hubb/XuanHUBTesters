@@ -219,14 +219,9 @@ local function toSelectionSet(option)
     return selected
 end
 
-local function getSeedNameFromTool(tool)
+local function getSeedBaseNameFromTool(tool)
     if not tool or not tool:IsA("Tool") then
         return nil
-    end
-
-    local dataObj = tool:FindFirstChild("data") or tool:FindFirstChild("Data")
-    if dataObj and dataObj:IsA("ValueBase") and type(dataObj.Value) == "string" then
-        return dataObj.Value
     end
 
     local baseName = tool:GetAttribute("BaseName")
@@ -237,41 +232,54 @@ local function getSeedNameFromTool(tool)
     return nil
 end
 
-local function findAndEquipSeedTool(seedBase)
+local function findAndEquipSeedTool(seedBaseName)
     local char = player.Character
     local backpack = player:FindFirstChild("Backpack")
     if not char or not backpack then
-        return false
+        return false, nil
     end
 
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not humanoid then
-        return false
+        return false, nil
     end
 
-    local wanted = (seedBase .. " Seed"):lower()
+    local wanted = tostring(seedBaseName):lower()
+
+    local function getPlantType(tool)
+        local plantType = tool:GetAttribute("PlantType")
+        if type(plantType) == "string" and plantType ~= "" then
+            return plantType
+        end
+
+        local baseName = getSeedBaseNameFromTool(tool)
+        if type(baseName) == "string" then
+            return baseName:gsub("%s*Seed$", "")
+        end
+        return nil
+    end
 
     for _, tool in ipairs(char:GetChildren()) do
         if tool:IsA("Tool") then
-            local seedName = getSeedNameFromTool(tool)
-            if type(seedName) == "string" and seedName:lower() == wanted then
-                return true
+            local baseName = getSeedBaseNameFromTool(tool)
+            if type(baseName) == "string" and baseName:lower() == wanted then
+                return true, getPlantType(tool)
             end
         end
     end
 
     for _, tool in ipairs(backpack:GetChildren()) do
         if tool:IsA("Tool") then
-            local seedName = getSeedNameFromTool(tool)
-            if type(seedName) == "string" and seedName:lower() == wanted then
+            local baseName = getSeedBaseNameFromTool(tool)
+            if type(baseName) == "string" and baseName:lower() == wanted then
                 humanoid:EquipTool(tool)
                 task.wait(0.05)
-                return true
+                return true, getPlantType(tool)
             end
         end
     end
 
-    return false
+    return false, nil
 end
 
 -- previous helper for finding seed tool removed; using direct PlantSeed remote instead
@@ -409,13 +417,14 @@ function autoPlantSeeds(selectedSeeds)
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local pos = player.Character.HumanoidRootPart.Position
         local seedsTable = (type(selectedSeeds) == "table") and selectedSeeds or {}
-        for _, seed in ipairs(Seeds) do
-            if seedsTable[seed] then
-                if findAndEquipSeedTool(seed) then
+        for seedName, enabled in pairs(seedsTable) do
+            if enabled then
+                local equipped, plantType = findAndEquipSeedTool(seedName)
+                if equipped and type(plantType) == "string" and plantType ~= "" then
                     for x=-4,4,2 do
                         for z=-4,4,2 do
                             pcall(function()
-                                PlantRemote:InvokeServer(seed, pos + Vector3.new(x, -3, z))
+                                PlantRemote:InvokeServer(plantType, pos + Vector3.new(x, -3, z))
                             end)
                         end
                     end
