@@ -176,45 +176,15 @@ local autoSellFruit = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local scriptRunning = true
-local autoPlantSeed = false
-local plantInterval = 0.8 -- seconds between plant attempts
-local selectedAutoPlantSeed = nil
+-- auto-plant/auto-harvest state will come from snippet logic
+local autoPlant = false
+local autoHarvest = false
+local plantInterval = 0.8 -- used by snippet if needed
+local Seeds = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
+local selectedSeeds = {}
+local selectedPlants = {}
 
--- find a seed tool in backpack/character whose BaseName attribute matches seedBase
-local function findSeedTool(seedBase)
-    if not seedBase then return nil end
-    local bp = player and player:FindFirstChild("Backpack")
-    local char = player and player.Character
-    local function matchTool(tool)
-        if not tool or not tool.IsA then return false end
-        if not tool.IsA or not tool:IsA("Tool") then return false end
-        local bn = tool.GetAttribute and tool:GetAttribute("BaseName")
-        if bn and tostring(bn):lower() == tostring(seedBase):lower() then
-            return true
-        end
-        if string.find(tostring(tool.Name):lower(), tostring(seedBase):lower()) then
-            return true
-        end
-        return false
-    end
-
-    if bp then
-        for _, tool in ipairs(bp:GetChildren()) do
-            if matchTool(tool) then
-                return tool
-            end
-        end
-    end
-    if char then
-        for _, tool in ipairs(char:GetChildren()) do
-            if matchTool(tool) then
-                return tool
-            end
-        end
-    end
-    return nil
-end
-
+-- previous helper for finding seed tool removed; using direct PlantSeed remote instead
 -- Helpers: fetch shop items heuristically
 local function fetchShopItems(shopId)
     -- Return exact, hardcoded lists for GearShop and SeedShop to match server item names
@@ -467,94 +437,62 @@ AutomationSection:Toggle({
     end,
 })
 
-    -- Automation Seed dropdown + Auto Plant toggle
+    -- new seed/plants dropdowns and toggles for snippet logic
     local SeedAutoDropdown = AutomationSection:Dropdown({
-        Title = "Seed Type",
-        Desc = "Select seed to auto-plant (uses Seed Shop names)",
-       Values = seedList,
-    Value = {},
-    Multi = true,
-    AllowNone = true,
-    SearchBarEnabled = true,
+        Title = "Seeds to Plant",
+        Desc = "Choose which seeds to auto-plant",
+        Values = Seeds,
+        Value = {},
+        Multi = true,
+        AllowNone = true,
         SearchBarEnabled = true,
         Callback = function(option)
-            if type(option) == "table" then
-                selectedAutoPlantSeed = option[1]
-            else
-                selectedAutoPlantSeed = option
+            selectedSeeds = option or {}
+        end,
+    })
+
+    local PlantAutoDropdown = AutomationSection:Dropdown({
+        Title = "Plants to Harvest",
+        Desc = "Choose plant types to auto-harvest",
+        -- build plant names list dynamically
+        Values = (function()
+            local names = {}
+            local pf = ReplicatedStorage:FindFirstChild("Plants")
+            if pf then
+                for _,p in pairs(pf:GetChildren()) do
+                    table.insert(names,p.Name)
+                end
             end
+            return names
+        end)(),
+        Value = {},
+        Multi = true,
+        AllowNone = true,
+        SearchBarEnabled = true,
+        Callback = function(option)
+            selectedPlants = option or {}
         end,
     })
 
     AutomationSection:Toggle({
-        Title = "Auto Plant Seed",
-        Desc = "Automatically plant selected seed on owned plots",
+        Title = "Auto Harvest",
+        Desc = "Automatically harvest selected plants",
+        Icon = "scythe",
+        Value = false,
+        Callback = function(state)
+            autoHarvest = state
+            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
+        end,
+    })
+
+    AutomationSection:Toggle({
+        Title = "Auto Plant",
+        Desc = "Automatically plant selected seeds around you",
         Icon = "seed",
         Value = false,
         Callback = function(state)
-            if state then
-                if not selectedAutoPlantSeed or type(selectedAutoPlantSeed) ~= "string" or selectedAutoPlantSeed == "" then
-                    WindUI:Notify({ Title = "Automation", Content = "Select a seed in the Automation tab first!", Icon = "alert-triangle", Duration = 2 })
-                    autoPlantSeed = false
-                    return
-                end
-            end
-            autoPlantSeed = state
+            autoPlant = state
             WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
-            if state then
-                task.spawn(function()
-                    while autoPlantSeed and scriptRunning do
-                        local plots = workspace:FindFirstChild("Plots")
-                        if plots then
-                            for i = 1, 6 do
-                                local plot = plots:FindFirstChild("Plot" .. i)
-                                if plot then
-                                    local ownerVal = plot:FindFirstChild("Owner")
-                                    local ownerName = ownerVal and ownerVal.Value and tostring(ownerVal.Value) or nil
-                                    if ownerName == player.Name then
-                                        local plantArea = plot:FindFirstChild("PlantableArea")
-                                        if plantArea then
-                                            local part = plantArea:GetChildren()[2]
-                                            if not (part and part:IsA("BasePart")) then
-                                                for _, c in ipairs(plantArea:GetChildren()) do
-                                                    if c  and c:IsA("BasePart") then
-                                                        part = c
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                            if part and part.Position then
-                                                local pos = part.Position
-                                                local seedBase = tostring(selectedAutoPlantSeed):gsub("%s*[Ss]eed$", "")
-                                                local tool = findSeedTool(seedBase)
-                                                if tool then
-                                                    pcall(function()
-                                                        local char = player.Character
-                                                        if char and char:FindFirstChild("Humanoid") then
-                                                            char.Humanoid:EquipTool(tool)
-                                                        end
-                                                        task.wait(0.12)
-                                                        local vecCtor = (type(vector) == "table" and vector.create) or Vector3.new
-                                                        local args = { seedBase, vecCtor(pos.X, pos.Y, pos.Z) }
-                                                        local rep = game:GetService("ReplicatedStorage")
-                                                        local remote = rep:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
-                                                        if remote then
-                                                            remote:InvokeServer(unpack(args))
-                                                        end
-                                                    end)
-                                                    task.wait(plantInterval)
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                                task.wait(0.05)
-                            end
-                        end
-                        task.wait(1)
-                    end
-                end)
-            end
         end,
     })
 
@@ -583,6 +521,43 @@ game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("
         else
             task.wait(1)
         end
+    end
+end)
+
+-- snippet-style auto plant/harvest loop
+local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
+task.spawn(function()
+    while scriptRunning do
+        if autoHarvest then
+            for _,plant in pairs(workspace.ClientPlants:GetChildren()) do
+                local base = plant.Name:gsub("%d","")
+                if selectedPlants[base] then
+                    for _,v in pairs(plant:GetDescendants()) do
+                        if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
+                            v.HoldDuration=0
+                            pcall(function() v:InputHoldBegin() end)
+                            task.wait(0.02)
+                            pcall(function() v:InputHoldEnd() end)
+                        end
+                    end
+                end
+            end
+        end
+        if autoPlant and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local pos = player.Character.HumanoidRootPart.Position
+            for seed,on in pairs(selectedSeeds) do
+                if on then
+                    for x=-4,4,2 do
+                        for z=-4,4,2 do
+                            pcall(function()
+                                PlantRemote:InvokeServer(seed, pos + Vector3.new(x, -3, z))
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(1)
     end
 end)
 
