@@ -219,6 +219,61 @@ local function toSelectionSet(option)
     return selected
 end
 
+local function getSeedNameFromTool(tool)
+    if not tool or not tool:IsA("Tool") then
+        return nil
+    end
+
+    local dataObj = tool:FindFirstChild("data") or tool:FindFirstChild("Data")
+    if dataObj and dataObj:IsA("ValueBase") and type(dataObj.Value) == "string" then
+        return dataObj.Value
+    end
+
+    local baseName = tool:GetAttribute("BaseName")
+    if type(baseName) == "string" then
+        return baseName
+    end
+
+    return nil
+end
+
+local function findAndEquipSeedTool(seedBase)
+    local char = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    if not char or not backpack then
+        return false
+    end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        return false
+    end
+
+    local wanted = (seedBase .. " Seed"):lower()
+
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            local seedName = getSeedNameFromTool(tool)
+            if type(seedName) == "string" and seedName:lower() == wanted then
+                return true
+            end
+        end
+    end
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if tool:IsA("Tool") then
+            local seedName = getSeedNameFromTool(tool)
+            if type(seedName) == "string" and seedName:lower() == wanted then
+                humanoid:EquipTool(tool)
+                task.wait(0.05)
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 -- previous helper for finding seed tool removed; using direct PlantSeed remote instead
 -- Helpers: fetch shop items heuristically
 local function fetchShopItems(shopId)
@@ -356,11 +411,13 @@ function autoPlantSeeds(selectedSeeds)
         local seedsTable = (type(selectedSeeds) == "table") and selectedSeeds or {}
         for _, seed in ipairs(Seeds) do
             if seedsTable[seed] then
-                for x=-4,4,2 do
-                    for z=-4,4,2 do
-                        pcall(function()
-                            PlantRemote:InvokeServer(seed, pos + Vector3.new(x, -3, z))
-                        end)
+                if findAndEquipSeedTool(seed) then
+                    for x=-4,4,2 do
+                        for z=-4,4,2 do
+                            pcall(function()
+                                PlantRemote:InvokeServer(seed, pos + Vector3.new(x, -3, z))
+                            end)
+                        end
                     end
                 end
             end
@@ -647,4 +704,3 @@ task.spawn(function()
         task.wait(plantInterval)
     end
 end)
-
