@@ -86,6 +86,9 @@ local MiscTab = Window:Tab({
     Locked = false,
 })
 
+
+
+
 -- Anti-AFK (Always Enabled - Prevents 20 min AFK kick)
 local vu = game:GetService("VirtualUser")
 player.Idled:Connect(function()
@@ -713,3 +716,64 @@ task.spawn(function()
         task.wait(plantInterval)
     end
 end)
+
+
+local AboutTab = Window:Tab({
+    Title = "About",
+    Icon = "lucide:notebook-text",
+    Locked = false,
+})
+
+
+-- ================= ABOUT TAB =================
+
+AboutTab:Divider()
+
+-- Credits section below image
+AboutTab:Paragraph({
+    Title = "Credits",
+    Desc = "Script Developer: Xuan | UI Library: WindUI | Community: Kayden's Den Discord Server\n\nThank you for using Xuan Hub! Special thanks to all contributors and testers.",
+    TextXAlignment = "Center",
+    TextSize = 15,
+})
+
+AboutTab:Divider()
+
+-- Discord section below credits
+AboutTab:Paragraph({
+    Title = "Join our discord server!", 
+    Desc = "Join our Discord for updates, giveaways, questions, support and more!",
+    TextXAlignment = "Center",
+    TextSize = 17,
+})
+
+local InviteCode = "kaydensdens"
+
+AboutTab:Paragraph({
+    Title = "Discord Server",
+    Desc = "discord.gg/" .. InviteCode,
+})
+
+AboutTab:Button({
+    Title = "Copy Discord Invite",
+    Callback = function()
+        if setclipboard then
+            setclipboard("https://discord.gg/" .. InviteCode)
+            WindUI:Notify({ Title = "Discord", Content = "Invite link copied!", Icon = "check", Duration = 2 })
+        else
+            warn("setclipboard() not available in this environment.")
+            WindUI:Notify({ Title = "Discord", Content = "Clipboard not supported", Icon = "alert-triangle", Duration = 2 })
+        end
+    end
+})
+
+-- Set Base tab as default
+AboutTab:Select()
+
+-- ================= FINALIZE =================
+WindUI:Notify({
+    Title = "Xuan Hub Loaded",
+    Content = "Welcome " .. player.DisplayName .. "!",
+    Icon = "check",
+    Duration = 5,
+})
