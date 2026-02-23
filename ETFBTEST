@@ -190,6 +190,8 @@ local Seeds = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry",
 local selectedSeeds = {}
 local selectedPlants = {}
 local selectedRipenessStages = {}
+local selectedFruitVariants = {}
+local selectedFruitMutations = {}
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
 local SellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
@@ -448,6 +450,8 @@ local seedsByRarity = {
 }
 local rarityList = {"Common", "Uncommon", "Rare", "Epic", "Legendary"}
 local ripenessStageList = {"Lush", "Repined", "Unripe"}
+local fruitVariantList = {"Silver", "Gold", "Normal"}
+local fruitMutationList = {"Sandy","Soaked","Shocked","Nova","Starstruck","Snowy","Foggy","Meteoric","Tidal","Flooded","Chilled","Frostbit","Muddy","Mossy"}
 
 -- Populate lists (keep them local tables to avoid accidental global usage)
 gearList = fetchShopItems("GearShop")
@@ -458,6 +462,8 @@ local fruitDropdownValues = withAllOption(fruitList)
 local plantSeedDropdownValues = withAllOption(plantSeedList)
 local rarityDropdownValues = withAllOption(rarityList)
 local ripenessDropdownValues = withAllOption(ripenessStageList)
+local fruitVariantDropdownValues = withAllOption(fruitVariantList)
+local fruitMutationDropdownValues = withAllOption(fruitMutationList)
 
 local function normalizeFruitName(name)
     if type(name) ~= "string" then
@@ -489,8 +495,8 @@ end
 
 
 
--- Auto Harvest Function (supports optional ripeness filter)
-function autoHarvestPlants(selectedPlants, selectedStages)
+-- Auto Harvest Function (supports optional ripeness + variant + mutation filters)
+function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, selectedMutations)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then
         return
@@ -498,27 +504,52 @@ function autoHarvestPlants(selectedPlants, selectedStages)
 
     local plantsTable = (type(selectedPlants) == "table") and selectedPlants or {}
     local stagesTable = (type(selectedStages) == "table") and selectedStages or {}
+    local variantsTable = (type(selectedVariants) == "table") and selectedVariants or {}
+    local mutationsTable = (type(selectedMutations) == "table") and selectedMutations or {}
     local hasPlantFilter = hasSelection(plantsTable)
     local hasStageFilter = hasSelection(stagesTable)
+    local hasVariantFilter = hasSelection(variantsTable)
+    local hasMutationFilter = hasSelection(mutationsTable)
 
     for _, plant in pairs(clientPlants:GetChildren()) do
         local base = plant.Name:gsub("%d","")
         local matchesPlant = (not hasPlantFilter) or plantsTable[base]
-        local matchesStage = (not hasStageFilter)
+        local fruitFilterMatched = (not hasStageFilter and not hasVariantFilter and not hasMutationFilter)
 
-        if not matchesStage then
+        if not fruitFilterMatched then
             for _, obj in ipairs(plant:GetDescendants()) do
                 if obj.Name and obj.Name:match("^Fruit%d+$") then
                     local stage = obj:GetAttribute("RipenessStage")
-                    if type(stage) == "string" and stagesTable[stage] then
-                        matchesStage = true
+                    local variant = obj:GetAttribute("Variant")
+                    local mutation = obj:GetAttribute("Mutation")
+
+                    local stageOk = (not hasStageFilter) or (type(stage) == "string" and stagesTable[stage])
+                    local variantOk = not hasVariantFilter
+                    if hasVariantFilter then
+                        if type(variant) == "string" and variant ~= "" then
+                            variantOk = variantsTable[variant] == true
+                        else
+                            -- "Normal" means fruit has no Variant attribute set
+                            variantOk = variantsTable["Normal"] == true
+                        end
+                    end
+
+                    local mutationOk = (not hasMutationFilter)
+                    if hasMutationFilter and type(mutation) == "string" and mutation ~= "" then
+                        mutationOk = mutationsTable[mutation] == true
+                    elseif hasMutationFilter then
+                        mutationOk = false
+                    end
+
+                    if stageOk and variantOk and mutationOk then
+                        fruitFilterMatched = true
                         break
                     end
                 end
             end
         end
 
-        if matchesPlant and matchesStage then
+        if matchesPlant and fruitFilterMatched then
             for _, v in ipairs(plant:GetDescendants()) do
                 if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
                     v.HoldDuration = 0
@@ -810,16 +841,46 @@ AutomationSection:Space()
             selectedRipenessStages = toSelectionSet(option, ripenessStageList)
         end,
     })
+    AutomationSection:Space()
+
+    local VariantDropdown = AutomationSection:Dropdown({
+        Title = "Fruit Variant",
+        Desc = "Select variants to auto-harvest fruits",
+        Values = fruitVariantDropdownValues,
+        Value = {},
+        Multi = true,
+        AllowNone = true,
+        SearchBarEnabled = true,
+        Callback = function(option)
+            selectedFruitVariants = toSelectionSet(option, fruitVariantList)
+        end,
+    })
+    AutomationSection:Space()
+
+    local MutationDropdown = AutomationSection:Dropdown({
+        Title = "Fruit Mutation",
+        Desc = "Select mutations to auto-harvest fruits",
+        Values = fruitMutationDropdownValues,
+        Value = {},
+        Multi = true,
+        AllowNone = true,
+        SearchBarEnabled = true,
+        Callback = function(option)
+            selectedFruitMutations = toSelectionSet(option, fruitMutationList)
+        end,
+    })
 
     AutomationSection:Toggle({
         Title = "Auto Harvest",
-        Desc = "Harvest by selected plants and/or ripeness stages",
+        Desc = "Harvest by selected plants and/or ripeness stages and/or Variant",
         Value = false,
         Callback = function(state)
             local hasPlantSelection = hasSelection(selectedPlants)
             local hasStageSelection = hasSelection(selectedRipenessStages)
-            if state and (not hasPlantSelection and not hasStageSelection) then
-                WindUI:Notify({ Title = "Automation", Content = "Select plants or ripeness first!", Icon = "alert-triangle", Duration = 2 })
+            local hasVariantSelection = hasSelection(selectedFruitVariants)
+            local hasMutationSelection = hasSelection(selectedFruitMutations)
+            if state and (not hasPlantSelection and not hasStageSelection and not hasVariantSelection and not hasMutationSelection) then
+                WindUI:Notify({ Title = "Automation", Content = "Select plants, ripeness, variant, or mutation first!", Icon = "alert-triangle", Duration = 2 })
                 autoHarvest = false
                 return
             end
@@ -903,7 +964,7 @@ task.spawn(function()
             autoPlantSeeds(selectedSeeds)
         end
         if autoHarvest then
-            autoHarvestPlants(selectedPlants, selectedRipenessStages)
+            autoHarvestPlants(selectedPlants, selectedRipenessStages, selectedFruitVariants, selectedFruitMutations)
         end
         task.wait(plantInterval)
     end
