@@ -272,6 +272,46 @@ local function equipFruitTool(fruitName)
     return false
 end
 
+-- Normalize WindUI multi-select output into a set: { ["Name"] = true }
+local function normalizeMultiSelection(option)
+    if type(option) ~= "table" then
+        return {}
+    end
+
+    local normalized = {}
+    for k, v in pairs(option) do
+        if type(k) == "number" then
+            if type(v) == "string" and v ~= "" then
+                normalized[v] = true
+            end
+        elseif v then
+            normalized[k] = true
+        end
+    end
+    return normalized
+end
+
+local function selectedKeys(tbl)
+    local keys = {}
+    if type(tbl) ~= "table" then
+        return keys
+    end
+    for k, v in pairs(tbl) do
+        if v then
+            table.insert(keys, k)
+        end
+    end
+    return keys
+end
+
+local function hasSelection(tbl)
+    if type(tbl) ~= "table" then return false end
+    for _, v in pairs(tbl) do
+        if v then return true end
+    end
+    return false
+end
+
 -- find a seed tool in backpack/character whose BaseName attribute matches seedBase
 -- findSeedTool removed (auto-plant disabled)
 
@@ -294,7 +334,7 @@ local GearDropdown = ShopSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        selectedGearItem = option or {}
+        selectedGearItem = normalizeMultiSelection(option)
     end,
 })
 
@@ -309,8 +349,8 @@ ShopSection:Toggle({
         if state then
             task.spawn(function()
                 while autoBuyGear and scriptRunning do
-                    if selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
-                        for _, item in ipairs(selectedGearItem) do
+                    if hasSelection(selectedGearItem) then
+                        for _, item in ipairs(selectedKeys(selectedGearItem)) do
                             pcall(function()
                                 local args = { "GearShop", item }
                                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
@@ -334,7 +374,7 @@ local SeedDropdown = ShopSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        selectedSeedItem = option or {}
+        selectedSeedItem = normalizeMultiSelection(option)
     end,
 })
 
@@ -349,8 +389,8 @@ ShopSection:Toggle({
         if state then
             task.spawn(function()
                 while autoBuySeed and scriptRunning do
-                    if selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
-                        for _, item in ipairs(selectedSeedItem) do
+                    if hasSelection(selectedSeedItem) then
+                        for _, item in ipairs(selectedKeys(selectedSeedItem)) do
                             pcall(function()
                                 local args = { "SeedShop", item }
                                 game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
@@ -416,7 +456,7 @@ local FruitDropdown = AutomationSection:Dropdown({
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        selectedFruitItem = option or {}
+        selectedFruitItem = normalizeMultiSelection(option)
     end,
 })
 AutomationSection:Toggle({
@@ -426,7 +466,7 @@ AutomationSection:Toggle({
     Value = false,
     Callback = function(state)
         if state then
-            if not selectedFruitItem or type(selectedFruitItem) ~= "table" or #selectedFruitItem == 0 then
+            if not hasSelection(selectedFruitItem) then
                 WindUI:Notify({ Title = "Automation", Content = "Select fruits first!", Icon = "alert-triangle", Duration = 2 })
                 autoSellFruit = false
                 return
@@ -447,7 +487,7 @@ AutomationSection:Toggle({
         AllowNone = true,
         SearchBarEnabled = true,
         Callback = function(option)
-            selectedSeeds = option or {}
+            selectedSeeds = normalizeMultiSelection(option)
         end,
     })
 
@@ -470,19 +510,10 @@ AutomationSection:Toggle({
         AllowNone = true,
         SearchBarEnabled = true,
         Callback = function(option)
-            selectedPlants = option or {}
+            selectedPlants = normalizeMultiSelection(option)
         end,
     })
 
-
--- helper that works for multi-dropdown state tables
-local function hasSelection(tbl)
-    if type(tbl) ~= "table" then return false end
-    for _,v in pairs(tbl) do
-        if v then return true end
-    end
-    return false
-end
 
     AutomationSection:Toggle({
         Title = "Auto Harvest",
@@ -519,8 +550,8 @@ end
 -- fruit auto-sell loop
 task.spawn(function()
     while scriptRunning do
-        if autoSellFruit and selectedFruitItem and type(selectedFruitItem) == "table" and #selectedFruitItem > 0 then
-            for _, fruit in ipairs(selectedFruitItem) do
+        if autoSellFruit and hasSelection(selectedFruitItem) then
+            for _, fruit in ipairs(selectedKeys(selectedFruitItem)) do
                 local ok, err = pcall(function()
                     if equipFruitTool(fruit) then
                       -- hold fruit then sell
@@ -549,9 +580,11 @@ local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild(
 task.spawn(function()
     while scriptRunning do
         if autoHarvest then
+            -- ensure we have a table
+            local plantsTable = (type(selectedPlants) == "table") and selectedPlants or {}
             for _,plant in pairs(workspace.ClientPlants:GetChildren()) do
                 local base = plant.Name:gsub("%d","")
-                if selectedPlants[base] then
+                if plantsTable[base] then
                     for _,v in pairs(plant:GetDescendants()) do
                         if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
                             v.HoldDuration=0
@@ -565,7 +598,8 @@ task.spawn(function()
         end
         if autoPlant and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local pos = player.Character.HumanoidRootPart.Position
-            for seed,on in pairs(selectedSeeds) do
+            local seedsTable = (type(selectedSeeds) == "table") and selectedSeeds or {}
+            for seed,on in pairs(seedsTable) do
                 if on then
                     for x=-4,4,2 do
                         for z=-4,4,2 do
