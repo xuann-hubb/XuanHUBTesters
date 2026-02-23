@@ -471,10 +471,11 @@ AutomationSection:Toggle({
     local SeedAutoDropdown = AutomationSection:Dropdown({
         Title = "Seed Type",
         Desc = "Select seed to auto-plant (uses Seed Shop names)",
-        Values = seedList,
-        Value = {},
-        Multi = false,
-        AllowNone = true,
+       Values = seedList,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
         SearchBarEnabled = true,
         Callback = function(option)
             if type(option) == "table" then
