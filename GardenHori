@@ -466,14 +466,7 @@ AutomationSection:Toggle({
     })
 
 
--- helper that works for multi-dropdown state tables
-local function hasSelection(tbl)
-    if type(tbl) ~= "table" then return false end
-    for _,v in pairs(tbl) do
-        if v then return true end
-    end
-    return false
-end
+
 
     AutomationSection:Toggle({
         Title = "Auto Harvest",
@@ -537,43 +530,43 @@ end)
 
 -- snippet-style auto plant/harvest loop
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
-task.spawn(function()
-    while scriptRunning do
-        if autoHarvest then
-            -- ensure we have a table
-            local plantsTable = (type(selectedPlants) == "table") and selectedPlants or {}
-            for _,plant in pairs(workspace.ClientPlants:GetChildren()) do
-                local base = plant.Name:gsub("%d","")
-                if plantsTable[base] then
-                    for _,v in pairs(plant:GetDescendants()) do
-                        if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
-                            v.HoldDuration=0
-                            pcall(function() v:InputHoldBegin() end)
-                            task.wait(0.02)
-                            pcall(function() v:InputHoldEnd() end)
-                        end
-                    end
+
+-- Auto Harvest Function
+function autoHarvestPlants(selectedPlants)
+    local plantsTable = (type(selectedPlants) == "table") and selectedPlants or {}
+    for _,plant in pairs(workspace.ClientPlants:GetChildren()) do
+        local base = plant.Name:gsub("%d","")
+        if plantsTable[base] then
+            for _,v in pairs(plant:GetDescendants()) do
+                if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
+                    v.HoldDuration=0
+                    pcall(function() v:InputHoldBegin() end)
+                    task.wait(0.02)
+                    pcall(function() v:InputHoldEnd() end)
                 end
             end
         end
-        if autoPlant and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local pos = player.Character.HumanoidRootPart.Position
-            local seedsTable = (type(selectedSeeds) == "table") and selectedSeeds or {}
-            for seed,on in pairs(seedsTable) do
-                if on then
-                    for x=-4,4,2 do
-                        for z=-4,4,2 do
-                            pcall(function()
-                                PlantRemote:InvokeServer(seed, pos + Vector3.new(x, -3, z))
-                            end)
-                        end
-                    end
-                end
-            end
-        end
-        task.wait(1)
     end
-end)
+end
+
+-- Auto Plant Function
+function autoPlantSeeds(selectedSeeds)
+    if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        local pos = player.Character.HumanoidRootPart.Position
+        local seedsTable = (type(selectedSeeds) == "table") and selectedSeeds or {}
+        for seed,on in pairs(seedsTable) do
+            if on then
+                for x=-4,4,2 do
+                    for z=-4,4,2 do
+                        pcall(function()
+                            PlantRemote:InvokeServer(seed, pos + Vector3.new(x, -3, z))
+                        end)
+                    end
+                end
+            end
+        end
+    end
+end
 
 
 
