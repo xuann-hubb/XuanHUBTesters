@@ -698,21 +698,6 @@ local FruitDropdown = AutomationSection:Dropdown({
         selectedFruitItem = normalizeMultiSelection(option, fruitList)
     end,
 })
-AutomationSection:Space()
-
-local FruitRarityDropdown = AutomationSection:Dropdown({
-    Title = "Fruit Rarity",
-    Desc = "Select rarities to auto-sell",
-    Values = rarityDropdownValues,
-    Value = {},
-    Multi = true,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(option)
-        selectedFruitRarities = toSelectionSet(option, rarityList)
-    end,
-})
-AutomationSection:Space()
 
 AutomationSection:Toggle({
     Title = "Auto Sell Fruit",
@@ -733,6 +718,19 @@ AutomationSection:Toggle({
     end,
 })
 AutomationSection:Space()
+
+local FruitRarityDropdown = AutomationSection:Dropdown({
+    Title = "Fruit Rarity",
+    Desc = "Select rarities to auto-sell",
+    Values = rarityDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedFruitRarities = toSelectionSet(option, rarityList)
+    end,
+})
 
 AutomationSection:Toggle({
     Title = "Auto Sell Rarity",
@@ -776,7 +774,6 @@ AutomationSection:Space()
             selectedSeeds = toSelectionSet(option, plantSeedList)
         end,
     })
-    AutomationSection:Space()
 
     AutomationSection:Toggle({
         Title = "Auto Plant",
@@ -819,9 +816,6 @@ AutomationSection:Space()
             selectedPlants = toSelectionSet(option, plantValues)
         end,
     })
-    AutomationSection:Space()
-
-
 
 
     AutomationSection:Toggle({
@@ -852,7 +846,6 @@ AutomationSection:Space()
             selectedRipenessStages = toSelectionSet(option, ripenessStageList)
         end,
     })
-    AutomationSection:Space()
 
     AutomationSection:Toggle({
         Title = "Auto Harvest Ripeness",
