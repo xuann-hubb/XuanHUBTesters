@@ -361,6 +361,45 @@ ShopSection:Toggle({
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
 -- Refresh buttons removed per user request
+ShopSection:Button({
+    Title = "Sell All Dupe (VULN)",
+    Desc = "Claim empty plot, sell all, then rejoin (use with caution)",
+    Icon = "trash",
+    Callback = function()
+        local plots = workspace:FindFirstChild("Plots")
+        local target = "Plot1"
+        if plots then
+            for i = 1, 6 do
+                local p = plots:FindFirstChild("Plot" .. i)
+                if p then
+                    local owner = p:FindFirstChild("Owner")
+                    local ownerVal = owner and owner.Value
+                    if not ownerVal or tostring(ownerVal) == "" then
+                        target = "Plot" .. i
+                        break
+                    end
+                end
+            end
+        end
+
+        pcall(function()
+            local rep = game:GetService("ReplicatedStorage")
+            local remotes = rep:WaitForChild("RemoteEvents")
+            local claim = remotes:FindFirstChild("ClaimSelectedPlot")
+            if claim then
+                claim:FireServer(target)
+            end
+            local sell = remotes:FindFirstChild("SellItems")
+            if sell then
+                sell:InvokeServer("SellAll")
+            end
+        end)
+
+        pcall(function()
+            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game:GetService("Players").LocalPlayer)
+        end)
+    end,
+})
 -- Slider for auto-buy delay
 ShopSection:Slider({
     Title = "Auto Buy Delay (s)",
