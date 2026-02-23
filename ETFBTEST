@@ -185,7 +185,6 @@ local scriptRunning = true
 -- auto-plant/auto-harvest state will come from snippet logic
 local autoPlant = false
 local autoHarvest = false
-local autoHarvestRipeness = false
 local plantInterval = 0.8 -- used by snippet if needed
 local Seeds = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
 local selectedSeeds = {}
@@ -490,56 +489,38 @@ end
 
 
 
--- Auto Harvest Function
-function autoHarvestPlants(selectedPlants)
+-- Auto Harvest Function (supports optional ripeness filter)
+function autoHarvestPlants(selectedPlants, selectedStages)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then
         return
     end
 
     local plantsTable = (type(selectedPlants) == "table") and selectedPlants or {}
+    local stagesTable = (type(selectedStages) == "table") and selectedStages or {}
+    local hasPlantFilter = hasSelection(plantsTable)
+    local hasStageFilter = hasSelection(stagesTable)
+
     for _, plant in pairs(clientPlants:GetChildren()) do
         local base = plant.Name:gsub("%d","")
-        if plantsTable[base] then
-            for _, v in pairs(plant:GetDescendants()) do
-                if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
-                    v.HoldDuration = 0
-                    if typeof(fireproximityprompt) == "function" then
-                        pcall(fireproximityprompt, v)
-                    else
-                        pcall(function() v:InputHoldBegin() end)
-                        task.wait(0.02)
-                        pcall(function() v:InputHoldEnd() end)
+        local matchesPlant = (not hasPlantFilter) or plantsTable[base]
+        local matchesStage = (not hasStageFilter)
+
+        if not matchesStage then
+            for _, obj in ipairs(plant:GetDescendants()) do
+                if obj.Name and obj.Name:match("^Fruit%d+$") then
+                    local stage = obj:GetAttribute("RipenessStage")
+                    if type(stage) == "string" and stagesTable[stage] then
+                        matchesStage = true
+                        break
                     end
                 end
             end
         end
-    end
-end
 
--- Auto Harvest by RipenessStage on Fruit nodes (Fruit1, Fruit2, ...)
-function autoHarvestByRipeness(selectedStages)
-    local clientPlants = workspace:FindFirstChild("ClientPlants")
-    if not clientPlants then
-        return
-    end
-
-    local stageSet = (type(selectedStages) == "table") and selectedStages or {}
-    for _, plant in pairs(clientPlants:GetChildren()) do
-        local shouldHarvest = false
-        for _, obj in ipairs(plant:GetDescendants()) do
-            if obj.Name and obj.Name:match("^Fruit%d+$") then
-                local stage = obj:GetAttribute("RipenessStage")
-                if type(stage) == "string" and stageSet[stage] then
-                    shouldHarvest = true
-                    break
-                end
-            end
-        end
-
-        if shouldHarvest then
+        if matchesPlant and matchesStage then
             for _, v in ipairs(plant:GetDescendants()) do
-                if v:IsA("ProximityPrompt") and v.Name == "HarvestPrompt" then
+                if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
                     v.HoldDuration = 0
                     if typeof(fireproximityprompt) == "function" then
                         pcall(fireproximityprompt, v)
@@ -817,23 +798,6 @@ AutomationSection:Space()
         end,
     })
 
-
-    AutomationSection:Toggle({
-        Title = "Auto Harvest",
-        Desc = "Automatically harvest selected plants",
-        Value = false,
-        Callback = function(state)
-            if state and not hasSelection(selectedPlants) then
-                WindUI:Notify({ Title = "Automation", Content = "Select plants first!", Icon = "alert-triangle", Duration = 2 })
-                autoHarvest = false
-                return
-            end
-            autoHarvest = state
-            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
-        end,
-    })
-    AutomationSection:Space()
-
     local RipenessDropdown = AutomationSection:Dropdown({
         Title = "Fruit Ripeness",
         Desc = "Select ripeness stages to auto-harvest fruits",
@@ -848,20 +812,25 @@ AutomationSection:Space()
     })
 
     AutomationSection:Toggle({
-        Title = "Auto Harvest Ripeness",
-        Desc = "Auto harvest fruits by RipenessStage",
+        Title = "Auto Harvest",
+        Desc = "Harvest by selected plants and/or ripeness stages",
         Value = false,
         Callback = function(state)
-            if state and not hasSelection(selectedRipenessStages) then
-                WindUI:Notify({ Title = "Automation", Content = "Select ripeness stages first!", Icon = "alert-triangle", Duration = 2 })
-                autoHarvestRipeness = false
+            local hasPlantSelection = hasSelection(selectedPlants)
+            local hasStageSelection = hasSelection(selectedRipenessStages)
+            if state and (not hasPlantSelection and not hasStageSelection) then
+                WindUI:Notify({ Title = "Automation", Content = "Select plants or ripeness first!", Icon = "alert-triangle", Duration = 2 })
+                autoHarvest = false
                 return
             end
-            autoHarvestRipeness = state
-            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest ripeness enabled" or "Auto-harvest ripeness disabled"), Icon = "info", Duration = 2 })
+            autoHarvest = state
+            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
         end,
     })
     AutomationSection:Space()
+
+    
+    
 
     
 -- fruit auto-sell loop
@@ -934,10 +903,7 @@ task.spawn(function()
             autoPlantSeeds(selectedSeeds)
         end
         if autoHarvest then
-            autoHarvestPlants(selectedPlants)
-        end
-        if autoHarvestRipeness then
-            autoHarvestByRipeness(selectedRipenessStages)
+            autoHarvestPlants(selectedPlants, selectedRipenessStages)
         end
         task.wait(plantInterval)
     end
