@@ -697,8 +697,8 @@ local AutomationTab = Window:Tab({
     Locked = false,
 })
 
-local AutomationSection = AutomationTab:Section({ Title = "Automation", Opened = true })
-local FruitDropdown = AutomationSection:Dropdown({
+local SellAutomationSection = AutomationTab:Section({ Title = "Sell Automation", Opened = true })
+local FruitDropdown = SellAutomationSection:Dropdown({
     Title = "Fruit Type",
     Desc = "Select fruit origins to auto-sell",
     Values = fruitDropdownValues,
@@ -711,7 +711,7 @@ local FruitDropdown = AutomationSection:Dropdown({
     end,
 })
 
-AutomationSection:Toggle({
+SellAutomationSection:Toggle({
     Title = "Auto Sell Fruit",
     Desc = "Automatically sell manually selected fruits",
     Icon = "check",
@@ -729,9 +729,9 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
     end,
 })
-AutomationSection:Space()
+SellAutomationSection:Space()
 
-local FruitRarityDropdown = AutomationSection:Dropdown({
+local FruitRarityDropdown = SellAutomationSection:Dropdown({
     Title = "Fruit Rarity",
     Desc = "Select rarities to auto-sell",
     Values = rarityDropdownValues,
@@ -744,7 +744,7 @@ local FruitRarityDropdown = AutomationSection:Dropdown({
     end,
 })
 
-AutomationSection:Toggle({
+SellAutomationSection:Toggle({
     Title = "Auto Sell Rarity",
     Desc = "Automatically sell fruits from selected rarities",
     Icon = "check",
@@ -759,9 +759,9 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell rarity enabled" or "Auto-sell rarity disabled"), Icon = "info", Duration = 2 })
     end,
 })
-AutomationSection:Space()
+SellAutomationSection:Space()
 
-AutomationSection:Toggle({
+SellAutomationSection:Toggle({
     Title = "Auto Sell All",
     Desc = "Automatically sell everything every 2 seconds",
     Icon = "check",
@@ -771,124 +771,122 @@ AutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell all enabled" or "Auto-sell all disabled"), Icon = "info", Duration = 2 })
     end,
 })
-AutomationSection:Space()
+SellAutomationSection:Space()
 
-    -- new seed/plants dropdowns and toggles for snippet logic
-    local SeedAutoDropdown = AutomationSection:Dropdown({
-        Title = "Seeds to Plant",
-        Desc = "Choose which seeds to auto-plant",
-        Values = plantSeedDropdownValues,
-        Value = {},
-        Multi = true,
-        AllowNone = true,
-        SearchBarEnabled = true,
-        Callback = function(option)
-            selectedSeeds = toSelectionSet(option, plantSeedList)
-        end,
-    })
+local PlantAutomationSection = AutomationTab:Section({ Title = "Plant Automation", Opened = true })
+local SeedAutoDropdown = PlantAutomationSection:Dropdown({
+    Title = "Seeds to Plant",
+    Desc = "Choose which seeds to auto-plant",
+    Values = plantSeedDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedSeeds = toSelectionSet(option, plantSeedList)
+    end,
+})
 
-    AutomationSection:Toggle({
-        Title = "Auto Plant",
-        Desc = "Automatically plant selected seeds around you",
-        Value = false,
-        Callback = function(state)
-            if state and not hasSelection(selectedSeeds) then
-                WindUI:Notify({ Title = "Automation", Content = "Select seeds first!", Icon = "alert-triangle", Duration = 2 })
-                autoPlant = false
-                return
-            end
-            autoPlant = state
-            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
-        end,
-    })
-    AutomationSection:Space()
-
-
-    local plantValues = {}
-    if PlantsModels then
-        for _, model in ipairs(PlantsModels:GetChildren()) do
-            table.insert(plantValues, model.Name)
+PlantAutomationSection:Toggle({
+    Title = "Auto Plant",
+    Desc = "Automatically plant selected seeds around you",
+    Value = false,
+    Callback = function(state)
+        if state and not hasSelection(selectedSeeds) then
+            WindUI:Notify({ Title = "Automation", Content = "Select seeds first!", Icon = "alert-triangle", Duration = 2 })
+            autoPlant = false
+            return
         end
-        table.sort(plantValues)
+        autoPlant = state
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+PlantAutomationSection:Space()
+
+local HarvestAutomationSection = AutomationTab:Section({ Title = "Harvest Automation", Opened = true })
+local plantValues = {}
+if PlantsModels then
+    for _, model in ipairs(PlantsModels:GetChildren()) do
+        table.insert(plantValues, model.Name)
     end
-    if #plantValues == 0 then
-        plantValues = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
-    end
-    local plantDropdownValues = withAllOption(plantValues)
+    table.sort(plantValues)
+end
+if #plantValues == 0 then
+    plantValues = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
+end
+local plantDropdownValues = withAllOption(plantValues)
 
-    local PlantAutoDropdown = AutomationSection:Dropdown({
-        Title = "Plants to Harvest",
-        Desc = "Choose plant types to auto-harvest",
-        Values = plantDropdownValues,
-        Value = {},
-        Multi = true,
-        AllowNone = true,
-        SearchBarEnabled = true,
-        Callback = function(option)
-            selectedPlants = toSelectionSet(option, plantValues)
-        end,
-    })
+local PlantAutoDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Plants to Harvest",
+    Desc = "Choose plant types to auto-harvest",
+    Values = plantDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedPlants = toSelectionSet(option, plantValues)
+    end,
+})
 
-    local RipenessDropdown = AutomationSection:Dropdown({
-        Title = "Fruit Ripeness",
-        Desc = "Select ripeness stages to auto-harvest fruits",
-        Values = ripenessDropdownValues,
-        Value = {},
-        Multi = true,
-        AllowNone = true,
-        SearchBarEnabled = true,
-        Callback = function(option)
-            selectedRipenessStages = toSelectionSet(option, ripenessStageList)
-        end,
-    })
-    AutomationSection:Space()
+local RipenessDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Fruit Ripeness",
+    Desc = "Select ripeness stages to auto-harvest fruits",
+    Values = ripenessDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedRipenessStages = toSelectionSet(option, ripenessStageList)
+    end,
+})
 
-    local VariantDropdown = AutomationSection:Dropdown({
-        Title = "Fruit Variant",
-        Desc = "Select variants to auto-harvest fruits",
-        Values = fruitVariantDropdownValues,
-        Value = {},
-        Multi = true,
-        AllowNone = true,
-        SearchBarEnabled = true,
-        Callback = function(option)
-            selectedFruitVariants = toSelectionSet(option, fruitVariantList)
-        end,
-    })
-    AutomationSection:Space()
+local VariantDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Fruit Variant",
+    Desc = "Select variants to auto-harvest fruits",
+    Values = fruitVariantDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedFruitVariants = toSelectionSet(option, fruitVariantList)
+    end,
+})
 
-    local MutationDropdown = AutomationSection:Dropdown({
-        Title = "Fruit Mutation",
-        Desc = "Select mutations to auto-harvest fruits",
-        Values = fruitMutationDropdownValues,
-        Value = {},
-        Multi = true,
-        AllowNone = true,
-        SearchBarEnabled = true,
-        Callback = function(option)
-            selectedFruitMutations = toSelectionSet(option, fruitMutationList)
-        end,
-    })
+local MutationDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Fruit Mutation",
+    Desc = "Select mutations to auto-harvest fruits",
+    Values = fruitMutationDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedFruitMutations = toSelectionSet(option, fruitMutationList)
+    end,
+})
 
-    AutomationSection:Toggle({
-        Title = "Auto Harvest",
-        Desc = "Harvest by selected plants and/or ripeness stages and/or Variant",
-        Value = false,
-        Callback = function(state)
-            local hasPlantSelection = hasSelection(selectedPlants)
-            local hasStageSelection = hasSelection(selectedRipenessStages)
-            local hasVariantSelection = hasSelection(selectedFruitVariants)
-            local hasMutationSelection = hasSelection(selectedFruitMutations)
-            if state and (not hasPlantSelection and not hasStageSelection and not hasVariantSelection and not hasMutationSelection) then
-                WindUI:Notify({ Title = "Automation", Content = "Select plants, ripeness, variant, or mutation first!", Icon = "alert-triangle", Duration = 2 })
-                autoHarvest = false
-                return
-            end
-            autoHarvest = state
-            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
-        end,
-    })
-    AutomationSection:Space()
+HarvestAutomationSection:Toggle({
+    Title = "Auto Harvest",
+    Desc = "Harvest by selected plants and/or ripeness stages and/or Variant",
+    Value = false,
+    Callback = function(state)
+        local hasPlantSelection = hasSelection(selectedPlants)
+        local hasStageSelection = hasSelection(selectedRipenessStages)
+        local hasVariantSelection = hasSelection(selectedFruitVariants)
+        local hasMutationSelection = hasSelection(selectedFruitMutations)
+        if state and (not hasPlantSelection and not hasStageSelection and not hasVariantSelection and not hasMutationSelection) then
+            WindUI:Notify({ Title = "Automation", Content = "Select plants, ripeness, variant, or mutation first!", Icon = "alert-triangle", Duration = 2 })
+            autoHarvest = false
+            return
+        end
+        autoHarvest = state
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+HarvestAutomationSection:Space()
 
     
     
