@@ -176,7 +176,44 @@ local autoSellFruit = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local scriptRunning = true
--- autoPlant/autoHarvest removed
+local autoPlantSeed = false
+local plantInterval = 0.8 -- seconds between plant attempts
+local selectedAutoPlantSeed = nil
+
+-- find a seed tool in backpack/character whose BaseName attribute matches seedBase
+local function findSeedTool(seedBase)
+    if not seedBase then return nil end
+    local bp = player and player:FindFirstChild("Backpack")
+    local char = player and player.Character
+    local function matchTool(tool)
+        if not tool or not tool.IsA then return false end
+        if not tool.IsA or not tool:IsA("Tool") then return false end
+        local bn = tool.GetAttribute and tool:GetAttribute("BaseName")
+        if bn and tostring(bn):lower() == tostring(seedBase):lower() then
+            return true
+        end
+        if string.find(tostring(tool.Name):lower(), tostring(seedBase):lower()) then
+            return true
+        end
+        return false
+    end
+
+    if bp then
+        for _, tool in ipairs(bp:GetChildren()) do
+            if matchTool(tool) then
+                return tool
+            end
+        end
+    end
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if matchTool(tool) then
+                return tool
+            end
+        end
+    end
+    return nil
+end
 
 -- Helpers: fetch shop items heuristically
 local function fetchShopItems(shopId)
@@ -361,45 +398,6 @@ ShopSection:Toggle({
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
 -- Refresh buttons removed per user request
-ShopSection:Button({
-    Title = "Sell All Dupe (VULN)",
-    Desc = "Claim empty plot, sell all, then rejoin (use with caution)",
-    Icon = "trash",
-    Callback = function()
-        local plots = workspace:FindFirstChild("Plots")
-        local target = "Plot1"
-        if plots then
-            for i = 1, 6 do
-                local p = plots:FindFirstChild("Plot" .. i)
-                if p then
-                    local owner = p:FindFirstChild("Owner")
-                    local ownerVal = owner and owner.Value
-                    if not ownerVal or tostring(ownerVal) == "" then
-                        target = "Plot" .. i
-                        break
-                    end
-                end
-            end
-        end
-
-        pcall(function()
-            local rep = game:GetService("ReplicatedStorage")
-            local remotes = rep:WaitForChild("RemoteEvents")
-            local claim = remotes:FindFirstChild("ClaimSelectedPlot")
-            if claim then
-                claim:FireServer(target)
-            end
-            local sell = remotes:FindFirstChild("SellItems")
-            if sell then
-                sell:InvokeServer("SellAll")
-            end
-        end)
-
-        pcall(function()
-            game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId, game:GetService("Players").LocalPlayer)
-        end)
-    end,
-})
 -- Slider for auto-buy delay
 ShopSection:Slider({
     Title = "Auto Buy Delay (s)",
@@ -469,7 +467,95 @@ AutomationSection:Toggle({
     end,
 })
 
-    -- Auto Plant/Harvest removed per request
+    -- Automation Seed dropdown + Auto Plant toggle
+    local SeedAutoDropdown = AutomationSection:Dropdown({
+        Title = "Seed Type",
+        Desc = "Select seed to auto-plant (uses Seed Shop names)",
+        Values = seedList,
+        Value = {},
+        Multi = false,
+        AllowNone = true,
+        SearchBarEnabled = true,
+        Callback = function(option)
+            if type(option) == "table" then
+                selectedAutoPlantSeed = option[1]
+            else
+                selectedAutoPlantSeed = option
+            end
+        end,
+    })
+
+    AutomationSection:Toggle({
+        Title = "Auto Plant Seed",
+        Desc = "Automatically plant selected seed on owned plots",
+        Icon = "seed",
+        Value = false,
+        Callback = function(state)
+            if state then
+                if not selectedAutoPlantSeed or type(selectedAutoPlantSeed) ~= "string" or selectedAutoPlantSeed == "" then
+                    WindUI:Notify({ Title = "Automation", Content = "Select a seed in the Automation tab first!", Icon = "alert-triangle", Duration = 2 })
+                    autoPlantSeed = false
+                    return
+                end
+            end
+            autoPlantSeed = state
+            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
+            if state then
+                task.spawn(function()
+                    while autoPlantSeed and scriptRunning do
+                        local plots = workspace:FindFirstChild("Plots")
+                        if plots then
+                            for i = 1, 6 do
+                                local plot = plots:FindFirstChild("Plot" .. i)
+                                if plot then
+                                    local ownerVal = plot:FindFirstChild("Owner")
+                                    local ownerName = ownerVal and ownerVal.Value and tostring(ownerVal.Value) or nil
+                                    if ownerName == player.Name then
+                                        local plantArea = plot:FindFirstChild("PlantableArea")
+                                        if plantArea then
+                                            local part = plantArea:GetChildren()[2]
+                                            if not (part and part:IsA("BasePart")) then
+                                                for _, c in ipairs(plantArea:GetChildren()) do
+                                                    if c  and c:IsA("BasePart") then
+                                                        part = c
+                                                        break
+                                                    end
+                                                end
+                                            end
+                                            if part and part.Position then
+                                                local pos = part.Position
+                                                local seedBase = tostring(selectedAutoPlantSeed):gsub("%s*[Ss]eed$", "")
+                                                local tool = findSeedTool(seedBase)
+                                                if tool then
+                                                    pcall(function()
+                                                        local char = player.Character
+                                                        if char and char:FindFirstChild("Humanoid") then
+                                                            char.Humanoid:EquipTool(tool)
+                                                        end
+                                                        task.wait(0.12)
+                                                        local vecCtor = (type(vector) == "table" and vector.create) or Vector3.new
+                                                        local args = { seedBase, vecCtor(pos.X, pos.Y, pos.Z) }
+                                                        local rep = game:GetService("ReplicatedStorage")
+                                                        local remote = rep:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
+                                                        if remote then
+                                                            remote:InvokeServer(unpack(args))
+                                                        end
+                                                    end)
+                                                    task.wait(plantInterval)
+                                                end
+                                            end
+                                        end
+                                    end
+                                end
+                                task.wait(0.05)
+                            end
+                        end
+                        task.wait(1)
+                    end
+                end)
+            end
+        end,
+    })
 
 -- fruit auto-sell loop
 task.spawn(function()
