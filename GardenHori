@@ -184,9 +184,39 @@ local Seeds = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry",
 local selectedSeeds = {}
 local selectedPlants = {}
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
+local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
 
 local function hasSelection(tbl)
-    return type(tbl) == "table" and next(tbl) ~= nil
+    if type(tbl) ~= "table" then
+        return false
+    end
+    for _, v in pairs(tbl) do
+        if v then
+            return true
+        end
+    end
+    return false
+end
+
+local function toSelectionSet(option)
+    local selected = {}
+    if type(option) ~= "table" then
+        return selected
+    end
+
+    for key, value in pairs(option) do
+        if type(key) == "number" then
+            if type(value) == "string" then
+                selected[value] = true
+            elseif type(value) == "table" and type(value.Title) == "string" then
+                selected[value.Title] = true
+            end
+        elseif type(key) == "string" and value then
+            selected[key] = true
+        end
+    end
+
+    return selected
 end
 
 -- previous helper for finding seed tool removed; using direct PlantSeed remote instead
@@ -294,16 +324,25 @@ seedList = fetchShopItems("SeedShop")
 
 -- Auto Harvest Function
 function autoHarvestPlants(selectedPlants)
+    local clientPlants = workspace:FindFirstChild("ClientPlants")
+    if not clientPlants then
+        return
+    end
+
     local plantsTable = (type(selectedPlants) == "table") and selectedPlants or {}
-    for _,plant in pairs(workspace.ClientPlants:GetChildren()) do
+    for _, plant in pairs(clientPlants:GetChildren()) do
         local base = plant.Name:gsub("%d","")
         if plantsTable[base] then
-            for _,v in pairs(plant:GetDescendants()) do
+            for _, v in pairs(plant:GetDescendants()) do
                 if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
-                    v.HoldDuration=0
-                    pcall(function() v:InputHoldBegin() end)
-                    task.wait(0.02)
-                    pcall(function() v:InputHoldEnd() end)
+                    v.HoldDuration = 0
+                    if typeof(fireproximityprompt) == "function" then
+                        pcall(fireproximityprompt, v)
+                    else
+                        pcall(function() v:InputHoldBegin() end)
+                        task.wait(0.02)
+                        pcall(function() v:InputHoldEnd() end)
+                    end
                 end
             end
         end
@@ -315,8 +354,8 @@ function autoPlantSeeds(selectedSeeds)
     if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
         local pos = player.Character.HumanoidRootPart.Position
         local seedsTable = (type(selectedSeeds) == "table") and selectedSeeds or {}
-        for seed,on in pairs(seedsTable) do
-            if on then
+        for _, seed in ipairs(Seeds) do
+            if seedsTable[seed] then
                 for x=-4,4,2 do
                     for z=-4,4,2 do
                         pcall(function()
@@ -491,7 +530,7 @@ AutomationSection:Toggle({
         AllowNone = true,
         SearchBarEnabled = true,
         Callback = function(option)
-            selectedSeeds = option or {}
+            selectedSeeds = toSelectionSet(option)
         end,
     })
 
@@ -511,17 +550,27 @@ AutomationSection:Toggle({
     })
 
 
+    local plantValues = {}
+    if PlantsModels then
+        for _, model in ipairs(PlantsModels:GetChildren()) do
+            table.insert(plantValues, model.Name)
+        end
+        table.sort(plantValues)
+    end
+    if #plantValues == 0 then
+        plantValues = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
+    end
+
     local PlantAutoDropdown = AutomationSection:Dropdown({
         Title = "Plants to Harvest",
         Desc = "Choose plant types to auto-harvest",
-        -- build plant names list dynamically
-        Values = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"},
+        Values = plantValues,
         Value = {},
         Multi = true,
         AllowNone = true,
         SearchBarEnabled = true,
         Callback = function(option)
-            selectedPlants = option or {}
+            selectedPlants = toSelectionSet(option)
         end,
     })
 
