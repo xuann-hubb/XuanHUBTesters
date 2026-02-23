@@ -1054,7 +1054,7 @@ local WaterPlantDropdown = WaterAutomationSection:Dropdown({
 
 WaterAutomationSection:Toggle({
     Title = "Auto Water Selected Plant",
-    Desc = "Equip Watering Can and water matching plants one-by-one",
+    Desc = "Equip Watering Can and water the plant",
     Value = false,
     Callback = function(state)
         if state and not hasSelection(selectedWaterPlants) then
@@ -1185,7 +1185,7 @@ HarvestAutomationSection:Space()
 
 local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
     Title = "Select Fruit To Shovel",
-    Desc = "Choose fruit types to shovel (uses uuid, 1)",
+    Desc = "Choose fruit types to shovel",
     Values = fruitDropdownValues,
     Value = {},
     Multi = true,
@@ -1198,7 +1198,7 @@ local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
 
 local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
     Title = "Select Plant To Shovel",
-    Desc = "Choose plant types to shovel (uses uuid)",
+    Desc = "Choose plant types to shovel",
     Values = withAllOption(fruitList),
     Value = {},
     Multi = true,
