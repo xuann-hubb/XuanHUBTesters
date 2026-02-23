@@ -474,12 +474,27 @@ AutomationSection:Toggle({
         end,
     })
 
+
+-- helper that works for multi-dropdown state tables
+local function hasSelection(tbl)
+    if type(tbl) ~= "table" then return false end
+    for _,v in pairs(tbl) do
+        if v then return true end
+    end
+    return false
+end
+
     AutomationSection:Toggle({
         Title = "Auto Harvest",
         Desc = "Automatically harvest selected plants",
         Icon = "scythe",
         Value = false,
         Callback = function(state)
+            if state and not hasSelection(selectedPlants) then
+                WindUI:Notify({ Title = "Automation", Content = "Select plants first!", Icon = "alert-triangle", Duration = 2 })
+                autoHarvest = false
+                return
+            end
             autoHarvest = state
             WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
         end,
@@ -491,6 +506,11 @@ AutomationSection:Toggle({
         Icon = "seed",
         Value = false,
         Callback = function(state)
+            if state and not hasSelection(selectedSeeds) then
+                WindUI:Notify({ Title = "Automation", Content = "Select seeds first!", Icon = "alert-triangle", Duration = 2 })
+                autoPlant = false
+                return
+            end
             autoPlant = state
             WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
         end,
