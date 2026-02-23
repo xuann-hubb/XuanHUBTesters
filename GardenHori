@@ -451,6 +451,23 @@ AutomationSection:Toggle({
         end,
     })
 
+    AutomationSection:Toggle({
+        Title = "Auto Plant",
+        Desc = "Automatically plant selected seeds around you",
+        Icon = "seed",
+        Value = false,
+        Callback = function(state)
+            if state and not hasSelection(selectedSeeds) then
+                WindUI:Notify({ Title = "Automation", Content = "Select seeds first!", Icon = "alert-triangle", Duration = 2 })
+                autoPlant = false
+                return
+            end
+            autoPlant = state
+            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
+        end,
+    })
+
+
     local PlantAutoDropdown = AutomationSection:Dropdown({
         Title = "Plants to Harvest",
         Desc = "Choose plant types to auto-harvest",
@@ -484,22 +501,7 @@ AutomationSection:Toggle({
         end,
     })
 
-    AutomationSection:Toggle({
-        Title = "Auto Plant",
-        Desc = "Automatically plant selected seeds around you",
-        Icon = "seed",
-        Value = false,
-        Callback = function(state)
-            if state and not hasSelection(selectedSeeds) then
-                WindUI:Notify({ Title = "Automation", Content = "Select seeds first!", Icon = "alert-triangle", Duration = 2 })
-                autoPlant = false
-                return
-            end
-            autoPlant = state
-            WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
-        end,
-    })
-
+    
 -- fruit auto-sell loop
 task.spawn(function()
     while scriptRunning do
