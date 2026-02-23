@@ -181,6 +181,7 @@ local autoSellFruit = false
 local autoSellRarity = false
 local autoSellAll = false
 local autoOpenSeedPack = false
+local autoShovel = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local seedPackOpenInterval = 1
@@ -195,9 +196,12 @@ local selectedPlants = {}
 local selectedRipenessStages = {}
 local selectedFruitVariants = {}
 local selectedFruitMutations = {}
+local selectedShovelFruits = {}
+local selectedShovelPlants = {}
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
 local SellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
 local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestSpin")
+local RemovePlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RemovePlant")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
 
 local function hasSelection(tbl)
@@ -378,6 +382,46 @@ local function findAndEquipSeedPackTool(seedPackDisplayName)
                 task.wait(0.05)
                 return true
             end
+        end
+    end
+
+    return false
+end
+
+local function findAndEquipShovelTool()
+    local char = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    if not char or not backpack then
+        return false
+    end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        return false
+    end
+
+    local function isShovel(tool)
+        if not tool or not tool:IsA("Tool") then
+            return false
+        end
+        local baseName = tool:GetAttribute("BaseName")
+        if type(baseName) == "string" and baseName:lower():find("shovel", 1, true) then
+            return true
+        end
+        return type(tool.Name) == "string" and tool.Name:lower():find("shovel", 1, true) ~= nil
+    end
+
+    for _, tool in ipairs(char:GetChildren()) do
+        if isShovel(tool) then
+            return true
+        end
+    end
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if isShovel(tool) then
+            humanoid:EquipTool(tool)
+            task.wait(0.05)
+            return true
         end
     end
 
@@ -609,6 +653,44 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
                         pcall(function() v:InputHoldEnd() end)
                     end
                 end
+            end
+        end
+    end
+end
+
+-- Auto Shovel Function (fruit => uuid,1 | plant => uuid)
+function autoShovelTargets(selectedFruitTypes, selectedPlantTypes)
+    local clientPlants = workspace:FindFirstChild("ClientPlants")
+    if not clientPlants then
+        return
+    end
+    if not findAndEquipShovelTool() then
+        return
+    end
+
+    local fruitTypes = (type(selectedFruitTypes) == "table") and selectedFruitTypes or {}
+    local plantTypes = (type(selectedPlantTypes) == "table") and selectedPlantTypes or {}
+
+    for _, plant in ipairs(clientPlants:GetChildren()) do
+        local plantType = plant:GetAttribute("PlantType")
+        if type(plantType) ~= "string" or plantType == "" then
+            plantType = plant.Name:gsub("%d", "")
+        end
+
+        local uuid = plant:GetAttribute("Uuid")
+        if type(uuid) ~= "string" or uuid == "" then
+            uuid = plant:GetAttribute("UUID")
+        end
+
+        if type(uuid) == "string" and uuid ~= "" then
+            if fruitTypes[plantType] then
+                pcall(function()
+                    RemovePlantRemote:FireServer(uuid, 1)
+                end)
+            elseif plantTypes[plantType] then
+                pcall(function()
+                    RemovePlantRemote:FireServer(uuid)
+                end)
             end
         end
     end
@@ -966,6 +1048,50 @@ HarvestAutomationSection:Toggle({
 })
 HarvestAutomationSection:Space()
 
+local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Select Fruit To Shovel",
+    Desc = "Choose fruit types to shovel (uses uuid, 1)",
+    Values = fruitDropdownValues,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedShovelFruits = toSelectionSet(option, fruitList)
+    end,
+})
+
+local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Select Plant To Shovel",
+    Desc = "Choose plant types to shovel (uses uuid)",
+    Values = withAllOption(fruitList),
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedShovelPlants = toSelectionSet(option, fruitList)
+    end,
+})
+
+HarvestAutomationSection:Toggle({
+    Title = "Auto Shovel",
+    Desc = "Auto shovel selected fruit or plant types",
+    Value = false,
+    Callback = function(state)
+        local hasFruitSelection = hasSelection(selectedShovelFruits)
+        local hasPlantSelection = hasSelection(selectedShovelPlants)
+        if state and (not hasFruitSelection and not hasPlantSelection) then
+            WindUI:Notify({ Title = "Automation", Content = "Select shovel fruit or plant first!", Icon = "alert-triangle", Duration = 2 })
+            autoShovel = false
+            return
+        end
+        autoShovel = state
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-shovel enabled" or "Auto-shovel disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+HarvestAutomationSection:Space()
+
     
     
 
@@ -1063,6 +1189,9 @@ task.spawn(function()
         end
         if autoHarvest then
             autoHarvestPlants(selectedPlants, selectedRipenessStages, selectedFruitVariants, selectedFruitMutations)
+        end
+        if autoShovel then
+            autoShovelTargets(selectedShovelFruits, selectedShovelPlants)
         end
         task.wait(plantInterval)
     end
