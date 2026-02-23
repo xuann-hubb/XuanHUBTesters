@@ -684,9 +684,13 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes)
 
         if type(uuid) == "string" and uuid ~= "" then
             if fruitTypes[plantType] then
-                pcall(function()
-                    RemovePlantRemote:FireServer(uuid, 1)
-                end)
+                -- Always remove with amount=1; repeat a few times to clear all fruit stacks.
+                for _ = 1, 8 do
+                    pcall(function()
+                        RemovePlantRemote:FireServer(uuid, 1)
+                    end)
+                    task.wait(0.03)
+                end
             elseif plantTypes[plantType] then
                 pcall(function()
                     RemovePlantRemote:FireServer(uuid)
