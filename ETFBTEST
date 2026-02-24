@@ -185,6 +185,8 @@ local autoShovel = false
 local autoWater = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
+local fruitSellTriggerCount = 1
+local raritySellTriggerCount = 1
 local seedPackOpenInterval = 1
 local scriptRunning = true
 local autoSellProcessing = false
@@ -557,6 +559,35 @@ local function countHarvestedFruitTools()
     return count
 end
 
+local function countFruitToolsByType(fruitName)
+    local count = 0
+    local target = tostring(fruitName):lower()
+    local bp = player and player:FindFirstChild("Backpack")
+    if bp then
+        for _, tool in ipairs(bp:GetChildren()) do
+            if tool:IsA("Tool") then
+                local hf = tool:GetAttribute("HarvestedFrom")
+                if hf and tostring(hf):lower() == target then
+                    count = count + 1
+                end
+            end
+        end
+    end
+
+    local char = player and player.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") then
+                local hf = tool:GetAttribute("HarvestedFrom")
+                if hf and tostring(hf):lower() == target then
+                    count = count + 1
+                end
+            end
+        end
+    end
+    return count
+end
+
 local function performAutoSellAll()
     if autoSellProcessing then
         return
@@ -583,6 +614,59 @@ local function performAutoSellAll()
         hrp.CFrame = oldCFrame
     end
 
+    autoSellProcessing = false
+end
+
+local function performAutoSellSingleBatch(thresholdByFruit)
+    if autoSellProcessing then
+        return
+    end
+    if type(thresholdByFruit) ~= "table" then
+        return
+    end
+
+    local fruitsToSell = {}
+    for fruit, threshold in pairs(thresholdByFruit) do
+        local minCount = math.max(1, tonumber(threshold) or 1)
+        if countFruitToolsByType(fruit) >= minCount then
+            fruitsToSell[fruit] = minCount
+        end
+    end
+
+    if next(fruitsToSell) == nil then
+        return
+    end
+
+    autoSellProcessing = true
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        autoSellProcessing = false
+        return
+    end
+
+    local oldCFrame = hrp.CFrame
+    hrp.CFrame = SELL_POINT.CFrame
+    task.wait(1.5)
+
+    for fruit, minCount in pairs(fruitsToSell) do
+        local guard = 0
+        while countFruitToolsByType(fruit) >= minCount and guard < 300 do
+            guard = guard + 1
+            if not equipFruitTool(fruit) then
+                break
+            end
+            pcall(function()
+                SellRemote:InvokeServer("SellSingle")
+            end)
+            task.wait(0.1)
+        end
+    end
+
+    task.wait(0.5)
+    if hrp then
+        hrp.CFrame = oldCFrame
+    end
     autoSellProcessing = false
 end
 
@@ -994,6 +1078,16 @@ local FruitDropdown = SellAutomationSection:Dropdown({
     end,
 })
 
+SellAutomationSection:Slider({
+    Title = "Fruit Items to Sell",
+    Desc = "Trigger count for selected fruits",
+    Step = 1,
+    Value = { Min = 1, Max = 200, Default = fruitSellTriggerCount },
+    Callback = function(value)
+        fruitSellTriggerCount = math.max(1, tonumber(value) or 1)
+    end,
+})
+
 SellAutomationSection:Toggle({
     Title = "Auto Sell Fruit",
     Desc = "Automatically sell manually selected fruits",
@@ -1024,6 +1118,16 @@ local FruitRarityDropdown = SellAutomationSection:Dropdown({
     SearchBarEnabled = true,
     Callback = function(option)
         selectedFruitRarities = toSelectionSet(option, rarityList)
+    end,
+})
+
+SellAutomationSection:Slider({
+    Title = "Rarity Items to Sell",
+    Desc = "Trigger count for rarity fruits",
+    Step = 1,
+    Value = { Min = 1, Max = 200, Default = raritySellTriggerCount },
+    Callback = function(value)
+        raritySellTriggerCount = math.max(1, tonumber(value) or 1)
     end,
 })
 
@@ -1296,42 +1400,27 @@ task.spawn(function()
         local hasFruitSelection = selectedFruitItem and type(selectedFruitItem) == "table" and #selectedFruitItem > 0
         local hasRaritySelection = hasSelection(selectedFruitRarities)
         if (autoSellFruit and hasFruitSelection) or (autoSellRarity and hasRaritySelection) then
-            local fruitsToSell = {}
-            local seenFruits = {}
+            local thresholdByFruit = {}
             if autoSellFruit and hasFruitSelection then
                 for _, fruit in ipairs(selectedFruitItem) do
-                    if type(fruit) == "string" and not seenFruits[fruit] then
-                        seenFruits[fruit] = true
-                        table.insert(fruitsToSell, fruit)
+                    if type(fruit) == "string" then
+                        thresholdByFruit[fruit] = fruitSellTriggerCount
                     end
                 end
             end
             if autoSellRarity and hasRaritySelection then
                 for _, fruit in ipairs(getRarityFruitList(selectedFruitRarities)) do
-                    if type(fruit) == "string" and not seenFruits[fruit] then
-                        seenFruits[fruit] = true
-                        table.insert(fruitsToSell, fruit)
+                    if type(fruit) == "string" then
+                        local existing = thresholdByFruit[fruit]
+                        if existing then
+                            thresholdByFruit[fruit] = math.min(existing, raritySellTriggerCount)
+                        else
+                            thresholdByFruit[fruit] = raritySellTriggerCount
+                        end
                     end
                 end
             end
-
-            for _, fruit in ipairs(fruitsToSell) do
-                local ok, err = pcall(function()
-                    if equipFruitTool(fruit) then
-                      -- hold fruit then sell
-
-local args = {
-    "SellSingle"
-}
-SellRemote:InvokeServer(unpack(args))
-                    end
-                end)
-
-                if not ok then
-                    warn("Error selling fruit", fruit, err)
-                end
-                task.wait(0.3)
-            end
+            performAutoSellSingleBatch(thresholdByFruit)
             task.wait(fruitSellInterval)
         else
             task.wait(1)
