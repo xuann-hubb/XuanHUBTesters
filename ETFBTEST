@@ -196,7 +196,10 @@ local harvestStallThreshold = 3
 local autoPlant = false
 local autoHarvest = false
 local plantInterval = 0.8 -- used by snippet if needed
-local Seeds = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
+local Seeds = {
+    "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
+    "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
+}
 local selectedSeeds = {}
 local selectedPlants = {}
 local selectedRipenessStages = {}
@@ -735,8 +738,14 @@ end
 
 local gearList = {}
 local seedList = {}
-local fruitList = {"Carrot","Corn","Onion","Strawberry","Mushroom","Beetroot","Tomato","Apple","Rose","Wheat","Banana","Plum","Potato","Cabbage","Cherry"}
-local plantSeedList = {"Carrot Seed","Corn Seed","Onion Seed","Strawberry Seed","Mushroom Seed","Beetroot Seed","Tomato Seed","Apple Seed","Rose Seed","Wheat Seed","Banana Seed","Plum Seed","Potato Seed","Cabbage Seed","Cherry Seed"}
+local fruitList = {
+    "Carrot","Corn","Onion","Strawberry","Mushroom","Beetroot","Tomato","Apple","Rose","Wheat","Banana","Plum","Potato","Cabbage","Cherry",
+    "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
+}
+local plantSeedList = {
+    "Carrot Seed","Corn Seed","Onion Seed","Strawberry Seed","Mushroom Seed","Beetroot Seed","Tomato Seed","Apple Seed","Rose Seed","Wheat Seed","Banana Seed","Plum Seed","Potato Seed","Cabbage Seed","Cherry Seed",
+    "Dandelion Seed","Bellpepper Seed","Birch Seed","Orange Seed","Olive Seed","Sunpetal Seed","Goldenberry Seed","Amberpine Seed","Emberwood Seed","Dawnblossom Seed"
+}
 local seedsByRarity = {
     Common = {"Carrot", "Corn"},
     Uncommon = {"Onion", "Strawberry", "Mushroom"},
@@ -1230,7 +1239,23 @@ if PlantsModels then
     table.sort(waterPlantValues)
 end
 if #waterPlantValues == 0 then
-    waterPlantValues = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
+    waterPlantValues = {
+        "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
+        "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
+    }
+end
+do
+    local seen = {}
+    for _, name in ipairs(waterPlantValues) do
+        seen[name] = true
+    end
+    for _, name in ipairs(fruitList) do
+        if not seen[name] then
+            seen[name] = true
+            table.insert(waterPlantValues, name)
+        end
+    end
+    table.sort(waterPlantValues)
 end
 
 local WaterPlantDropdown = WaterAutomationSection:Dropdown({
@@ -1301,7 +1326,23 @@ if PlantsModels then
     table.sort(plantValues)
 end
 if #plantValues == 0 then
-    plantValues = {"Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose"}
+    plantValues = {
+        "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
+        "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
+    }
+end
+do
+    local seen = {}
+    for _, name in ipairs(plantValues) do
+        seen[name] = true
+    end
+    for _, name in ipairs(fruitList) do
+        if not seen[name] then
+            seen[name] = true
+            table.insert(plantValues, name)
+        end
+    end
+    table.sort(plantValues)
 end
 local plantDropdownValues = withAllOption(plantValues)
 
