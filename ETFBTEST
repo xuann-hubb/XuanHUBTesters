@@ -187,6 +187,9 @@ local shopRefreshInterval = 5 -- seconds between automated purchase attempts (mi
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local seedPackOpenInterval = 1
 local scriptRunning = true
+local autoSellProcessing = false
+local harvestStallCount = 0
+local harvestStallThreshold = 3
 -- auto-plant/auto-harvest state will come from snippet logic
 local autoPlant = false
 local autoHarvest = false
@@ -206,6 +209,8 @@ local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("
 local RemovePlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RemovePlant")
 local UseGearRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("UseGear")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
+
+local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
 
 local function hasSelection(tbl)
     if type(tbl) ~= "table" then
@@ -531,6 +536,56 @@ local function fetchFruitItems()
     return fruits
 end
 
+local function countHarvestedFruitTools()
+    local count = 0
+    local bp = player and player:FindFirstChild("Backpack")
+    if bp then
+        for _, tool in ipairs(bp:GetChildren()) do
+            if tool:IsA("Tool") and tool:GetAttribute("HarvestedFrom") then
+                count = count + 1
+            end
+        end
+    end
+    local char = player and player.Character
+    if char then
+        for _, tool in ipairs(char:GetChildren()) do
+            if tool:IsA("Tool") and tool:GetAttribute("HarvestedFrom") then
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
+local function performAutoSellAll()
+    if autoSellProcessing then
+        return
+    end
+    autoSellProcessing = true
+
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        autoSellProcessing = false
+        return
+    end
+
+    local oldCFrame = hrp.CFrame
+    hrp.CFrame = SELL_POINT.CFrame
+    task.wait(1.5)
+
+    pcall(function()
+        SellRemote:InvokeServer("SellAll")
+    end)
+
+    task.wait(1)
+    if hrp then
+        hrp.CFrame = oldCFrame
+    end
+
+    autoSellProcessing = false
+end
+
 -- attempt to equip a tool corresponding to given fruit name
 local function equipFruitTool(fruitName)
     local bp = player and player:FindFirstChild("Backpack")
@@ -645,6 +700,7 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
     local hasStageFilter = hasSelection(stagesTable)
     local hasVariantFilter = hasSelection(variantsTable)
     local hasMutationFilter = hasSelection(mutationsTable)
+    local harvestAttempts = 0
 
     for _, plant in pairs(clientPlants:GetChildren()) do
         local base = plant.Name:gsub("%d","")
@@ -687,6 +743,7 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
         if matchesPlant and fruitFilterMatched then
             for _, v in ipairs(plant:GetDescendants()) do
                 if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
+                    harvestAttempts = harvestAttempts + 1
                     v.HoldDuration = 0
                     if typeof(fireproximityprompt) == "function" then
                         pcall(fireproximityprompt, v)
@@ -699,6 +756,8 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
             end
         end
     end
+
+    return harvestAttempts
 end
 
 -- Auto Shovel Function (fruit => uuid,1 | plant => uuid)
@@ -987,7 +1046,7 @@ SellAutomationSection:Space()
 
 SellAutomationSection:Toggle({
     Title = "Auto Sell All",
-    Desc = "Automatically sell everything every 2 seconds",
+    Desc = "Auto-sell when harvest appears full/stuck",
     Icon = "check",
     Value = false,
     Callback = function(state)
@@ -1302,20 +1361,6 @@ task.spawn(function()
     end
 end)
 
--- auto sell all loop
-task.spawn(function()
-    while scriptRunning do
-        if autoSellAll then
-            pcall(function()
-                SellRemote:InvokeServer("SellAll")
-            end)
-            task.wait(2)
-        else
-            task.wait(0.3)
-        end
-    end
-end)
-
 -- auto plant/harvest loop
 task.spawn(function()
     while scriptRunning do
@@ -1323,7 +1368,20 @@ task.spawn(function()
             autoPlantSeeds(selectedSeeds)
         end
         if autoHarvest then
-            autoHarvestPlants(selectedPlants, selectedRipenessStages, selectedFruitVariants, selectedFruitMutations)
+            local beforeCount = countHarvestedFruitTools()
+            local harvestAttempts = autoHarvestPlants(selectedPlants, selectedRipenessStages, selectedFruitVariants, selectedFruitMutations)
+            task.wait(0.1)
+            local afterCount = countHarvestedFruitTools()
+
+            if autoSellAll and harvestAttempts > 0 and afterCount <= beforeCount then
+                harvestStallCount = harvestStallCount + 1
+                if harvestStallCount >= harvestStallThreshold then
+                    performAutoSellAll()
+                    harvestStallCount = 0
+                end
+            else
+                harvestStallCount = 0
+            end
         end
         if autoShovel then
             autoShovelTargets(selectedShovelFruits, selectedShovelPlants)
