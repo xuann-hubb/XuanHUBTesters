@@ -216,6 +216,12 @@ local selectedShovelPlants = {}
 local selectedWaterPlants = {}
 local selectedSprinklerPlants = {}
 local selectedSprinklerGear = {}
+local ConfigManager = Window.ConfigManager
+local configElements = {}
+local selectedConfigFile = nil
+local configInputName = ""
+local autoLoadConfigFile = nil
+local autoLoadMetaPath = "WindUI/XuanHub/config/autoload_config.json"
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
 local SellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
 local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestSpin")
@@ -310,6 +316,261 @@ local function toSelectionSet(option, allValues)
 
     return selected
 end
+
+local function normalizeSingleSelection(option)
+    if type(option) == "table" then
+        return option.Title or option.Value or option[1]
+    end
+    if type(option) == "string" then
+        return option
+    end
+    return nil
+end
+
+local function trackConfigElement(name, element)
+    if type(name) ~= "string" or name == "" or not element then
+        return
+    end
+    configElements[name] = element
+end
+
+local function registerConfigElements(configObj)
+    if not configObj then
+        return
+    end
+    for key, element in pairs(configElements) do
+        pcall(function()
+            configObj:Register(key, element)
+        end)
+    end
+end
+
+local function sanitizeConfigName(name)
+    local clean = tostring(name or ""):gsub("^%s+", ""):gsub("%s+$", "")
+    clean = clean:gsub("%.json$", "")
+    clean = clean:gsub("[\\/:*?\"<>|]", "_")
+    return clean
+end
+
+local function saveAutoLoadConfigName(configName)
+    if not writefile or not HttpService then
+        return false
+    end
+    local payload = HttpService:JSONEncode({
+        config = configName
+    })
+    pcall(function()
+        if makefolder and not isfolder("WindUI") then
+            makefolder("WindUI")
+        end
+        if makefolder and not isfolder("WindUI/XuanHub") then
+            makefolder("WindUI/XuanHub")
+        end
+        if makefolder and not isfolder("WindUI/XuanHub/config") then
+            makefolder("WindUI/XuanHub/config")
+        end
+    end)
+    local ok = pcall(function()
+        writefile(autoLoadMetaPath, payload)
+    end)
+    return ok
+end
+
+local function clearAutoLoadConfigName()
+    autoLoadConfigFile = nil
+    if delfile and isfile and isfile(autoLoadMetaPath) then
+        pcall(function()
+            delfile(autoLoadMetaPath)
+        end)
+    end
+end
+
+local function loadAutoLoadConfigName()
+    if not readfile or not isfile or not HttpService or not isfile(autoLoadMetaPath) then
+        return nil
+    end
+    local ok, raw = pcall(function()
+        return readfile(autoLoadMetaPath)
+    end)
+    if not ok or type(raw) ~= "string" or raw == "" then
+        return nil
+    end
+    local decodedOk, data = pcall(function()
+        return HttpService:JSONDecode(raw)
+    end)
+    if not decodedOk or type(data) ~= "table" then
+        return nil
+    end
+    local cfg = sanitizeConfigName(data.config)
+    if cfg == "" then
+        return nil
+    end
+    return cfg
+end
+
+local function getConfigFileList()
+    local files = {}
+    local ok, list = pcall(function()
+        return ConfigManager:AllConfigs()
+    end)
+    if ok and type(list) == "table" then
+        for _, name in ipairs(list) do
+            if type(name) == "string" and name ~= "" then
+                table.insert(files, name)
+            end
+        end
+    end
+    table.sort(files)
+    return files
+end
+
+autoLoadConfigFile = loadAutoLoadConfigName()
+
+MiscTab:Space()
+
+local ConfigSection = MiscTab:Section({
+    Title = "Config Manager (JSON)",
+    Opened = true,
+})
+
+local ConfigFileDropdown
+local function hasConfigName(files, wantedName)
+    local target = sanitizeConfigName(wantedName)
+    if target == "" then
+        return false
+    end
+    for _, name in ipairs(files) do
+        if sanitizeConfigName(name) == target then
+            return true
+        end
+    end
+    return false
+end
+
+local function refreshConfigDropdown()
+    local files = getConfigFileList()
+    if ConfigFileDropdown then
+        ConfigFileDropdown:Refresh(files)
+    end
+    if selectedConfigFile and not hasConfigName(files, selectedConfigFile) then
+        selectedConfigFile = nil
+    end
+    if autoLoadConfigFile and not hasConfigName(files, autoLoadConfigFile) then
+        clearAutoLoadConfigName()
+    end
+end
+
+ConfigSection:Input({
+    Title = "Config File Name",
+    Desc = "Name used when saving JSON config",
+    Value = "",
+    Placeholder = "e.g. farm_setup_1",
+    Type = "Input",
+    Callback = function(value)
+        configInputName = sanitizeConfigName(value)
+    end,
+})
+
+ConfigSection:Button({
+    Title = "Save Config",
+    Desc = "Save current registered UI values",
+    Callback = function()
+        local cfgName = sanitizeConfigName(configInputName)
+        if cfgName == "" then
+            WindUI:Notify({ Title = "Config", Content = "Input a config file name first", Icon = "alert-triangle", Duration = 2 })
+            return
+        end
+        local configObj = ConfigManager:CreateConfig(cfgName)
+        registerConfigElements(configObj)
+        local ok, err = pcall(function()
+            configObj:Save()
+        end)
+        if ok then
+            selectedConfigFile = cfgName
+            refreshConfigDropdown()
+            WindUI:Notify({ Title = "Config", Content = "Saved: " .. cfgName .. ".json", Icon = "check", Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Config", Content = "Save failed: " .. tostring(err), Icon = "alert-triangle", Duration = 2 })
+        end
+    end
+})
+
+ConfigFileDropdown = ConfigSection:Dropdown({
+    Title = "Select Config File",
+    Desc = "Pick a saved file to load or auto-load",
+    Values = getConfigFileList(),
+    Value = autoLoadConfigFile or "",
+    Multi = false,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        local picked = normalizeSingleSelection(option)
+        if type(picked) == "string" and picked ~= "" then
+            selectedConfigFile = picked
+        else
+            selectedConfigFile = nil
+        end
+    end,
+})
+
+ConfigSection:Button({
+    Title = "Load Selected Config",
+    Desc = "Load selected JSON config now",
+    Callback = function()
+        local cfgName = sanitizeConfigName(selectedConfigFile)
+        if cfgName == "" then
+            WindUI:Notify({ Title = "Config", Content = "Select config file first", Icon = "alert-triangle", Duration = 2 })
+            return
+        end
+        local configObj = ConfigManager:CreateConfig(cfgName)
+        registerConfigElements(configObj)
+        local ok, err = pcall(function()
+            configObj:Load()
+        end)
+        if ok then
+            WindUI:Notify({ Title = "Config", Content = "Loaded: " .. cfgName .. ".json", Icon = "check", Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Config", Content = "Load failed: " .. tostring(err), Icon = "alert-triangle", Duration = 2 })
+        end
+    end
+})
+
+ConfigSection:Toggle({
+    Title = "Auto Load Selected Config",
+    Desc = "Auto-load this file after script executes",
+    Value = autoLoadConfigFile ~= nil,
+    Callback = function(state)
+        if not state then
+            clearAutoLoadConfigName()
+            WindUI:Notify({ Title = "Config", Content = "Auto-load disabled", Icon = "info", Duration = 2 })
+            return
+        end
+        local cfgName = sanitizeConfigName(selectedConfigFile)
+        if cfgName == "" then
+            WindUI:Notify({ Title = "Config", Content = "Select config file first", Icon = "alert-triangle", Duration = 2 })
+            return
+        end
+        autoLoadConfigFile = cfgName
+        if saveAutoLoadConfigName(cfgName) then
+            WindUI:Notify({ Title = "Config", Content = "Auto-load set: " .. cfgName .. ".json", Icon = "check", Duration = 2 })
+        else
+            WindUI:Notify({ Title = "Config", Content = "Auto-load save failed (executor fs unavailable)", Icon = "alert-triangle", Duration = 2 })
+        end
+    end,
+})
+
+ConfigSection:Button({
+    Title = "Refresh Configs (Clear Auto Load)",
+    Desc = "Refresh list and reset auto-load selection",
+    Callback = function()
+        selectedConfigFile = nil
+        clearAutoLoadConfigName()
+        refreshConfigDropdown()
+        WindUI:Notify({ Title = "Config", Content = "Config list refreshed and auto-load cleared", Icon = "info", Duration = 2 })
+    end
+})
+
+MiscTab:Space()
 
 local function getSeedBaseNameFromTool(tool)
     if not tool or not tool:IsA("Tool") then
@@ -1525,9 +1786,10 @@ local GearDropdown = ShopSection:Dropdown({
         selectedGearItem = normalizeMultiSelection(option, gearList)
     end,
 })
+trackConfigElement("GearDropdown", GearDropdown)
 ShopSection:Space()
 
-ShopSection:Toggle({
+local AutoBuyGearToggle = ShopSection:Toggle({
     Title = "Auto Buy Gear",
     Desc = "Automatically purchase selected gear",
     Icon = "check",
@@ -1561,6 +1823,7 @@ ShopSection:Toggle({
         end
     end,
 })
+trackConfigElement("AutoBuyGearToggle", AutoBuyGearToggle)
 ShopSection:Space()
 
 local SeedDropdown = ShopSection:Dropdown({
@@ -1575,9 +1838,10 @@ local SeedDropdown = ShopSection:Dropdown({
         selectedSeedItem = normalizeMultiSelection(option, seedList)
     end,
 })
+trackConfigElement("SeedDropdown", SeedDropdown)
 ShopSection:Space()
 
-ShopSection:Toggle({
+local AutoBuySeedToggle = ShopSection:Toggle({
     Title = "Auto Buy Seed",
     Desc = "Automatically purchase selected seed",
     Icon = "check",
@@ -1624,6 +1888,7 @@ ShopSection:Toggle({
         end
     end,
 })
+trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
 
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
@@ -1650,8 +1915,9 @@ local FruitDropdown = SellAutomationSection:Dropdown({
         selectedFruitItem = normalizeMultiSelection(option, fruitList)
     end,
 })
+trackConfigElement("FruitDropdown", FruitDropdown)
 
-SellAutomationSection:Input({
+local FruitSellAmountInput = SellAutomationSection:Input({
     Title = "Fruit Items to Sell",
     Desc = "How many selected fruits to sell each batch",
     Value = tostring(fruitSellAmount),
@@ -1661,8 +1927,9 @@ SellAutomationSection:Input({
         fruitSellAmount = math.max(1, tonumber(value) or fruitSellAmount)
     end,
 })
+trackConfigElement("FruitSellAmountInput", FruitSellAmountInput)
 
-SellAutomationSection:Toggle({
+local AutoSellFruitToggle = SellAutomationSection:Toggle({
     Title = "Auto Sell Fruit",
     Desc = "Automatically sell manually selected fruits",
     Icon = "check",
@@ -1680,6 +1947,7 @@ SellAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell fruit enabled" or "Auto-sell fruit disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoSellFruitToggle", AutoSellFruitToggle)
 SellAutomationSection:Space()
 
 local FruitRarityDropdown = SellAutomationSection:Dropdown({
@@ -1694,8 +1962,9 @@ local FruitRarityDropdown = SellAutomationSection:Dropdown({
         selectedFruitRarities = toSelectionSet(option, rarityList)
     end,
 })
+trackConfigElement("FruitRarityDropdown", FruitRarityDropdown)
 
-SellAutomationSection:Input({
+local RaritySellAmountInput = SellAutomationSection:Input({
     Title = "Rarity Items to Sell",
     Desc = "How many rarity-matched fruits to sell each batch",
     Value = tostring(raritySellAmount),
@@ -1705,8 +1974,9 @@ SellAutomationSection:Input({
         raritySellAmount = math.max(1, tonumber(value) or raritySellAmount)
     end,
 })
+trackConfigElement("RaritySellAmountInput", RaritySellAmountInput)
 
-SellAutomationSection:Toggle({
+local AutoSellRarityToggle = SellAutomationSection:Toggle({
     Title = "Auto Sell Rarity",
     Desc = "Automatically sell fruits from selected rarities",
     Icon = "check",
@@ -1721,9 +1991,10 @@ SellAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell rarity enabled" or "Auto-sell rarity disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoSellRarityToggle", AutoSellRarityToggle)
 SellAutomationSection:Space()
 
-SellAutomationSection:Toggle({
+local AutoSellAllToggle = SellAutomationSection:Toggle({
     Title = "Auto Sell When Backpack Full",
     Desc = "Auto-sell when fruit backpack is full",
     Icon = "check",
@@ -1733,6 +2004,7 @@ SellAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sell all enabled" or "Auto-sell all disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoSellAllToggle", AutoSellAllToggle)
 SellAutomationSection:Space()
 
 local PlantAutomationSection = AutomationTab:Section({ Title = "Plant Automation", Opened = true })
@@ -1748,8 +2020,9 @@ local SeedAutoDropdown = PlantAutomationSection:Dropdown({
         selectedSeeds = toSelectionSet(option, plantSeedList)
     end,
 })
+trackConfigElement("SeedAutoDropdown", SeedAutoDropdown)
 
-PlantAutomationSection:Toggle({
+local AutoPlantToggle = PlantAutomationSection:Toggle({
     Title = "Auto Plant",
     Desc = "Automatically plant selected seeds around you",
     Value = false,
@@ -1763,6 +2036,7 @@ PlantAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-plant enabled" or "Auto-plant disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoPlantToggle", AutoPlantToggle)
 PlantAutomationSection:Space()
 
 local WaterAutomationSection = AutomationTab:Section({ Title = "Water Automation", Opened = true })
@@ -1805,8 +2079,9 @@ local WaterPlantDropdown = WaterAutomationSection:Dropdown({
         selectedWaterPlants = toSelectionSet(option, waterPlantValues)
     end,
 })
+trackConfigElement("WaterPlantDropdown", WaterPlantDropdown)
 
-WaterAutomationSection:Toggle({
+local AutoWaterToggle = WaterAutomationSection:Toggle({
     Title = "Auto Water Selected Plant",
     Desc = "Equip Watering Can and water the plant",
     Value = false,
@@ -1820,6 +2095,7 @@ WaterAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-water enabled" or "Auto-water disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoWaterToggle", AutoWaterToggle)
 WaterAutomationSection:Space()
 
 local SeedPackAutomationSection = AutomationTab:Section({ Title = "Seed Pack Automation", Opened = true })
@@ -1835,8 +2111,9 @@ local SeedPackDropdown = SeedPackAutomationSection:Dropdown({
         selectedSeedPackItem = normalizeMultiSelection(option, seedPackList)
     end,
 })
+trackConfigElement("SeedPackDropdown", SeedPackDropdown)
 
-SeedPackAutomationSection:Toggle({
+local AutoSeedPackToggle = SeedPackAutomationSection:Toggle({
     Title = "Auto Open Seed Pack",
     Desc = "Equip selected seed pack and open",
     Value = false,
@@ -1850,6 +2127,7 @@ SeedPackAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-open seed pack enabled" or "Auto-open seed pack disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoSeedPackToggle", AutoSeedPackToggle)
 SeedPackAutomationSection:Space()
 
 local SprinklerAutomationSection = AutomationTab:Section({ Title = "Sprinkler Automation", Opened = true })
@@ -1865,6 +2143,7 @@ local SprinklerGearDropdown = SprinklerAutomationSection:Dropdown({
         selectedSprinklerGear = normalizeMultiSelection(option, sprinklerGearList)
     end,
 })
+trackConfigElement("SprinklerGearDropdown", SprinklerGearDropdown)
 
 local SprinklerPlantDropdown = SprinklerAutomationSection:Dropdown({
     Title = "Select Plant to Sprinkler",
@@ -1878,8 +2157,9 @@ local SprinklerPlantDropdown = SprinklerAutomationSection:Dropdown({
         selectedSprinklerPlants = toSelectionSet(option, waterPlantValues)
     end,
 })
+trackConfigElement("SprinklerPlantDropdown", SprinklerPlantDropdown)
 
-SprinklerAutomationSection:Toggle({
+local AutoSprinklerToggle = SprinklerAutomationSection:Toggle({
     Title = "Auto Sprinkler Selected Plant",
     Desc = "Use selected sprinkler at selected plant positions",
     Value = false,
@@ -1898,6 +2178,7 @@ SprinklerAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sprinkler enabled" or "Auto-sprinkler disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoSprinklerToggle", AutoSprinklerToggle)
 SprinklerAutomationSection:Space()
 
 local HarvestAutomationSection = AutomationTab:Section({ Title = "Harvest Automation", Opened = true })
@@ -1941,6 +2222,7 @@ local PlantAutoDropdown = HarvestAutomationSection:Dropdown({
         selectedPlants = toSelectionSet(option, plantValues)
     end,
 })
+trackConfigElement("PlantAutoDropdown", PlantAutoDropdown)
 
 local RipenessDropdown = HarvestAutomationSection:Dropdown({
     Title = "Fruit Ripeness",
@@ -1954,6 +2236,7 @@ local RipenessDropdown = HarvestAutomationSection:Dropdown({
         selectedRipenessStages = toSelectionSet(option, ripenessStageList)
     end,
 })
+trackConfigElement("RipenessDropdown", RipenessDropdown)
 
 local VariantDropdown = HarvestAutomationSection:Dropdown({
     Title = "Fruit Variant",
@@ -1967,6 +2250,7 @@ local VariantDropdown = HarvestAutomationSection:Dropdown({
         selectedFruitVariants = toSelectionSet(option, fruitVariantList)
     end,
 })
+trackConfigElement("VariantDropdown", VariantDropdown)
 
 local MutationDropdown = HarvestAutomationSection:Dropdown({
     Title = "Fruit Mutation",
@@ -1980,8 +2264,9 @@ local MutationDropdown = HarvestAutomationSection:Dropdown({
         selectedFruitMutations = toSelectionSet(option, fruitMutationList)
     end,
 })
+trackConfigElement("MutationDropdown", MutationDropdown)
 
-HarvestAutomationSection:Toggle({
+local AutoHarvestToggle = HarvestAutomationSection:Toggle({
     Title = "Auto Harvest",
     Desc = "Harvest by selected plants and/or ripeness stages and/or Variant",
     Value = false,
@@ -1999,6 +2284,7 @@ HarvestAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-harvest enabled" or "Auto-harvest disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoHarvestToggle", AutoHarvestToggle)
 HarvestAutomationSection:Space()
 
 local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
@@ -2013,6 +2299,7 @@ local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
         selectedShovelFruits = toSelectionSet(option, fruitList)
     end,
 })
+trackConfigElement("ShovelFruitDropdown", ShovelFruitDropdown)
 
 local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
     Title = "Select Plant To Shovel",
@@ -2026,8 +2313,9 @@ local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
         selectedShovelPlants = toSelectionSet(option, fruitList)
     end,
 })
+trackConfigElement("ShovelPlantDropdown", ShovelPlantDropdown)
 
-HarvestAutomationSection:Toggle({
+local AutoShovelToggle = HarvestAutomationSection:Toggle({
     Title = "Auto Shovel",
     Desc = "Auto shovel selected fruit or plant types",
     Value = false,
@@ -2043,7 +2331,26 @@ HarvestAutomationSection:Toggle({
         WindUI:Notify({ Title = "Automation", Content = (state and "Auto-shovel enabled" or "Auto-shovel disabled"), Icon = "info", Duration = 2 })
     end,
 })
+trackConfigElement("AutoShovelToggle", AutoShovelToggle)
 HarvestAutomationSection:Space()
+
+refreshConfigDropdown()
+if autoLoadConfigFile then
+    local autoConfigName = sanitizeConfigName(autoLoadConfigFile)
+    if autoConfigName ~= "" then
+        local configObj = ConfigManager:CreateConfig(autoConfigName)
+        registerConfigElements(configObj)
+        local ok, err = pcall(function()
+            configObj:Load()
+        end)
+        if ok then
+            selectedConfigFile = autoConfigName
+            WindUI:Notify({ Title = "Config", Content = "Auto-loaded: " .. autoConfigName .. ".json", Icon = "check", Duration = 3 })
+        else
+            WindUI:Notify({ Title = "Config", Content = "Auto-load failed: " .. tostring(err), Icon = "alert-triangle", Duration = 3 })
+        end
+    end
+end
 
     
     
