@@ -191,6 +191,8 @@ local seedPackOpenInterval = 1
 local scriptRunning = true
 local autoSellProcessing = false
 local shopBuyProcessing = false
+local gearBuyLoopRunning = false
+local seedBuyLoopRunning = false
 local harvestStallCount = 0
 local harvestStallThreshold = 3
 -- auto-plant/auto-harvest state will come from snippet logic
@@ -1283,7 +1285,8 @@ ShopSection:Toggle({
     Callback = function(state)
         autoBuyGear = state
         WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy gear enabled" or "Auto-buy gear disabled"), Icon = "info", Duration = 2 })
-        if state then
+        if state and not gearBuyLoopRunning then
+            gearBuyLoopRunning = true
             task.spawn(function()
                 while autoBuyGear and scriptRunning do
                     -- If both are enabled, seed flow owns the cycle and runs gear after seed.
@@ -1303,6 +1306,7 @@ ShopSection:Toggle({
                     )
                     task.wait(shopRefreshInterval)
                 end
+                gearBuyLoopRunning = false
             end)
         end
     end,
@@ -1331,9 +1335,11 @@ ShopSection:Toggle({
     Callback = function(state)
         autoBuySeed = state
         WindUI:Notify({ Title = "Shop", Content = (state and "Auto-buy seed enabled" or "Auto-buy seed disabled"), Icon = "info", Duration = 2 })
-        if state then
+        if state and not seedBuyLoopRunning then
+            seedBuyLoopRunning = true
             task.spawn(function()
                 while autoBuySeed and scriptRunning do
+                    -- 1) Seed shop cycle first (teleport there and return).
                     performShopAutoBuy(
                         "SeedShop",
                         "SeedShop",
@@ -1345,8 +1351,11 @@ ShopSection:Toggle({
                         end
                     )
 
-                    -- Seed priority: after seed purchase, try gear if still enabled.
+                    -- 2) After seed cycle fully returns, run gear cycle.
                     if autoBuyGear then
+                        while shopBuyProcessing do
+                            task.wait(0.05)
+                        end
                         performShopAutoBuy(
                             "GearShop",
                             "GearShop",
@@ -1360,6 +1369,7 @@ ShopSection:Toggle({
                     end
                     task.wait(shopRefreshInterval)
                 end
+                seedBuyLoopRunning = false
             end)
         end
     end,
