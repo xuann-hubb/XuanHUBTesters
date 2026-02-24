@@ -636,7 +636,14 @@ local function getCurrentMoney()
     return parseNumberFromText(currencyAmount.Text)
 end
 
-local function getShopItemPanel(shopUiName, itemName)
+local function normalizeShopName(text)
+    if type(text) ~= "string" then
+        return ""
+    end
+    return text:lower():gsub("[^%w]", "")
+end
+
+local function getShopItemPanel(shopUiName, itemNameOrCandidates)
     local playerGui = player:FindFirstChild("PlayerGui")
     if not playerGui then
         return nil
@@ -649,11 +656,45 @@ local function getShopItemPanel(shopUiName, itemName)
         return nil
     end
 
-    return scrollingFrame:FindFirstChild(itemName)
+    local candidates = {}
+    if type(itemNameOrCandidates) == "table" then
+        for _, name in ipairs(itemNameOrCandidates) do
+            if type(name) == "string" and name ~= "" then
+                table.insert(candidates, name)
+            end
+        end
+    elseif type(itemNameOrCandidates) == "string" and itemNameOrCandidates ~= "" then
+        table.insert(candidates, itemNameOrCandidates)
+    end
+    if #candidates == 0 then
+        return nil
+    end
+
+    -- exact lookup first
+    for _, candidate in ipairs(candidates) do
+        local exact = scrollingFrame:FindFirstChild(candidate)
+        if exact then
+            return exact
+        end
+    end
+
+    -- normalized fallback (handles spaces/case differences)
+    local wanted = {}
+    for _, candidate in ipairs(candidates) do
+        wanted[normalizeShopName(candidate)] = true
+    end
+
+    for _, child in ipairs(scrollingFrame:GetChildren()) do
+        if wanted[normalizeShopName(child.Name)] then
+            return child
+        end
+    end
+
+    return nil
 end
 
-local function getShopItemStockAndPrice(shopUiName, itemName)
-    local panel = getShopItemPanel(shopUiName, itemName)
+local function getShopItemStockAndPrice(shopUiName, itemNameOrCandidates)
+    local panel = getShopItemPanel(shopUiName, itemNameOrCandidates)
     if not panel then
         return 0, 0
     end
@@ -711,8 +752,19 @@ local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportInd
 
     local buyPlan = {}
     for _, item in ipairs(selectedItems) do
-        local uiItemName = toDisplayName(item)
-        local stock, price = getShopItemStockAndPrice(shopUiName, uiItemName)
+        local displayName = tostring(toDisplayName(item) or "")
+        local itemName = tostring(item)
+        local itemBase = itemName:gsub("%s*Seed$", "")
+        local candidates = {
+            displayName,
+            itemName,
+            itemBase,
+            displayName:gsub("%s+", ""),
+            itemName:gsub("%s+", ""),
+            itemBase:gsub("%s+", ""),
+        }
+
+        local stock, price = getShopItemStockAndPrice(shopUiName, candidates)
         if stock > 0 and price > 0 and money >= price then
             local quantity = math.min(stock, math.floor(money / price))
             if quantity > 0 then
