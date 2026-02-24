@@ -190,6 +190,7 @@ local raritySellAmount = 1
 local seedPackOpenInterval = 1
 local scriptRunning = true
 local autoSellProcessing = false
+local shopBuyProcessing = false
 local harvestStallCount = 0
 local harvestStallThreshold = 3
 -- auto-plant/auto-harvest state will come from snippet logic
@@ -738,6 +739,9 @@ local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportInd
     if not selectedItems or #selectedItems == 0 then
         return
     end
+    if shopBuyProcessing then
+        return
+    end
 
     local character = player.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
@@ -745,17 +749,11 @@ local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportInd
         return
     end
 
-    local money = getCurrentMoney()
-    if money <= 0 then
-        return
-    end
-
-    local buyPlan = {}
-    for _, item in ipairs(selectedItems) do
+    local function buildCandidates(item)
         local displayName = tostring(toDisplayName(item) or "")
         local itemName = tostring(item)
         local itemBase = itemName:gsub("%s*Seed$", "")
-        local candidates = {
+        return {
             displayName,
             itemName,
             itemBase,
@@ -763,42 +761,101 @@ local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportInd
             itemName:gsub("%s+", ""),
             itemBase:gsub("%s+", ""),
         }
+    end
 
-        local stock, price = getShopItemStockAndPrice(shopUiName, candidates)
-        if stock > 0 and price > 0 and money >= price then
-            local quantity = math.min(stock, math.floor(money / price))
-            if quantity > 0 then
-                buyPlan[item] = quantity
-                money = money - (quantity * price)
+    local function hasAnyAffordableItem()
+        local money = getCurrentMoney()
+        if money <= 0 then
+            return false
+        end
+        for _, item in ipairs(selectedItems) do
+            local stock, price = getShopItemStockAndPrice(shopUiName, buildCandidates(item))
+            if stock > 0 and price > 0 and money >= price then
+                return true
             end
         end
+        return false
     end
 
-    if next(buyPlan) == nil then
+    if not hasAnyAffordableItem() then
         return
     end
 
-    local shopPart = getShopTeleportPart(shopWorldName, teleportIndex)
-    if not shopPart then
-        return
+    shopBuyProcessing = true
+    for _, item in ipairs(selectedItems) do
+        -- pre-warm UI reads (kept intentionally light)
+        getShopItemStockAndPrice(shopUiName, buildCandidates(item))
     end
 
-    local oldCFrame = hrp.CFrame
-    hrp.CFrame = shopPart.CFrame
-    task.wait(1.2)
-
-    for item, quantity in pairs(buyPlan) do
-        for _ = 1, quantity do
-            pcall(function()
-                PurchaseShopItemRemote:InvokeServer(shopId, item)
-            end)
-            task.wait(0.08)
+    local ok = pcall(function()
+        local shopPart = getShopTeleportPart(shopWorldName, teleportIndex)
+        if not shopPart then
+            return
         end
-    end
 
-    task.wait(0.3)
-    if hrp then
-        hrp.CFrame = oldCFrame
+        local oldCFrame = hrp.CFrame
+        hrp.CFrame = shopPart.CFrame
+        task.wait(1.2)
+
+        -- One teleport session: keep buying until no selected item is affordable or all are out of stock.
+        local passGuard = 0
+        while passGuard < 100 do
+            passGuard = passGuard + 1
+            local boughtInPass = false
+            local money = getCurrentMoney()
+            if money <= 0 then
+                break
+            end
+
+            local orderedItems = {}
+            for _, item in ipairs(selectedItems) do
+                local stock, price = getShopItemStockAndPrice(shopUiName, buildCandidates(item))
+                if stock > 0 and price > 0 then
+                    table.insert(orderedItems, {
+                        item = item,
+                        stock = stock,
+                        price = price,
+                    })
+                end
+            end
+
+            table.sort(orderedItems, function(a, b)
+                return a.price < b.price
+            end)
+
+            for _, entry in ipairs(orderedItems) do
+                local affordable = math.floor(money / entry.price)
+                if affordable > 0 then
+                    local quantity = math.min(entry.stock, affordable)
+                    for _ = 1, quantity do
+                        pcall(function()
+                            PurchaseShopItemRemote:InvokeServer(shopId, entry.item)
+                        end)
+                        task.wait(0.08)
+                    end
+                    boughtInPass = true
+                    money = getCurrentMoney()
+                    if money <= 0 then
+                        break
+                    end
+                end
+            end
+
+            if not boughtInPass then
+                break
+            end
+            task.wait(0.1)
+        end
+
+        task.wait(0.3)
+        if hrp then
+            hrp.CFrame = oldCFrame
+        end
+    end)
+
+    shopBuyProcessing = false
+    if not ok then
+        return
     end
 end
 
@@ -1229,6 +1286,11 @@ ShopSection:Toggle({
         if state then
             task.spawn(function()
                 while autoBuyGear and scriptRunning do
+                    -- If both are enabled, seed flow owns the cycle and runs gear after seed.
+                    if autoBuySeed then
+                        task.wait(0.2)
+                        continue
+                    end
                     performShopAutoBuy(
                         "GearShop",
                         "GearShop",
@@ -1282,6 +1344,20 @@ ShopSection:Toggle({
                             return tostring(itemName):gsub("%s*Seed$", "")
                         end
                     )
+
+                    -- Seed priority: after seed purchase, try gear if still enabled.
+                    if autoBuyGear then
+                        performShopAutoBuy(
+                            "GearShop",
+                            "GearShop",
+                            "Gear Shop",
+                            24,
+                            selectedGearItem,
+                            function(itemName)
+                                return itemName
+                            end
+                        )
+                    end
                     task.wait(shopRefreshInterval)
                 end
             end)
