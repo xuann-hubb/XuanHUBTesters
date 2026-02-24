@@ -1121,7 +1121,7 @@ SellAutomationSection:Input({
     Desc = "How many selected fruits to sell each batch",
     Value = tostring(fruitSellAmount),
     Placeholder = "e.g. 10",
-    Type = "Default",
+    Type = "Input",
     Callback = function(value)
         fruitSellAmount = math.max(1, tonumber(value) or fruitSellAmount)
     end,
@@ -1165,7 +1165,7 @@ SellAutomationSection:Input({
     Desc = "How many rarity-matched fruits to sell each batch",
     Value = tostring(raritySellAmount),
     Placeholder = "e.g. 10",
-    Type = "Default",
+    Type = "Input",
     Callback = function(value)
         raritySellAmount = math.max(1, tonumber(value) or raritySellAmount)
     end,
