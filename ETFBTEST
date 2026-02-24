@@ -1043,7 +1043,60 @@ local function isPlotOwnerEmpty(ownerObj)
     return false
 end
 
+local function ownerMatchesLocalPlayer(ownerObj)
+    if not ownerObj then
+        return false
+    end
+
+    local rawValue
+    if ownerObj:IsA("ObjectValue") then
+        rawValue = ownerObj.Value
+    else
+        local ok, value = pcall(function()
+            return ownerObj.Value
+        end)
+        if not ok then
+            return false
+        end
+        rawValue = value
+    end
+
+    if rawValue == nil then
+        return false
+    end
+    if typeof(rawValue) == "Instance" then
+        return rawValue == player
+    end
+    if type(rawValue) == "number" then
+        return rawValue == player.UserId
+    end
+    if type(rawValue) == "string" then
+        local v = rawValue:lower()
+        return v == tostring(player.UserId) or v == player.Name:lower() or v == player.DisplayName:lower()
+    end
+    return false
+end
+
+local function doesLocalPlayerOwnAnyPlot()
+    local plotsFolder = workspace:FindFirstChild("Plots")
+    if not plotsFolder then
+        return false
+    end
+    for i = 1, 6 do
+        local plot = plotsFolder:FindFirstChild("Plot" .. i)
+        local owner = plot and plot:FindFirstChild("Owner")
+        if ownerMatchesLocalPlayer(owner) then
+            return true
+        end
+    end
+    return false
+end
+
 local function tryAutoClaimPlot()
+    if doesLocalPlayerOwnAnyPlot() then
+        return false, "already_owned"
+    end
+
     pcall(function()
         GetAvailablePlotsRemote:InvokeServer()
     end)
@@ -1063,11 +1116,11 @@ local function tryAutoClaimPlot()
             end)
             if ok then
                 WindUI:Notify({ Title = "Plot", Content = "Claimed " .. plotName, Icon = "check", Duration = 2 })
-                return true
+                return true, "claimed"
             end
         end
     end
-    return false
+    return false, "no_free_plot"
 end
 
 local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportIndex, selectedItems, toDisplayName)
@@ -1947,14 +2000,22 @@ ShopSection:Space()
 local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
 local AutoClaimPlotToggle = PlotSection:Toggle({
     Title = "Auto Claim Plot",
-    Desc = "Auto claim first free plot from Plot1 to Plot6",
+    Desc = "Run one-time claim check for Plot1 to Plot6",
     Icon = "check",
     Value = false,
     Callback = function(state)
         autoClaimPlot = state
-        WindUI:Notify({ Title = "Plot", Content = (state and "Auto-claim plot enabled" or "Auto-claim plot disabled"), Icon = "info", Duration = 2 })
         if state then
-            tryAutoClaimPlot()
+            local claimed, reason = tryAutoClaimPlot()
+            if not claimed then
+                if reason == "already_owned" then
+                    WindUI:Notify({ Title = "Plot", Content = "You already own a plot, skipping claim", Icon = "info", Duration = 2 })
+                else
+                    WindUI:Notify({ Title = "Plot", Content = "No free plot found to claim", Icon = "info", Duration = 2 })
+                end
+            end
+        else
+            WindUI:Notify({ Title = "Plot", Content = "Claim check toggle disabled", Icon = "info", Duration = 2 })
         end
     end,
 })
@@ -2495,18 +2556,6 @@ task.spawn(function()
             end
         end
         task.wait(0.2)
-    end
-end)
-
--- auto claim plot loop
-task.spawn(function()
-    while scriptRunning do
-        if autoClaimPlot then
-            tryAutoClaimPlot()
-            task.wait(2)
-        else
-            task.wait(0.5)
-        end
     end
 end)
 
