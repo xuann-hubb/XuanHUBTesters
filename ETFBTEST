@@ -1427,12 +1427,51 @@ function autoSprinklerPlants(selectedPlantTypes, sprinklerNames)
         end
     end
 
+    local function getSprinklerPlacementPosition(basePos)
+        if typeof(basePos) ~= "Vector3" then
+            return basePos
+        end
+        local rayParams = RaycastParams.new()
+        rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+        local rayBlacklist = {}
+        if player.Character then
+            table.insert(rayBlacklist, player.Character)
+        end
+        if clientPlants then
+            table.insert(rayBlacklist, clientPlants)
+        end
+        rayParams.FilterDescendantsInstances = rayBlacklist
+
+        -- Try beside-plant positions first, then center as fallback.
+        local candidateOffsets = {
+            Vector3.new(2.2, 0, 0),
+            Vector3.new(-2.2, 0, 0),
+            Vector3.new(0, 0, 2.2),
+            Vector3.new(0, 0, -2.2),
+            Vector3.new(1.6, 0, 1.6),
+            Vector3.new(-1.6, 0, 1.6),
+            Vector3.new(1.6, 0, -1.6),
+            Vector3.new(-1.6, 0, -1.6),
+            Vector3.new(0, 0, 0),
+        }
+
+        for _, offset in ipairs(candidateOffsets) do
+            local candidate = basePos + offset
+            local rayResult = workspace:Raycast(candidate + Vector3.new(0, 8, 0), Vector3.new(0, -40, 0), rayParams)
+            if rayResult then
+                return rayResult.Position + Vector3.new(0, 0.15, 0)
+            end
+        end
+        return basePos
+    end
+
     for _, sprinklerName in ipairs(namesToUse) do
         if findAndEquipSprinklerTool(sprinklerName) then
             for _, pos in ipairs(targets) do
-                local posValue = pos
+                local placePos = getSprinklerPlacementPosition(pos)
+                local posValue = placePos
                 if vector and type(vector.create) == "function" then
-                    posValue = vector.create(pos.X, pos.Y, pos.Z)
+                    posValue = vector.create(placePos.X, placePos.Y, placePos.Z)
                 end
                 local ok, err = pcall(function()
                     local args = {
