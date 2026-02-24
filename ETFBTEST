@@ -183,7 +183,7 @@ local autoSellAll = false
 local autoOpenSeedPack = false
 local autoShovel = false
 local autoWater = false
-local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
+local shopCheckInterval = 0.5 -- check stock/price text every 0.5s
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local fruitSellAmount = 1
 local raritySellAmount = 1
@@ -1304,7 +1304,7 @@ ShopSection:Toggle({
                             return itemName
                         end
                     )
-                    task.wait(shopRefreshInterval)
+                    task.wait(shopCheckInterval)
                 end
                 gearBuyLoopRunning = false
             end)
@@ -1367,7 +1367,7 @@ ShopSection:Toggle({
                             end
                         )
                     end
-                    task.wait(shopRefreshInterval)
+                    task.wait(shopCheckInterval)
                 end
                 seedBuyLoopRunning = false
             end)
@@ -1378,21 +1378,7 @@ ShopSection:Space()
 
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
--- Refresh buttons removed per user request
--- Slider for auto-buy delay
-ShopSection:Slider({
-    Title = "Auto Buy Delay (s)",
-    Desc = "Delay between auto-buy attempts",
-    Step = 0.5,
-    Value = { Min = 5, Max = 60, Default = shopRefreshInterval },
-    Callback = function(value)
-        shopRefreshInterval = tonumber(value) or 5
-        if shopRefreshInterval < 5 then
-            shopRefreshInterval = 5
-            WindUI:Notify({ Title = "Shop", Content = "Minimum auto-buy delay is 5s; set to 5s", Icon = "info", Duration = 2 })
-        end
-    end,
-})
+-- Refresh buttons and delay slider removed per user request
 
 -- Automation tab: move automation-related toggles here
 local AutomationTab = Window:Tab({
