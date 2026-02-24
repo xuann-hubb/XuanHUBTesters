@@ -215,7 +215,7 @@ local selectedShovelFruits = {}
 local selectedShovelPlants = {}
 local selectedWaterPlants = {}
 local selectedSprinklerPlants = {}
-local selectedSprinklerGear = nil
+local selectedSprinklerGear = {}
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
 local SellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
 local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestSpin")
@@ -1119,7 +1119,7 @@ end
 if #sprinklerGearList == 0 then
     sprinklerGearList = {"Basic Sprinkler", "Turbo Sprinkler", "Super Sprinkler"}
 end
-selectedSprinklerGear = sprinklerGearList[1]
+selectedSprinklerGear = {sprinklerGearList[1]}
 
 local function normalizeFruitName(name)
     if type(name) ~= "string" then
@@ -1385,15 +1385,22 @@ local function findAndEquipSprinklerTool(sprinklerName)
     return false
 end
 
-function autoSprinklerPlants(selectedPlantTypes, sprinklerName)
+function autoSprinklerPlants(selectedPlantTypes, sprinklerNames)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then
         return
     end
-    if type(sprinklerName) ~= "string" or sprinklerName == "" then
-        return
+    local namesToUse = {}
+    if type(sprinklerNames) == "table" then
+        for _, n in ipairs(sprinklerNames) do
+            if type(n) == "string" and n ~= "" then
+                table.insert(namesToUse, n)
+            end
+        end
+    elseif type(sprinklerNames) == "string" and sprinklerNames ~= "" then
+        table.insert(namesToUse, sprinklerNames)
     end
-    if not findAndEquipSprinklerTool(sprinklerName) then
+    if #namesToUse == 0 then
         return
     end
 
@@ -1420,24 +1427,28 @@ function autoSprinklerPlants(selectedPlantTypes, sprinklerName)
         end
     end
 
-    for _, pos in ipairs(targets) do
-        local posValue = pos
-        if vector and type(vector.create) == "function" then
-            posValue = vector.create(pos.X, pos.Y, pos.Z)
+    for _, sprinklerName in ipairs(namesToUse) do
+        if findAndEquipSprinklerTool(sprinklerName) then
+            for _, pos in ipairs(targets) do
+                local posValue = pos
+                if vector and type(vector.create) == "function" then
+                    posValue = vector.create(pos.X, pos.Y, pos.Z)
+                end
+                local ok, err = pcall(function()
+                    local args = {
+                        sprinklerName,
+                        {
+                            position = posValue
+                        }
+                    }
+                    UseGearRemote:FireServer(unpack(args))
+                end)
+                if not ok then
+                    warn("AutoSprinkler FireServer failed:", err)
+                end
+                task.wait(0.08)
+            end
         end
-        local ok, err = pcall(function()
-            local args = {
-                sprinklerName,
-                {
-                    position = posValue
-                }
-            }
-            UseGearRemote:FireServer(unpack(args))
-        end)
-        if not ok then
-            warn("AutoSprinkler FireServer failed:", err)
-        end
-        task.wait(0.08)
     end
 end
 
@@ -1805,18 +1816,14 @@ SeedPackAutomationSection:Space()
 local SprinklerAutomationSection = AutomationTab:Section({ Title = "Sprinkler Automation", Opened = true })
 local SprinklerGearDropdown = SprinklerAutomationSection:Dropdown({
     Title = "Sprinkler Type",
-    Desc = "Select sprinkler gear to use",
+    Desc = "Select sprinkler gear(s) to use",
     Values = sprinklerGearList,
-    Value = {},
-    Multi = True,
+    Value = selectedSprinklerGear,
+    Multi = true,
     AllowNone = true,
     SearchBarEnabled = true,
     Callback = function(option)
-        if type(option) == "table" then
-            selectedSprinklerGear = option.Title or option[1]
-        else
-            selectedSprinklerGear = option
-        end
+        selectedSprinklerGear = normalizeMultiSelection(option, sprinklerGearList)
     end,
 })
 
@@ -1838,8 +1845,8 @@ SprinklerAutomationSection:Toggle({
     Desc = "Use selected sprinkler at selected plant positions",
     Value = false,
     Callback = function(state)
-        if state and (type(selectedSprinklerGear) ~= "string" or selectedSprinklerGear == "") then
-            WindUI:Notify({ Title = "Automation", Content = "Select sprinkler type first!", Icon = "alert-triangle", Duration = 2 })
+        if state and (type(selectedSprinklerGear) ~= "table" or #selectedSprinklerGear == 0) then
+            WindUI:Notify({ Title = "Automation", Content = "Select sprinkler type(s) first!", Icon = "alert-triangle", Duration = 2 })
             autoSprinkler = false
             return
         end
