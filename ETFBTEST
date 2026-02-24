@@ -213,9 +213,11 @@ local SellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("
 local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestSpin")
 local RemovePlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RemovePlant")
 local UseGearRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("UseGear")
+local PurchaseShopItemRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
 
 local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
+local ShopsFolder = workspace:WaitForChild("MapPhysical"):WaitForChild("Shops")
 
 local function hasSelection(tbl)
     if type(tbl) ~= "table" then
@@ -589,6 +591,163 @@ local function countFruitToolsByType(fruitName)
         end
     end
     return count
+end
+
+local function parseNumberFromText(text)
+    if type(text) ~= "string" then
+        return 0
+    end
+    local clean = text:gsub(",", "")
+    local number = clean:match("(%d+)")
+    return tonumber(number) or 0
+end
+
+local function parseStockFromText(text)
+    if type(text) ~= "string" then
+        return 0
+    end
+
+    local lowered = text:lower()
+    if lowered:find("no stock", 1, true) then
+        return 0
+    end
+
+    -- Common stock format like "10x" or "10 x"
+    local xCount = lowered:match("(%d+)%s*x")
+    if xCount then
+        return tonumber(xCount) or 0
+    end
+
+    return parseNumberFromText(text)
+end
+
+local function getCurrentMoney()
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if not playerGui then
+        return 0
+    end
+
+    local currencyAmount = playerGui:FindFirstChild("ShillingsCurrency")
+    currencyAmount = currencyAmount and currencyAmount:FindFirstChild("CurrencyAmount")
+    if not currencyAmount then
+        return 0
+    end
+
+    return parseNumberFromText(currencyAmount.Text)
+end
+
+local function getShopItemPanel(shopUiName, itemName)
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if not playerGui then
+        return nil
+    end
+
+    local shopGui = playerGui:FindFirstChild(shopUiName)
+    local frame = shopGui and shopGui:FindFirstChild("Frame")
+    local scrollingFrame = frame and frame:FindFirstChild("ScrollingFrame")
+    if not scrollingFrame then
+        return nil
+    end
+
+    return scrollingFrame:FindFirstChild(itemName)
+end
+
+local function getShopItemStockAndPrice(shopUiName, itemName)
+    local panel = getShopItemPanel(shopUiName, itemName)
+    if not panel then
+        return 0, 0
+    end
+
+    local mainInfo = panel:FindFirstChild("MainInfo")
+    if not mainInfo then
+        return 0, 0
+    end
+
+    local stockText = mainInfo:FindFirstChild("StockText")
+    local priceText = mainInfo:FindFirstChild("PriceText")
+    local stockValue = stockText and stockText.Text or ""
+    local priceValue = priceText and priceText.Text or ""
+
+    local stock = parseStockFromText(stockValue)
+    local price = parseNumberFromText(priceValue)
+    return stock, price
+end
+
+local function getShopTeleportPart(shopName, indexHint)
+    local shopModel = ShopsFolder:FindFirstChild(shopName)
+    if not shopModel then
+        return nil
+    end
+
+    local children = shopModel:GetChildren()
+    local hinted = children[indexHint]
+    if hinted and hinted:IsA("BasePart") then
+        return hinted
+    end
+
+    for _, child in ipairs(children) do
+        if child:IsA("BasePart") then
+            return child
+        end
+    end
+    return nil
+end
+
+local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportIndex, selectedItems, toDisplayName)
+    if not selectedItems or #selectedItems == 0 then
+        return
+    end
+
+    local character = player.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        return
+    end
+
+    local money = getCurrentMoney()
+    if money <= 0 then
+        return
+    end
+
+    local buyPlan = {}
+    for _, item in ipairs(selectedItems) do
+        local uiItemName = toDisplayName(item)
+        local stock, price = getShopItemStockAndPrice(shopUiName, uiItemName)
+        if stock > 0 and price > 0 and money >= price then
+            local quantity = math.min(stock, math.floor(money / price))
+            if quantity > 0 then
+                buyPlan[item] = quantity
+                money = money - (quantity * price)
+            end
+        end
+    end
+
+    if next(buyPlan) == nil then
+        return
+    end
+
+    local shopPart = getShopTeleportPart(shopWorldName, teleportIndex)
+    if not shopPart then
+        return
+    end
+
+    local oldCFrame = hrp.CFrame
+    hrp.CFrame = shopPart.CFrame
+    task.wait(1.2)
+
+    for item, quantity in pairs(buyPlan) do
+        for _ = 1, quantity do
+            pcall(function()
+                PurchaseShopItemRemote:InvokeServer(shopId, item)
+            end)
+            task.wait(0.08)
+        end
+    end
+
+    task.wait(0.3)
+    if hrp then
+        hrp.CFrame = oldCFrame
+    end
 end
 
 -- forward declaration so sell helpers use the correct local function
@@ -1018,15 +1177,16 @@ ShopSection:Toggle({
         if state then
             task.spawn(function()
                 while autoBuyGear and scriptRunning do
-                    if selectedGearItem and type(selectedGearItem) == "table" and #selectedGearItem > 0 then
-                        for _, item in ipairs(selectedGearItem) do
-                            pcall(function()
-                                local args = { "GearShop", item }
-                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
-                            end)
-                            task.wait(0.25)
+                    performShopAutoBuy(
+                        "GearShop",
+                        "GearShop",
+                        "Gear Shop",
+                        24,
+                        selectedGearItem,
+                        function(itemName)
+                            return itemName
                         end
-                    end
+                    )
                     task.wait(shopRefreshInterval)
                 end
             end)
@@ -1060,15 +1220,16 @@ ShopSection:Toggle({
         if state then
             task.spawn(function()
                 while autoBuySeed and scriptRunning do
-                    if selectedSeedItem and type(selectedSeedItem) == "table" and #selectedSeedItem > 0 then
-                        for _, item in ipairs(selectedSeedItem) do
-                            pcall(function()
-                                local args = { "SeedShop", item }
-                                game:GetService("ReplicatedStorage"):WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem"):InvokeServer(unpack(args))
-                            end)
-                            task.wait(0.25)
+                    performShopAutoBuy(
+                        "SeedShop",
+                        "SeedShop",
+                        "Seed Shop",
+                        43,
+                        selectedSeedItem,
+                        function(itemName)
+                            return tostring(itemName):gsub("%s*Seed$", "")
                         end
-                    end
+                    )
                     task.wait(shopRefreshInterval)
                 end
             end)
