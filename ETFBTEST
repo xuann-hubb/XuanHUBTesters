@@ -600,9 +600,23 @@ local function parseNumberFromText(text)
     if type(text) ~= "string" then
         return 0
     end
-    local clean = text:gsub(",", "")
-    local number = clean:match("(%d+)")
-    return tonumber(number) or 0
+    local clean = text:gsub(",", ""):lower()
+    local numStr, suffix = clean:match("(%d+%.?%d*)%s*([kmb])")
+    local value
+    if numStr then
+        value = tonumber(numStr) or 0
+        if suffix == "k" then
+            value = value * 1e3
+        elseif suffix == "m" then
+            value = value * 1e6
+        elseif suffix == "b" then
+            value = value * 1e9
+        end
+        return math.floor(value)
+    end
+
+    local plain = clean:match("(%d+%.?%d*)")
+    return math.floor(tonumber(plain) or 0)
 end
 
 local function parseStockFromText(text)
@@ -790,6 +804,11 @@ local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportInd
     end
 
     local ok = pcall(function()
+        -- Re-check immediately before teleport to avoid stale UI/money reads.
+        if not hasAnyAffordableItem() then
+            return
+        end
+
         local shopPart = getShopTeleportPart(shopWorldName, teleportIndex)
         if not shopPart then
             return
