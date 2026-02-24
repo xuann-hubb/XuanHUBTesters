@@ -1085,7 +1085,7 @@ local seedsByRarity = {
     Legendary = {"Cabbage Seed", "Cherry"},
 }
 local rarityList = {"Common", "Uncommon", "Rare", "Epic", "Legendary"}
-local ripenessStageList = {"Lush", "Repined", "Unripe"}
+local ripenessStageList = {"Lush", "Ripened", "Unripe"}
 local fruitVariantList = {"Silver", "Gold", "Normal"}
 local fruitMutationList = {"Sandy","Soaked","Shocked","Nova","Starstruck","Snowy","Foggy","Meteoric","Tidal","Flooded","Chilled","Frostbit","Muddy","Mossy"}
 local seedPackList = {
@@ -1136,6 +1136,20 @@ local function getRarityFruitList(raritySet)
     return out
 end
 
+local function normalizeRipenessStageName(stageName)
+    local s = tostring(stageName or ""):lower()
+    if s == "" then
+        return ""
+    end
+    if s == "ripened" or s == "ripe" or s == "repined" then
+        return "ripe"
+    end
+    if s == "unripe" or s == "unripened" or s == "unriped" then
+        return "unripe"
+    end
+    return s
+end
+
 
 
 -- Auto Harvest Function (supports optional ripeness + variant + mutation filters)
@@ -1167,7 +1181,18 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
                     local variant = obj:GetAttribute("Variant")
                     local mutation = obj:GetAttribute("Mutation")
 
-                    local stageOk = (not hasStageFilter) or (type(stage) == "string" and stagesTable[stage])
+                    local stageOk = (not hasStageFilter)
+                    if hasStageFilter then
+                        local normalizedStage = normalizeRipenessStageName(stage)
+                        if normalizedStage ~= "" then
+                            for selectedStage, enabled in pairs(stagesTable) do
+                                if enabled and normalizeRipenessStageName(selectedStage) == normalizedStage then
+                                    stageOk = true
+                                    break
+                                end
+                            end
+                        end
+                    end
                     local variantOk = not hasVariantFilter
                     if hasVariantFilter then
                         if type(variant) == "string" and variant ~= "" then
