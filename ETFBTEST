@@ -183,6 +183,7 @@ local autoSellAll = false
 local autoOpenSeedPack = false
 local autoShovel = false
 local autoWater = false
+local autoSprinkler = false
 local shopCheckInterval = 0.5 -- check stock/price text every 0.5s
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local fruitSellAmount = 1
@@ -213,6 +214,8 @@ local selectedFruitMutations = {}
 local selectedShovelFruits = {}
 local selectedShovelPlants = {}
 local selectedWaterPlants = {}
+local selectedSprinklerPlants = {}
+local selectedSprinklerGear = nil
 local PlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlantSeed")
 local SellRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SellItems")
 local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RequestSpin")
@@ -1107,6 +1110,16 @@ local ripenessDropdownValues = withAllOption(ripenessStageList)
 local fruitVariantDropdownValues = withAllOption(fruitVariantList)
 local fruitMutationDropdownValues = withAllOption(fruitMutationList)
 local seedPackDropdownValues = withAllOption(seedPackList)
+local sprinklerGearList = {}
+for _, gearName in ipairs(gearList) do
+    if type(gearName) == "string" and gearName:lower():find("sprinkler", 1, true) then
+        table.insert(sprinklerGearList, gearName)
+    end
+end
+if #sprinklerGearList == 0 then
+    sprinklerGearList = {"Basic Sprinkler", "Turbo Sprinkler", "Super Sprinkler"}
+end
+selectedSprinklerGear = sprinklerGearList[1]
 
 local function normalizeFruitName(name)
     if type(name) ~= "string" then
@@ -1317,6 +1330,100 @@ function autoWaterPlants(selectedPlantTypes)
         pcall(function()
             local args = {
                 "Watering Can",
+                {
+                    position = pos
+                }
+            }
+            UseGearRemote:FireServer(unpack(args))
+        end)
+        task.wait(0.08)
+    end
+end
+
+local function findAndEquipSprinklerTool(sprinklerName)
+    local char = player.Character
+    local backpack = player:FindFirstChild("Backpack")
+    if not char or not backpack then
+        return false
+    end
+
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        return false
+    end
+
+    local wanted = tostring(sprinklerName or ""):lower()
+    if wanted == "" then
+        return false
+    end
+
+    local function isWantedSprinkler(tool)
+        if not tool or not tool:IsA("Tool") then
+            return false
+        end
+        local baseName = tool:GetAttribute("BaseName")
+        if type(baseName) == "string" and baseName:lower() == wanted then
+            return true
+        end
+        return type(tool.Name) == "string" and tool.Name:lower() == wanted
+    end
+
+    for _, tool in ipairs(char:GetChildren()) do
+        if isWantedSprinkler(tool) then
+            return true
+        end
+    end
+
+    for _, tool in ipairs(backpack:GetChildren()) do
+        if isWantedSprinkler(tool) then
+            humanoid:EquipTool(tool)
+            task.wait(0.05)
+            return true
+        end
+    end
+
+    return false
+end
+
+function autoSprinklerPlants(selectedPlantTypes, sprinklerName)
+    local clientPlants = workspace:FindFirstChild("ClientPlants")
+    if not clientPlants then
+        return
+    end
+    if type(sprinklerName) ~= "string" or sprinklerName == "" then
+        return
+    end
+    if not findAndEquipSprinklerTool(sprinklerName) then
+        return
+    end
+
+    local plantTypes = (type(selectedPlantTypes) == "table") and selectedPlantTypes or {}
+    local targets = {}
+
+    for _, plant in ipairs(clientPlants:GetChildren()) do
+        local plantType = plant:GetAttribute("PlantType")
+        if type(plantType) ~= "string" or plantType == "" then
+            plantType = plant.Name:gsub("%d", "")
+        end
+
+        if plantTypes[plantType] then
+            local pos
+            if plant:IsA("Model") then
+                pos = plant:GetPivot().Position
+            elseif plant:IsA("BasePart") then
+                pos = plant.Position
+            end
+
+            if pos then
+                table.insert(targets, pos)
+            end
+        end
+    end
+
+    for _, pos in ipairs(targets) do
+        pcall(function()
+            local args = {
+                sprinklerName,
                 {
                     position = pos
                 }
@@ -1688,6 +1795,58 @@ SeedPackAutomationSection:Toggle({
 })
 SeedPackAutomationSection:Space()
 
+local SprinklerAutomationSection = AutomationTab:Section({ Title = "Sprinkler Automation", Opened = true })
+local SprinklerGearDropdown = SprinklerAutomationSection:Dropdown({
+    Title = "Sprinkler Type",
+    Desc = "Select sprinkler gear to use",
+    Values = sprinklerGearList,
+    Value = sprinklerGearList[1],
+    Multi = false,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        if type(option) == "table" then
+            selectedSprinklerGear = option.Title or option[1]
+        else
+            selectedSprinklerGear = option
+        end
+    end,
+})
+
+local SprinklerPlantDropdown = SprinklerAutomationSection:Dropdown({
+    Title = "Select Plant to Sprinkler",
+    Desc = "Choose plant types to auto-sprinkler",
+    Values = withAllOption(waterPlantValues),
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedSprinklerPlants = toSelectionSet(option, waterPlantValues)
+    end,
+})
+
+SprinklerAutomationSection:Toggle({
+    Title = "Auto Sprinkler Selected Plant",
+    Desc = "Use selected sprinkler at selected plant positions",
+    Value = false,
+    Callback = function(state)
+        if state and (type(selectedSprinklerGear) ~= "string" or selectedSprinklerGear == "") then
+            WindUI:Notify({ Title = "Automation", Content = "Select sprinkler type first!", Icon = "alert-triangle", Duration = 2 })
+            autoSprinkler = false
+            return
+        end
+        if state and not hasSelection(selectedSprinklerPlants) then
+            WindUI:Notify({ Title = "Automation", Content = "Select plants to sprinkler first!", Icon = "alert-triangle", Duration = 2 })
+            autoSprinkler = false
+            return
+        end
+        autoSprinkler = state
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-sprinkler enabled" or "Auto-sprinkler disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+SprinklerAutomationSection:Space()
+
 local HarvestAutomationSection = AutomationTab:Section({ Title = "Harvest Automation", Opened = true })
 local plantValues = {}
 if PlantsModels then
@@ -1937,6 +2096,9 @@ task.spawn(function()
         end
         if autoWater then
             autoWaterPlants(selectedWaterPlants)
+        end
+        if autoSprinkler then
+            autoSprinklerPlants(selectedSprinklerPlants, selectedSprinklerGear)
         end
         task.wait(plantInterval)
     end
