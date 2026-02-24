@@ -588,6 +588,9 @@ local function countFruitToolsByType(fruitName)
     return count
 end
 
+-- forward declaration so sell helpers use the correct local function
+local equipFruitTool
+
 local function performAutoSellAll()
     if autoSellProcessing then
         return
@@ -671,30 +674,57 @@ local function performAutoSellSingleBatch(thresholdByFruit)
 end
 
 -- attempt to equip a tool corresponding to given fruit name
-local function equipFruitTool(fruitName)
+equipFruitTool = function(fruitName)
     local bp = player and player:FindFirstChild("Backpack")
     local char = player and player.Character
     if not bp or not char then return false end
     local humanoid = char:FindFirstChild("Humanoid")
     if not humanoid then return false end
+    local wanted = tostring(fruitName):lower()
 
     for _, tool in ipairs(bp:GetChildren()) do
         if tool:IsA("Tool") then
             local hf = tool:GetAttribute("HarvestedFrom")
-            if hf and tostring(hf):lower() == tostring(fruitName):lower() then
+            if hf and tostring(hf):lower() == wanted then
                 humanoid:EquipTool(tool)
-                return true
+                task.wait(0.06)
+                if tool.Parent == char then
+                    return true
+                end
             end
         end
     end
     for _, tool in ipairs(char:GetChildren()) do
         if tool:IsA("Tool") then
             local hf = tool:GetAttribute("HarvestedFrom")
-            if hf and tostring(hf):lower() == tostring(fruitName):lower() then
+            if hf and tostring(hf):lower() == wanted then
                 return true
             end
         end
     end
+
+    -- fallback if some fruits miss HarvestedFrom and only have BaseName/Name
+    for _, tool in ipairs(bp:GetChildren()) do
+        if tool:IsA("Tool") then
+            local baseName = tool:GetAttribute("BaseName")
+            if (type(baseName) == "string" and baseName:lower() == wanted) or (type(tool.Name) == "string" and tool.Name:lower() == wanted) then
+                humanoid:EquipTool(tool)
+                task.wait(0.06)
+                if tool.Parent == char then
+                    return true
+                end
+            end
+        end
+    end
+    for _, tool in ipairs(char:GetChildren()) do
+        if tool:IsA("Tool") then
+            local baseName = tool:GetAttribute("BaseName")
+            if (type(baseName) == "string" and baseName:lower() == wanted) or (type(tool.Name) == "string" and tool.Name:lower() == wanted) then
+                return true
+            end
+        end
+    end
+
     return false
 end
 
