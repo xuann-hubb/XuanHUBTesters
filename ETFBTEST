@@ -185,8 +185,8 @@ local autoShovel = false
 local autoWater = false
 local shopRefreshInterval = 5 -- seconds between automated purchase attempts (minimum 5s to avoid spam)
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
-local fruitSellTriggerCount = 1
-local raritySellTriggerCount = 1
+local fruitSellAmount = 1
+local raritySellAmount = 1
 local seedPackOpenInterval = 1
 local scriptRunning = true
 local autoSellProcessing = false
@@ -620,19 +620,20 @@ local function performAutoSellAll()
     autoSellProcessing = false
 end
 
-local function performAutoSellSingleBatch(thresholdByFruit)
+local function performAutoSellSingleBatch(sellAmountByFruit)
     if autoSellProcessing then
         return
     end
-    if type(thresholdByFruit) ~= "table" then
+    if type(sellAmountByFruit) ~= "table" then
         return
     end
 
     local fruitsToSell = {}
-    for fruit, threshold in pairs(thresholdByFruit) do
-        local minCount = math.max(1, tonumber(threshold) or 1)
-        if countFruitToolsByType(fruit) >= minCount then
-            fruitsToSell[fruit] = minCount
+    for fruit, sellAmount in pairs(sellAmountByFruit) do
+        local wantedCount = math.max(1, tonumber(sellAmount) or 1)
+        local availableCount = countFruitToolsByType(fruit)
+        if availableCount > 0 then
+            fruitsToSell[fruit] = math.min(wantedCount, availableCount)
         end
     end
 
@@ -652,10 +653,8 @@ local function performAutoSellSingleBatch(thresholdByFruit)
     hrp.CFrame = SELL_POINT.CFrame
     task.wait(1.5)
 
-    for fruit, minCount in pairs(fruitsToSell) do
-        local guard = 0
-        while countFruitToolsByType(fruit) >= minCount and guard < 300 do
-            guard = guard + 1
+    for fruit, sellCount in pairs(fruitsToSell) do
+        for _ = 1, sellCount do
             if not equipFruitTool(fruit) then
                 break
             end
@@ -1108,13 +1107,14 @@ local FruitDropdown = SellAutomationSection:Dropdown({
     end,
 })
 
-SellAutomationSection:Slider({
+SellAutomationSection:Input({
     Title = "Fruit Items to Sell",
-    Desc = "Trigger count for selected fruits",
-    Step = 1,
-    Value = { Min = 1, Max = 200, Default = fruitSellTriggerCount },
+    Desc = "How many selected fruits to sell each batch",
+    Value = tostring(fruitSellAmount),
+    Placeholder = "e.g. 10",
+    Type = "Default",
     Callback = function(value)
-        fruitSellTriggerCount = math.max(1, tonumber(value) or 1)
+        fruitSellAmount = math.max(1, tonumber(value) or fruitSellAmount)
     end,
 })
 
@@ -1151,13 +1151,14 @@ local FruitRarityDropdown = SellAutomationSection:Dropdown({
     end,
 })
 
-SellAutomationSection:Slider({
+SellAutomationSection:Input({
     Title = "Rarity Items to Sell",
-    Desc = "Trigger count for rarity fruits",
-    Step = 1,
-    Value = { Min = 1, Max = 200, Default = raritySellTriggerCount },
+    Desc = "How many rarity-matched fruits to sell each batch",
+    Value = tostring(raritySellAmount),
+    Placeholder = "e.g. 10",
+    Type = "Default",
     Callback = function(value)
-        raritySellTriggerCount = math.max(1, tonumber(value) or 1)
+        raritySellAmount = math.max(1, tonumber(value) or raritySellAmount)
     end,
 })
 
@@ -1430,27 +1431,27 @@ task.spawn(function()
         local hasFruitSelection = selectedFruitItem and type(selectedFruitItem) == "table" and #selectedFruitItem > 0
         local hasRaritySelection = hasSelection(selectedFruitRarities)
         if (autoSellFruit and hasFruitSelection) or (autoSellRarity and hasRaritySelection) then
-            local thresholdByFruit = {}
+            local sellAmountByFruit = {}
             if autoSellFruit and hasFruitSelection then
                 for _, fruit in ipairs(selectedFruitItem) do
                     if type(fruit) == "string" then
-                        thresholdByFruit[fruit] = fruitSellTriggerCount
+                        sellAmountByFruit[fruit] = fruitSellAmount
                     end
                 end
             end
             if autoSellRarity and hasRaritySelection then
                 for _, fruit in ipairs(getRarityFruitList(selectedFruitRarities)) do
                     if type(fruit) == "string" then
-                        local existing = thresholdByFruit[fruit]
+                        local existing = sellAmountByFruit[fruit]
                         if existing then
-                            thresholdByFruit[fruit] = math.min(existing, raritySellTriggerCount)
+                            sellAmountByFruit[fruit] = math.max(existing, raritySellAmount)
                         else
-                            thresholdByFruit[fruit] = raritySellTriggerCount
+                            sellAmountByFruit[fruit] = raritySellAmount
                         end
                     end
                 end
             end
-            performAutoSellSingleBatch(thresholdByFruit)
+            performAutoSellSingleBatch(sellAmountByFruit)
             task.wait(fruitSellInterval)
         else
             task.wait(1)
