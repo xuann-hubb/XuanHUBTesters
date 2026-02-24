@@ -1189,8 +1189,8 @@ SellAutomationSection:Toggle({
 SellAutomationSection:Space()
 
 SellAutomationSection:Toggle({
-    Title = "Auto Sell All",
-    Desc = "Auto-sell when harvest appears full/stuck",
+    Title = "Auto Sell When Backpack Full",
+    Desc = "Auto-sell when fruit backpack is full",
     Icon = "check",
     Value = false,
     Callback = function(state)
