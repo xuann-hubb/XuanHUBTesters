@@ -885,15 +885,34 @@ local equipFruitTool
 
 local function performAutoSellAll()
     if autoSellProcessing then
-        return
+        return false
     end
+    local expectedNotificationText = "Your inventory is full! Sell or remove items to make space."
+    local playerGui = player and player:FindFirstChild("PlayerGui")
+    local notificationGui = playerGui and playerGui:FindFirstChild("Notification")
+    local notificationFrame = notificationGui and notificationGui:FindFirstChild("Frame")
+    local foundInventoryFullNotification = false
+    if notificationFrame then
+        for _, inst in ipairs(notificationFrame:GetDescendants()) do
+            if inst.Name == "CONTENT" and (inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox")) then
+                if tostring(inst.Text or "") == expectedNotificationText then
+                    foundInventoryFullNotification = true
+                    break
+                end
+            end
+        end
+    end
+    if not foundInventoryFullNotification then
+        return false
+    end
+
     autoSellProcessing = true
 
     local character = player.Character
     local hrp = character and character:FindFirstChild("HumanoidRootPart")
     if not hrp then
         autoSellProcessing = false
-        return
+        return false
     end
 
     local oldCFrame = hrp.CFrame
@@ -910,6 +929,7 @@ local function performAutoSellAll()
     end
 
     autoSellProcessing = false
+    return true
 end
 
 local function performAutoSellSingleBatch(sellAmountByFruit)
@@ -1311,19 +1331,19 @@ ShopSection:Toggle({
                     -- If both are enabled, seed flow owns the cycle and runs gear after seed.
                     if autoBuySeed then
                         task.wait(0.2)
-                        continue
+                    else
+                        performShopAutoBuy(
+                            "GearShop",
+                            "GearShop",
+                            "Gear Shop",
+                            24,
+                            selectedGearItem,
+                            function(itemName)
+                                return itemName
+                            end
+                        )
+                        task.wait(shopCheckInterval)
                     end
-                    performShopAutoBuy(
-                        "GearShop",
-                        "GearShop",
-                        "Gear Shop",
-                        24,
-                        selectedGearItem,
-                        function(itemName)
-                            return itemName
-                        end
-                    )
-                    task.wait(shopCheckInterval)
                 end
                 gearBuyLoopRunning = false
             end)
@@ -1841,8 +1861,9 @@ task.spawn(function()
             if autoSellAll and harvestAttempts > 0 and afterCount <= beforeCount then
                 harvestStallCount = harvestStallCount + 1
                 if harvestStallCount >= harvestStallThreshold then
-                    performAutoSellAll()
-                    harvestStallCount = 0
+                    if performAutoSellAll() then
+                        harvestStallCount = 0
+                    end
                 end
             else
                 harvestStallCount = 0
