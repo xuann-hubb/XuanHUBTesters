@@ -184,6 +184,7 @@ local autoOpenSeedPack = false
 local autoShovel = false
 local autoWater = false
 local autoSprinkler = false
+local autoClaimPlot = false
 local shopCheckInterval = 0.5 -- check stock/price text every 0.5s
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local fruitSellAmount = 1
@@ -228,6 +229,8 @@ local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("
 local RemovePlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RemovePlant")
 local UseGearRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("UseGear")
 local PurchaseShopItemRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem")
+local GetAvailablePlotsRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("GetAvailablePlots")
+local ClaimSelectedPlotRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ClaimSelectedPlot")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
 
 local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
@@ -1015,6 +1018,56 @@ local function getShopTeleportPart(shopName, indexHint)
         end
     end
     return nil
+end
+
+local function isPlotOwnerEmpty(ownerObj)
+    if not ownerObj then
+        return true
+    end
+    if ownerObj:IsA("ObjectValue") then
+        return ownerObj.Value == nil
+    end
+    local ok, value = pcall(function()
+        return ownerObj.Value
+    end)
+    if not ok then
+        return false
+    end
+    if value == nil then
+        return true
+    end
+    if type(value) == "string" then
+        local clean = value:gsub("^%s+", ""):gsub("%s+$", "")
+        return clean == "" or clean:lower() == "nil"
+    end
+    return false
+end
+
+local function tryAutoClaimPlot()
+    pcall(function()
+        GetAvailablePlotsRemote:InvokeServer()
+    end)
+
+    local plotsFolder = workspace:FindFirstChild("Plots")
+    if not plotsFolder then
+        return false
+    end
+
+    local targetPlots = {"Plot1", "Plot2", "Plot3", "Plot4", "Plot5", "Plot6"}
+    for _, plotName in ipairs(targetPlots) do
+        local plot = plotsFolder:FindFirstChild(plotName)
+        local owner = plot and plot:FindFirstChild("Owner")
+        if plot and isPlotOwnerEmpty(owner) then
+            local ok = pcall(function()
+                ClaimSelectedPlotRemote:FireServer(plotName)
+            end)
+            if ok then
+                WindUI:Notify({ Title = "Plot", Content = "Claimed " .. plotName, Icon = "check", Duration = 2 })
+                return true
+            end
+        end
+    end
+    return false
 end
 
 local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportIndex, selectedItems, toDisplayName)
@@ -1891,6 +1944,23 @@ local AutoBuySeedToggle = ShopSection:Toggle({
 trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
 
+local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
+local AutoClaimPlotToggle = PlotSection:Toggle({
+    Title = "Auto Claim Plot",
+    Desc = "Auto claim first free plot from Plot1 to Plot6",
+    Icon = "check",
+    Value = false,
+    Callback = function(state)
+        autoClaimPlot = state
+        WindUI:Notify({ Title = "Plot", Content = (state and "Auto-claim plot enabled" or "Auto-claim plot disabled"), Icon = "info", Duration = 2 })
+        if state then
+            tryAutoClaimPlot()
+        end
+    end,
+})
+trackConfigElement("AutoClaimPlotToggle", AutoClaimPlotToggle)
+PlotSection:Space()
+
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
 -- Refresh buttons and delay slider removed per user request
@@ -2425,6 +2495,18 @@ task.spawn(function()
             end
         end
         task.wait(0.2)
+    end
+end)
+
+-- auto claim plot loop
+task.spawn(function()
+    while scriptRunning do
+        if autoClaimPlot then
+            tryAutoClaimPlot()
+            task.wait(2)
+        else
+            task.wait(0.5)
+        end
     end
 end)
 
