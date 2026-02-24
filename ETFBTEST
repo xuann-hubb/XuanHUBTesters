@@ -1100,6 +1100,7 @@ local function tryAutoClaimPlot()
     pcall(function()
         GetAvailablePlotsRemote:InvokeServer()
     end)
+    task.wait(3)
 
     local plotsFolder = workspace:FindFirstChild("Plots")
     if not plotsFolder then
