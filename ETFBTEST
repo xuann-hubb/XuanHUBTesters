@@ -1421,15 +1421,22 @@ function autoSprinklerPlants(selectedPlantTypes, sprinklerName)
     end
 
     for _, pos in ipairs(targets) do
-        pcall(function()
+        local posValue = pos
+        if vector and type(vector.create) == "function" then
+            posValue = vector.create(pos.X, pos.Y, pos.Z)
+        end
+        local ok, err = pcall(function()
             local args = {
                 sprinklerName,
                 {
-                    position = pos
+                    position = posValue
                 }
             }
             UseGearRemote:FireServer(unpack(args))
         end)
+        if not ok then
+            warn("AutoSprinkler FireServer failed:", err)
+        end
         task.wait(0.08)
     end
 end
