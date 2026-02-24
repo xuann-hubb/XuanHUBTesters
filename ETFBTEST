@@ -195,6 +195,8 @@ local gearBuyLoopRunning = false
 local seedBuyLoopRunning = false
 local harvestStallCount = 0
 local harvestStallThreshold = 3
+local lastAutoSellAllAt = 0
+local autoSellAllCooldown = 2
 -- auto-plant/auto-harvest state will come from snippet logic
 local autoPlant = false
 local autoHarvest = false
@@ -891,11 +893,31 @@ local function performAutoSellAll()
     local playerGui = player and player:FindFirstChild("PlayerGui")
     local notificationGui = playerGui and playerGui:FindFirstChild("Notification")
     local notificationFrame = notificationGui and notificationGui:FindFirstChild("Frame")
+    local function readTextFromGuiObject(guiObj)
+        if not guiObj then
+            return nil
+        end
+        if guiObj:IsA("TextLabel") or guiObj:IsA("TextButton") or guiObj:IsA("TextBox") then
+            return tostring(guiObj.Text or "")
+        end
+        local directText = guiObj:FindFirstChild("Text")
+        if directText and (directText:IsA("TextLabel") or directText:IsA("TextButton") or directText:IsA("TextBox")) then
+            return tostring(directText.Text or "")
+        end
+        for _, d in ipairs(guiObj:GetDescendants()) do
+            if d.Name == "Text" and (d:IsA("TextLabel") or d:IsA("TextButton") or d:IsA("TextBox")) then
+                return tostring(d.Text or "")
+            end
+        end
+        return nil
+    end
+
     local foundInventoryFullNotification = false
     if notificationFrame then
         for _, inst in ipairs(notificationFrame:GetDescendants()) do
-            if inst.Name == "CONTENT" and (inst:IsA("TextLabel") or inst:IsA("TextButton") or inst:IsA("TextBox")) then
-                if tostring(inst.Text or "") == expectedNotificationText then
+            if inst.Name == "CONTENT" then
+                local contentText = readTextFromGuiObject(inst)
+                if contentText == expectedNotificationText then
                     foundInventoryFullNotification = true
                     break
                 end
@@ -924,7 +946,7 @@ local function performAutoSellAll()
     end)
 
     task.wait(1)
-    if hrp then
+    if hrp and hrp.Parent then
         hrp.CFrame = oldCFrame
     end
 
@@ -1843,6 +1865,22 @@ task.spawn(function()
         else
             task.wait(0.5)
         end
+    end
+end)
+
+-- auto sell-all watcher (driven by inventory-full notification text)
+task.spawn(function()
+    while scriptRunning do
+        if autoSellAll and not autoSellProcessing then
+            local now = os.clock()
+            if (now - lastAutoSellAllAt) >= autoSellAllCooldown then
+                if performAutoSellAll() then
+                    lastAutoSellAllAt = now
+                    harvestStallCount = 0
+                end
+            end
+        end
+        task.wait(0.2)
     end
 end)
 
