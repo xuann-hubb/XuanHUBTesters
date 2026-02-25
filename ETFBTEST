@@ -202,6 +202,7 @@ local autoSellAllCooldown = 2
 local autoPlant = false
 local autoHarvest = false
 local plantInterval = 0.3 -- used by snippet if needed
+local harvestBatchSize = 5 -- number of times to fire each harvest prompt
 local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
@@ -1497,7 +1498,16 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
                 if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
                     harvestAttempts = harvestAttempts + 1
                     v.HoldDuration = 0
-                   fireproximityprompt(v)
+                    -- fire the prompt a fixed batch number of times for faster collection
+                    for i = 1, harvestBatchSize do
+                        if typeof(fireproximityprompt) == "function" then
+                            pcall(fireproximityprompt, v)
+                        else
+                            pcall(function() v:InputHoldBegin() end)
+                            task.wait(0.005)
+                            pcall(function() v:InputHoldEnd() end)
+                        end
+                    end
                 end
             end
         end
