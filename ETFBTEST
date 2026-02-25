@@ -201,7 +201,7 @@ local autoSellAllCooldown = 2
 -- auto-plant/auto-harvest state will come from snippet logic
 local autoPlant = false
 local autoHarvest = false
-local plantInterval = 0.8 -- used by snippet if needed
+local plantInterval = 0.3 -- used by snippet if needed
 local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
