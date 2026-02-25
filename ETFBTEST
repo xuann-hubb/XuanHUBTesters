@@ -1497,13 +1497,7 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
                 if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
                     harvestAttempts = harvestAttempts + 1
                     v.HoldDuration = 0
-                    if typeof(fireproximityprompt) == "function" then
-                        pcall(fireproximityprompt, v)
-                    else
-                        pcall(function() v:InputHoldBegin() end)
-                        task.wait(0.01)
-                        pcall(function() v:InputHoldEnd() end)
-                    end
+                   fireproximityprompt(v)
                 end
             end
         end
