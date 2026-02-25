@@ -201,7 +201,7 @@ local autoSellAllCooldown = 2
 -- auto-plant/auto-harvest state will come from snippet logic
 local autoPlant = false
 local autoHarvest = false
-local plantInterval = 0.8 -- used by snippet if needed
+local plantInterval = 0.2 -- loop delay; lowered for faster auto-harvest
 local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
@@ -1497,12 +1497,17 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
                 if v:IsA("ProximityPrompt") and v.Name=="HarvestPrompt" then
                     harvestAttempts = harvestAttempts + 1
                     v.HoldDuration = 0
+                    -- fire the prompt multiple times with minimal delay to speed up harvesting
                     if typeof(fireproximityprompt) == "function" then
-                        pcall(fireproximityprompt, v)
+                        for i = 1, 2 do
+                            pcall(fireproximityprompt, v)
+                        end
                     else
-                        pcall(function() v:InputHoldBegin() end)
-                        task.wait(0.02)
-                        pcall(function() v:InputHoldEnd() end)
+                        for i = 1, 2 do
+                            pcall(function() v:InputHoldBegin() end)
+                            task.wait(0.5)
+                            pcall(function() v:InputHoldEnd() end)
+                        end
                     end
                 end
             end
