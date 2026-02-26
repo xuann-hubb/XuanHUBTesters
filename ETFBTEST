@@ -2484,6 +2484,7 @@ local function tryClaimDaily()
                 local char = player.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
                 if hrp then
+                    local oldCFrame = hrp.CFrame
                     local qb = workspace:FindFirstChild("MapPhysical")
                     qb = qb and qb:FindFirstChild("QuestBoard")
                     qb = qb and qb:FindFirstChild("OpenButton")
@@ -2495,8 +2496,11 @@ local function tryClaimDaily()
                             remote:FireServer("Daily", index)
                         end)
                         -- ignore remote errors
-                        
                         task.wait(1)
+                        -- return to original position
+                        if oldCFrame then
+                            hrp.CFrame = oldCFrame
+                        end
                     else
                         -- quest board missing
                     end
