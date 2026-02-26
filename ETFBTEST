@@ -2481,8 +2481,7 @@ local function tryClaimDaily()
                         task.wait(1)
                     end
                 end
-
-                break -- only claim the first ready quest
+                -- continue scanning so all "Ready!" entries are claimed
             end
         end
     end
