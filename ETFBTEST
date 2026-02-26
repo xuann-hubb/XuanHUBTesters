@@ -2449,6 +2449,21 @@ task.spawn(function()
 end)
 
 -- auto claim daily quest loop
+-- helper to extract the text string from a status object
+local function getStatusText(status)
+    if not status then
+        return nil
+    end
+    if (status:IsA("TextLabel") or status:IsA("TextButton") or status:IsA("TextBox")) and type(status.Text) == "string" then
+        return status.Text
+    end
+    local txt = status:FindFirstChild("Text")
+    if txt and (txt:IsA("TextLabel") or txt:IsA("TextButton") or txt:IsA("TextBox")) and type(txt.Text) == "string" then
+        return txt.Text
+    end
+    return nil
+end
+
 local function tryClaimDaily()
     local playerGui = player and player:FindFirstChild("PlayerGui")
     if not playerGui then return end
@@ -2460,10 +2475,11 @@ local function tryClaimDaily()
     if not sf then return end
 
     for _, frame in ipairs(sf:GetChildren()) do
-        if frame:IsA("Frame") then
-            local status = frame:FindFirstChild("QuestStatus")
-            if status and status:IsA("TextLabel") and status.Text == "Ready!" then
-                local index = tostring(frame.Name) -- dynamic slot
+        local status = frame:FindFirstChild("QuestStatus")
+        local txt = getStatusText(status)
+        if txt then
+            if txt == "Ready!" then
+                local index = tostring(frame.Name)
 
                 local char = player.Character
                 local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -2475,11 +2491,17 @@ local function tryClaimDaily()
                         hrp.CFrame = qb.CFrame
                         task.wait(0.5)
                         local remote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ClaimQuest")
-                        pcall(function()
+                        local ok, err = pcall(function()
                             remote:FireServer("Daily", index)
                         end)
+                        -- ignore remote errors
+                        
                         task.wait(1)
+                    else
+                        -- quest board missing
                     end
+                else
+                    -- missing humanoid root part
                 end
                 -- continue scanning so all "Ready!" entries are claimed
             end
