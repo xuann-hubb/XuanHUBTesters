@@ -2476,7 +2476,7 @@ game.Players.LocalPlayer.CharacterAdded:Connect(function()
     if FastHarvestToggle then FastHarvestToggle:Set(false) end
     autoHarvest = false
     FastHarvestEnabled = false
-end
+end)
 
 task.spawn(function()
     while scriptRunning do
