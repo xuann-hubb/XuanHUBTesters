@@ -1906,7 +1906,7 @@ local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
 
 local AutoClaimPlotToggle = PlotSection:Toggle({
     Title = "Auto Claim Plot",
-    Desc = "Automatically claim the first unowned plot (ignores any you already own)",
+    Desc = "Attempt to claim the first unowned plot once",
     Value = false,
     Callback = function(state)
         autoClaimPlot = state
@@ -1916,12 +1916,22 @@ local AutoClaimPlotToggle = PlotSection:Toggle({
             Icon = "info",
             Duration = 2,
         })
+
         if state then
-            -- try once immediately
             task.spawn(function()
                 if not playerHasPlot() then
-                    pcall(claimNextPlot)
+                    local ok, didClaim = pcall(claimNextPlot)
+                    if ok and not didClaim then
+                        WindUI:Notify({
+                            Title = "Automation",
+                            Content = "No unowned plot found",
+                            Icon = "alert-triangle",
+                            Duration = 2,
+                        })
+                    end
                 end
+                -- disable after single attempt regardless
+                autoClaimPlot = false
             end)
         end
     end,
@@ -2563,19 +2573,20 @@ end
 local function claimNextPlot()
     local Plots = workspace:FindFirstChild("Plots")
     if not Plots then
-        return
+        return false
     end
     for _, plot in ipairs(Plots:GetChildren()) do
         local owner = plot:FindFirstChild("Owner")
         if (not owner) or owner.Value == "" then
-            if ClaimPlotRemote then
+            if ClaimSelectedPlotRemote then
                 pcall(function()
-                    ClaimPlotRemote:FireServer(plot.Name)
+                    ClaimSelectedPlotRemote:FireServer(plot.Name)
                 end)
             end
-            return
+            return true
         end
     end
+    return false
 end
 
 task.spawn(function()
@@ -2587,27 +2598,7 @@ task.spawn(function()
     end
 end)
 
--- auto claim plot loop
-task.spawn(function()
-    while scriptRunning do
-        if autoClaimPlot then
-            -- if player already has a plot, turn off the toggle
-            if playerHasPlot() then
-                autoClaimPlot = false
-                WindUI:Notify({
-                    Title = "Automation",
-                    Content = "Plot acquired – auto‑claim disabled",
-                    Icon = "check",
-                    Duration = 2,
-                })
-            else
-                pcall(claimNextPlot)
-            end
-        end
-        task.wait(1.5)
-    end
-end)
-
+-- auto claim plot loop removed; toggle now fires once and disables itself.
 -- auto plant/harvest loop
 task.spawn(function()
     while scriptRunning do
