@@ -222,8 +222,6 @@ local selectedSprinklerGear = {}
 local autoClaimPlot = false               -- controlled by toggle
 local autoClaimPlotThread = nil           -- not strictly needed, kept for potential future use
 
--- remote for claiming plots; some modes put Plots under workspace directly, so we'll try both
-local ClaimPlotRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ClaimPlot")
 
 local ConfigManager = Window.ConfigManager
 local configElements = {}
