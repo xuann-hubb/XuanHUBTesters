@@ -217,6 +217,14 @@ local selectedShovelPlants = {}
 local selectedWaterPlants = {}
 local selectedSprinklerPlants = {}
 local selectedSprinklerGear = {}
+
+-- plot auto‑claim state
+local autoClaimPlot = false               -- controlled by toggle
+local autoClaimPlotThread = nil           -- not strictly needed, kept for potential future use
+
+-- remote for claiming plots; some modes put Plots under workspace directly, so we'll try both
+local ClaimPlotRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ClaimPlot")
+
 local ConfigManager = Window.ConfigManager
 local configElements = {}
 local selectedConfigFile = nil
@@ -1895,6 +1903,33 @@ local AutoBuySeedToggle = ShopSection:Toggle({
 trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
 
+-- plot section (main tab)
+local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
+
+local AutoClaimPlotToggle = PlotSection:Toggle({
+    Title = "Auto Claim Plot",
+    Desc = "Automatically claim the first unowned plot (ignores any you already own)",
+    Value = false,
+    Callback = function(state)
+        autoClaimPlot = state
+        WindUI:Notify({
+            Title = "Automation",
+            Content = (state and "Auto-plot claim enabled" or "Auto-plot claim disabled"),
+            Icon = "info",
+            Duration = 2,
+        })
+        if state then
+            -- try once immediately
+            task.spawn(function()
+                if not playerHasPlot() then
+                    pcall(claimNextPlot)
+                end
+            end)
+        end
+    end,
+})
+trackConfigElement("AutoClaimPlotToggle", AutoClaimPlotToggle)
+
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
 -- Refresh buttons and delay slider removed per user request
@@ -2513,12 +2548,65 @@ local function tryClaimDaily()
     end
 end
 
+-- helpers for plot auto-claim
+local function playerHasPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if Plots then
+        for _, plot in ipairs(Plots:GetChildren()) do
+            local owner = plot:FindFirstChild("Owner")
+            if owner and owner.Value == player.Name then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function claimNextPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then
+        return
+    end
+    for _, plot in ipairs(Plots:GetChildren()) do
+        local owner = plot:FindFirstChild("Owner")
+        if (not owner) or owner.Value == "" then
+            if ClaimPlotRemote then
+                pcall(function()
+                    ClaimPlotRemote:FireServer(plot.Name)
+                end)
+            end
+            return
+        end
+    end
+end
+
 task.spawn(function()
     while scriptRunning do
         if autoClaimDaily then
             pcall(tryClaimDaily)
         end
         task.wait(1)
+    end
+end)
+
+-- auto claim plot loop
+task.spawn(function()
+    while scriptRunning do
+        if autoClaimPlot then
+            -- if player already has a plot, turn off the toggle
+            if playerHasPlot() then
+                autoClaimPlot = false
+                WindUI:Notify({
+                    Title = "Automation",
+                    Content = "Plot acquired – auto‑claim disabled",
+                    Icon = "check",
+                    Duration = 2,
+                })
+            else
+                pcall(claimNextPlot)
+            end
+        end
+        task.wait(1.5)
     end
 end)
 
