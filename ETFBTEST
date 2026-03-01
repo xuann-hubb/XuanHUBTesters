@@ -30,6 +30,10 @@ local Window = WindUI:CreateWindow({
     OutlineThickness = 3,
     Resizable = true,
     Transparent = true,
+    User = {
+        Enabled = true,
+    },
+
 
 })
 
