@@ -60,9 +60,10 @@ local defaultSettings = {
     autoCollectCandy = false,
     autoCollectValentinesCoin = false,
     autoCollectDoom = false,
+    autoCollectFireAndIce = false,
     autoSpinValentinesWheel = false,
     autoSpinDoomWheel = false,
-    autoStartDoomTrial = false,
+    autoSpinFireAndIceWheel = false,
     autoSubmitCandy = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
@@ -498,7 +499,9 @@ local State = {
     autoCollectValentinesCoin = false,
     autoSpinValentinesWheel = false,
     autoCollectDoom = false,
+    autoCollectFireAndIce = false,
     autoSpinDoomWheel = false,
+    autoSpinFireAndIceWheel = false,
     autoSpinUFO = false,
     autoSpinMoneyWheel = false,
 
@@ -598,6 +601,8 @@ autoSpinUFO = false
 autoSpinMoneyWheel = false
 autoSpinDoomWheel = false
 autoCollectDoom = false
+autoCollectFireAndIce = false
+autoSpinFireAndIceWheel = false
 spinning = false
 active = false
 PullDelay = 0.1
@@ -1262,6 +1267,41 @@ task.spawn(function()
     end
 end)
 
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectFireAndIce then
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then return end
+
+                local eventFolder = workspace:FindFirstChild("FireAndIceEventParts")
+                if eventFolder then
+                    local coin = eventFolder:FindFirstChild("FireAndIceCoin")
+                    if coin then
+                        local mainPart = coin:FindFirstChild("Main")
+                        if mainPart and mainPart:IsA("BasePart") and mainPart:FindFirstChild("TouchInterest") then
+                            pcall(function()
+                                firetouchinterest(hrp, mainPart, 0)
+                                firetouchinterest(hrp, mainPart, 1)
+                            end)
+                            task.wait(0.01)
+                        elseif mainPart and mainPart:IsA("BasePart") then
+                            pcall(function()
+                                firetouchinterest(hrp, mainPart, 0)
+                                firetouchinterest(hrp, mainPart, 1)
+                            end)
+                            task.wait(0.01)
+                        end
+                    end
+                end
+            end)
+            task.wait(0.05)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
 -- Auto Spin Money Wheel Loop
 task.spawn(function()
     while scriptRunning do
@@ -1310,75 +1350,6 @@ task.spawn(function()
 end)
 
 -- Auto Spin Doom Wheel Loop
-
--- utility function for auto trial to click any "Yes" buttons in choice dialogs
-local function clickYesButton()
-    local clicked = false
-    pcall(function()
-        local choicesGui = player.PlayerGui:FindFirstChild("ChoiceGui")
-        if choicesGui then
-            local choices = choicesGui:FindFirstChild("Choice") and choicesGui.Choice:FindFirstChild("Choices")
-            if choices then
-                local yesBtn = choices:FindFirstChild("Yes")
-                if not yesBtn then
-                    for _, child in ipairs(choices:GetChildren()) do
-                        if child.Name:lower():find("normal") or child.Name:lower():find("yes") then
-                            yesBtn = child
-                            break
-                        end
-                    end
-                end
-                if yesBtn then
-                    local btn = yesBtn:IsA("TextButton") and yesBtn or yesBtn:FindFirstChildWhichIsA("TextButton", true)
-                    if btn and btn.Visible then
-                        pcall(function() btn:Activate() end)
-                        pcall(function() firesignal(btn.MouseButton1Click) end)
-                        pcall(function() firesignal(btn.Activated) end)
-                        pcall(function() fireproximityprompt(btn) end)
-                        clicked = true
-                    end
-                end
-            end
-        end
-    end)
-    return clicked
-end
-
--- Auto Start Doom Trial Loop
-task.spawn(function()
-    while scriptRunning do
-        if autoStartDoomTrial then
-            pcall(function()
-                local prompt
-                local go = workspace:FindFirstChild("GameObjects")
-                if go then
-                    local place = go:FindFirstChild("PlaceSpecific")
-                    if place then
-                        local root = place:FindFirstChild("root")
-                        if root then
-                            local tower = root:FindFirstChild("Tower")
-                            if tower then
-                                local main = tower:FindFirstChild("Main")
-                                if main then
-                                    local promptHolder = main:FindFirstChild("Prompt")
-                                    if promptHolder then
-                                        prompt = promptHolder:FindFirstChildWhichIsA("ProximityPrompt", true) or promptHolder:FindFirstChild("ProximityPrompt")
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-                if prompt then
-                    pcall(fireproximityprompt, prompt)
-                end
-                -- also click any yes dialogs that may appear
-                clickYesButton()
-            end)
-        end
-        task.wait(1)
-    end
-end)
 task.spawn(function()
     while scriptRunning do
         if autoSpinDoomWheel then
@@ -1392,6 +1363,27 @@ task.spawn(function()
                             "RF/WheelSpin.Roll"):InvokeServer(unpack(args))
                     end)
                 end
+            end)
+            local delayValue = tonumber(savedSettings.spinDelay) or 0.5
+            if delayValue <= 0 then delayValue = 0.5 end
+            task.wait(delayValue)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+-- Auto Spin Fire And Ice Wheel Loop
+task.spawn(function()
+    while scriptRunning do
+        if autoSpinFireAndIceWheel then
+            pcall(function()
+                local args = {
+                    "FireAndIce",
+                    false
+                }
+                game:GetService("ReplicatedStorage"):WaitForChild("Shared"):WaitForChild("Remotes")
+                    :WaitForChild("Networking"):WaitForChild("RF/WheelSpinRoll"):InvokeServer(unpack(args))
             end)
             local delayValue = tonumber(savedSettings.spinDelay) or 0.5
             if delayValue <= 0 then delayValue = 0.5 end
@@ -3153,14 +3145,29 @@ DoomSection:Toggle({
     end
 })
 
-DoomSection:Toggle({
-    Title = "Auto Start Trial",
-    Desc = "Automatically start the Doom Tower trial when available",
-    Icon = "check",
-    Value = savedSettings.autoStartDoomTrial or false,
+local FireAndIceSection = EventTab:Section({ Title = "Fire And Ice Event", Opened = true })
+
+FireAndIceSection:Toggle({
+    Title = "Auto Collect Fire And Ice Coin",
+    Desc = "Automatically collect Fire And Ice coins",
+    Value = savedSettings.autoCollectFireAndIce or false,
     Callback = function(state)
-        autoStartDoomTrial = state
-        savedSettings.autoStartDoomTrial = state
+        State.autoCollectFireAndIce = state
+        autoCollectFireAndIce = state
+        savedSettings.autoCollectFireAndIce = state
+        saveSettings(savedSettings)
+    end
+})
+
+FireAndIceSection:Toggle({
+    Title = "Auto Spin Fire And Ice Wheel",
+    Desc = "Automatically spin the Fire And Ice wheel",
+    Icon = "check",
+    Value = savedSettings.autoSpinFireAndIceWheel or false,
+    Callback = function(state)
+        State.autoSpinFireAndIceWheel = state
+        autoSpinFireAndIceWheel = state
+        savedSettings.autoSpinFireAndIceWheel = state
         saveSettings(savedSettings)
     end
 })
@@ -3931,14 +3938,19 @@ task.spawn(function()
         autoSpinDoomWheel = true
     end
 
-    -- Apply Auto Start Doom Trial
-    if savedSettings.autoStartDoomTrial then
-        autoStartDoomTrial = true
-    end
-
     -- Apply Auto Collect Doom
     if savedSettings.autoCollectDoom then
         autoCollectDoom = true
+    end
+
+    -- Apply Auto Collect Fire And Ice Coin
+    if savedSettings.autoCollectFireAndIce then
+        autoCollectFireAndIce = true
+    end
+
+    -- Apply Auto Spin Fire And Ice Wheel
+    if savedSettings.autoSpinFireAndIceWheel then
+        autoSpinFireAndIceWheel = true
     end
 
     -- Apply Auto Collect Candy (Valentines Event)
