@@ -227,7 +227,7 @@ end
 
 local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
-    "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
+    "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom","Bamboo","Mango"
 }
 
 -- plot auto‑claim state
@@ -783,7 +783,7 @@ end
 local function fetchShopItems(shopId)
     -- Return exact, hardcoded lists for GearShop and SeedShop to match server item names
     if shopId == "GearShop" then
-        return { "Watering Can", "Basic Sprinkler", "Harvest Bell", "Turbo Sprinkler", "Favorite Tool", "Super Sprinkler" }
+        return { "Watering Can", "Basic Sprinkler", "Harvest Bell", "Turbo Sprinkler", "Favorite Tool", "Super Sprinkler", "Trowel" }
     elseif shopId == "SeedShop" then
         return {
             "Carrot Seed",
@@ -801,6 +801,8 @@ local function fetchShopItems(shopId)
             "Potato Seed",
             "Cabbage Seed",
             "Cherry Seed",
+            "Bamboo Seed",
+            "Mango Seed",
         }
     end
     return {}
@@ -1385,11 +1387,11 @@ local gearList = {}
 local seedList = {}
 local fruitList = {
     "Carrot","Corn","Onion","Strawberry","Mushroom","Beetroot","Tomato","Apple","Rose","Wheat","Banana","Plum","Potato","Cabbage","Cherry",
-    "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
+    "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom","Bamboo","Mango"
 }
 local plantSeedList = {
     "Carrot Seed","Corn Seed","Onion Seed","Strawberry Seed","Mushroom Seed","Beetroot Seed","Tomato Seed","Apple Seed","Rose Seed","Wheat Seed","Banana Seed","Plum Seed","Potato Seed","Cabbage Seed","Cherry Seed",
-    "Dandelion Seed","Bellpepper Seed","Birch Seed","Orange Seed","Olive Seed","Sunpetal Seed","Goldenberry Seed","Amberpine Seed","Emberwood Seed","Dawnblossom Seed"
+    "Dandelion Seed","Bellpepper Seed","Birch Seed","Orange Seed","Olive Seed","Sunpetal Seed","Goldenberry Seed","Amberpine Seed","Emberwood Seed","Dawnblossom Seed","Bamboo Seed","Mango Seed"
 }
 local seedsByRarity = {
     Common = {"Carrot", "Corn"},
@@ -1640,13 +1642,21 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
 
         if type(uuid) == "string" and uuid ~= "" then
             if fruitTypes[plantType] then
-                if shouldShovelFruitOnPlant(plant) then
-                    -- Always remove with amount=1; repeat a few times to clear all fruit stacks.
-                    for _ = 1, 8 do
+                -- Count eligible fruits on this plant and fire once per fruit
+                local eligibleCount = 0
+                for _, obj in ipairs(plant:GetDescendants()) do
+                    if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
+                        if (not isBlockedFruit(obj)) and passesWeightRule(obj) then
+                            eligibleCount = eligibleCount + 1
+                        end
+                    end
+                end
+                if eligibleCount > 0 then
+                    for _ = 1, eligibleCount do
                         pcall(function()
                             RemovePlantRemote:FireServer(uuid, 1)
                         end)
-                        task.wait(0.03)
+                        task.wait(0.05)
                     end
                 end
             elseif plantTypes[plantType] then
@@ -1854,6 +1864,14 @@ function autoSprinklerPlants(selectedPlantTypes, sprinklerNames)
             end
         end
     end
+    -- Un-equip sprinkler tool after all placements are done
+    pcall(function()
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum:UnequipTools()
+        end
+    end)
 end
 
 -- Auto Plant Function
@@ -2986,6 +3004,9 @@ task.spawn(function()
         end
         if autoSprinkler then
             autoSprinklerPlants(selectedSprinklerPlants, selectedSprinklerGear)
+            -- Disable after one full run so it doesn't spam
+            autoSprinkler = false
+            pcall(function() AutoSprinklerToggle:SetValue(false) end)
         end
         task.wait(plantInterval)
     end
