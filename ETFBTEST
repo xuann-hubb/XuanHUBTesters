@@ -972,7 +972,7 @@ local function runTrialTowerTask()
                     activatePrompt(towerPrompt)
                     task.wait(0.8)
                     clickYesButton()
-                    task.wait(0.8)
+                    task.wait(3)
                 end
             end
         end
