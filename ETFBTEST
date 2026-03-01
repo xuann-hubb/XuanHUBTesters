@@ -2442,7 +2442,9 @@ local AutoHarvestToggle = HarvestAutomationSection:Toggle({
 trackConfigElement("AutoHarvestToggle", AutoHarvestToggle)
 HarvestAutomationSection:Space()
 
-local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
+local ShovelingSection = AutomationTab:Section({ Title = "Shoveling Section", Opened = true })
+
+local ShovelFruitDropdown = ShovelingSection:Dropdown({
     Title = "Select Fruit To Shovel",
     Desc = "Choose fruit types to shovel",
     Values = fruitDropdownValues,
@@ -2456,7 +2458,7 @@ local ShovelFruitDropdown = HarvestAutomationSection:Dropdown({
 })
 trackConfigElement("ShovelFruitDropdown", ShovelFruitDropdown)
 
-local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
+local ShovelPlantDropdown = ShovelingSection:Dropdown({
     Title = "Select Plant To Shovel",
     Desc = "Choose plant types to shovel",
     Values = withAllOption(fruitList),
@@ -2470,7 +2472,7 @@ local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
 })
 trackConfigElement("ShovelPlantDropdown", ShovelPlantDropdown)
 
-local ShovelWeightModeDropdown = HarvestAutomationSection:Dropdown({
+local ShovelWeightModeDropdown = ShovelingSection:Dropdown({
     Title = "Shovel Weight Mode",
     Desc = "Shovel fruit Above or Below target weight",
     Values = {"Above", "Below"},
@@ -2489,7 +2491,7 @@ local ShovelWeightModeDropdown = HarvestAutomationSection:Dropdown({
 })
 trackConfigElement("ShovelWeightModeDropdown", ShovelWeightModeDropdown)
 
-local ShovelWeightInput = HarvestAutomationSection:Input({
+local ShovelWeightInput = ShovelingSection:Input({
     Title = "Shovel Weight",
     Desc = "Target weight for shovel mode",
     Value = tostring(shovelWeightThreshold),
@@ -2501,7 +2503,7 @@ local ShovelWeightInput = HarvestAutomationSection:Input({
 })
 trackConfigElement("ShovelWeightInput", ShovelWeightInput)
 
-local ShovelBlockVariantDropdown = HarvestAutomationSection:Dropdown({
+local ShovelBlockVariantDropdown = ShovelingSection:Dropdown({
     Title = "Blocklist Variant",
     Desc = "Auto shovel skips fruits with selected variants",
     Values = fruitVariantList,
@@ -2515,7 +2517,7 @@ local ShovelBlockVariantDropdown = HarvestAutomationSection:Dropdown({
 })
 trackConfigElement("ShovelBlockVariantDropdown", ShovelBlockVariantDropdown)
 
-local ShovelBlockMutationDropdown = HarvestAutomationSection:Dropdown({
+local ShovelBlockMutationDropdown = ShovelingSection:Dropdown({
     Title = "Blocklist Mutation",
     Desc = "Auto shovel skips fruits with selected mutations",
     Values = fruitMutationList,
@@ -2529,7 +2531,7 @@ local ShovelBlockMutationDropdown = HarvestAutomationSection:Dropdown({
 })
 trackConfigElement("ShovelBlockMutationDropdown", ShovelBlockMutationDropdown)
 
-local AutoShovelToggle = HarvestAutomationSection:Toggle({
+local AutoShovelToggle = ShovelingSection:Toggle({
     Title = "Auto Shovel",
     Desc = "Auto shovel selected fruit or plant types",
     Value = false,
@@ -2546,7 +2548,7 @@ local AutoShovelToggle = HarvestAutomationSection:Toggle({
     end,
 })
 trackConfigElement("AutoShovelToggle", AutoShovelToggle)
-HarvestAutomationSection:Space()
+ShovelingSection:Space()
 
 do
     local espEnabled = false
@@ -2678,7 +2680,7 @@ do
 
     local FruitWeightESPToggle = ESPSection:Toggle({
         Title = "Show Fruit Weight",
-        Desc = "Display FruitWeight attribute above world fruits",
+        Desc = "Display Fruit Weight",
         Value = false,
         Callback = function(state)
             espEnabled = state
