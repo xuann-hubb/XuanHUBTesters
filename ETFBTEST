@@ -63,7 +63,9 @@ local defaultSettings = {
     autoCollectFireAndIce = false,
     autoSpinValentinesWheel = false,
     autoSpinDoomWheel = false,
+    autoPressDoomButton = false,
     autoSpinFireAndIceWheel = false,
+    autoTrialTower = false,
     autoSubmitCandy = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
@@ -210,6 +212,12 @@ local AutoTab = Window:Tab({
 local GearTab = Window:Tab({
     Title = "Gear Shop",
     Icon = "shopping-bag",
+    Locked = false,
+})
+
+local TrialTowerTab = Window:Tab({
+    Title = "Trial Tower",
+    Icon = "tower-control",
     Locked = false,
 })
 
@@ -501,7 +509,9 @@ local State = {
     autoCollectDoom = false,
     autoCollectFireAndIce = false,
     autoSpinDoomWheel = false,
+    autoPressDoomButton = false,
     autoSpinFireAndIceWheel = false,
+    autoTrialTower = false,
     autoSpinUFO = false,
     autoSpinMoneyWheel = false,
 
@@ -602,7 +612,9 @@ autoSpinMoneyWheel = false
 autoSpinDoomWheel = false
 autoCollectDoom = false
 autoCollectFireAndIce = false
+autoPressDoomButton = false
 autoSpinFireAndIceWheel = false
+autoTrialTower = false
 spinning = false
 active = false
 PullDelay = 0.1
@@ -626,6 +638,392 @@ if player.Character then
     setupCharacter(player.Character)
 end
 player.CharacterAdded:Connect(setupCharacter)
+
+local moveLocked = false
+local function acquireMoveLock()
+    while moveLocked do task.wait(0.02) end
+    moveLocked = true
+end
+
+local function releaseMoveLock()
+    moveLocked = false
+end
+
+local function getPosition(obj)
+    if obj:IsA("BasePart") then
+        return obj.Position
+    elseif obj:IsA("Model") then
+        if obj.PrimaryPart then return obj.PrimaryPart.Position end
+        local part = obj:FindFirstChildWhichIsA("BasePart", true)
+        if part then return part.Position end
+    end
+    return nil
+end
+
+local function isCharacterAlive(root, humanoid)
+    if not root or not root.Parent then return false end
+    if not humanoid or not humanoid.Parent then return false end
+    if humanoid.Health <= 0 then return false end
+    return true
+end
+
+local function getCharacterRoots()
+    local currentCharacter = player.Character
+    if not currentCharacter then return nil, nil end
+    local root = currentCharacter:FindFirstChild("HumanoidRootPart")
+    local humanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
+    return root, humanoid
+end
+
+local function getEventCurrencySpeed()
+    local speed = 1000
+    pcall(function()
+        local currentCharacter = player.Character
+        if not currentCharacter then return end
+        local humanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+        local v = humanoid.WalkSpeed
+        if v then
+            if v < 100 then
+                speed = v
+            elseif v < 200 then
+                speed = v * 1.20
+            elseif v < 300 then
+                speed = v * 1.40
+            elseif v < 400 then
+                speed = v * 2.00
+            elseif v < 500 then
+                speed = v * 2.70
+            else
+                speed = v * 1.50
+            end
+        end
+    end)
+    return speed
+end
+
+local function flyToPos(targetPos, speed)
+    speed = speed or 4000
+    local distanceTraveled = 0
+    while true do
+        if not autoPressDoomButton and not autoCollectDoom and not autoTrialTower and not State.trialTowerBusy then return false end
+
+        local currentCharacter = player.Character
+        if not currentCharacter then return false end
+
+        local root = currentCharacter:FindFirstChild("HumanoidRootPart")
+        local humanoid = currentCharacter:FindFirstChildOfClass("Humanoid")
+        if not root or not humanoid then return false end
+        if humanoid.Health <= 0 then return false end
+
+        local remaining = (targetPos - root.Position)
+        local magnitude = remaining.Magnitude
+        if magnitude <= 1.5 then break end
+
+        local dt = RunService.Heartbeat:Wait()
+        if not root or not root.Parent then return false end
+
+        local step = math.min(speed * dt, magnitude)
+        local direction = remaining / magnitude
+        root.CFrame = root.CFrame + direction * step
+        root.AssemblyLinearVelocity = Vector3.zero
+
+        distanceTraveled = distanceTraveled + step
+        if distanceTraveled >= 300 then
+            distanceTraveled = 0
+            task.wait(0.05)
+        end
+    end
+
+    local finalCharacter = player.Character
+    local finalRoot = finalCharacter and finalCharacter:FindFirstChild("HumanoidRootPart")
+    local finalHumanoid = finalCharacter and finalCharacter:FindFirstChildOfClass("Humanoid")
+    if finalRoot and finalHumanoid and finalHumanoid.Health > 0 then
+        finalRoot.CFrame = CFrame.new(targetPos)
+        finalRoot.AssemblyLinearVelocity = Vector3.zero
+        finalRoot.AssemblyAngularVelocity = Vector3.zero
+    end
+    return true
+end
+
+local TOWER_POS = Vector3.new(4325, 6.3, -2.5)
+local TOWER_UNDER_Y = -20
+local BRAINROT_UNDER_Y = -15
+local BRAINROT_FLAT_Y = -0.5
+local TOWER_KEYWORDS = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythical", "Cosmic", "Secret" }
+
+State.trialTowerTaskActive = false
+State.trialTowerRunOnceRequested = false
+State.trialTowerBusy = false
+
+local function getTowerPrompt()
+    local prompt
+    pcall(function()
+        prompt = workspace.GameObjects.PlaceSpecific.root.Tower.Main.Prompt.ProximityPrompt
+    end)
+    if prompt and prompt:IsA("ProximityPrompt") then
+        return prompt
+    end
+    return nil
+end
+
+local function clickYesButton()
+    local clicked = false
+    pcall(function()
+        local choicesGui = player.PlayerGui:FindFirstChild("ChoiceGui")
+        if not choicesGui then return end
+        local choice = choicesGui:FindFirstChild("Choice")
+        local choices = choice and choice:FindFirstChild("Choices")
+        if not choices then return end
+
+        local yesBtn = choices:FindFirstChild("Yes")
+        if not yesBtn then
+            for _, child in ipairs(choices:GetChildren()) do
+                local n = child.Name:lower()
+                if n:find("normal") or n:find("yes") then
+                    yesBtn = child
+                    break
+                end
+            end
+        end
+
+        if yesBtn then
+            local btn = yesBtn:IsA("TextButton") and yesBtn or yesBtn:FindFirstChildWhichIsA("TextButton", true)
+            if btn and btn.Visible then
+                pcall(function() btn:Activate() end)
+                pcall(function() firesignal(btn.MouseButton1Click) end)
+                pcall(function() firesignal(btn.Activated) end)
+                clicked = true
+            end
+        end
+    end)
+    return clicked
+end
+
+local function getRequirementKeyword(requirementLabel)
+    if not requirementLabel or not requirementLabel.Text then return nil end
+    for _, kw in ipairs(TOWER_KEYWORDS) do
+        if requirementLabel.Text:find(kw) then
+            return kw
+        end
+    end
+    return nil
+end
+
+local function getNearestRenderedBrainrot(keyword)
+    local root = getCharacterRoots()
+    if not root then return nil, nil end
+
+    local activeBrainrots = workspace:FindFirstChild("ActiveBrainrots")
+    local folder = activeBrainrots and activeBrainrots:FindFirstChild(keyword)
+    if not folder then return nil, nil end
+
+    local nearestObj, nearestPos, nearestDist = nil, nil, math.huge
+    for _, child in ipairs(folder:GetChildren()) do
+        if child.Name == "RenderedBrainrot" and child.Parent then
+            local pos = getPosition(child)
+            if pos then
+                local dist = (root.Position - pos).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearestObj = child
+                    nearestPos = pos
+                end
+            end
+        end
+    end
+
+    return nearestObj, nearestPos
+end
+
+local function activatePrompt(prompt)
+    if not prompt then return false end
+    local ok = false
+    pcall(function()
+        prompt.RequiresLineOfSight = false
+        prompt.MaxActivationDistance = 32
+        prompt.HoldDuration = 0
+        pcall(fireproximityprompt, prompt)
+        ok = true
+    end)
+    return ok
+end
+
+local function runTrialTowerTask()
+    if State.trialTowerTaskActive then return false, "Trial task already running" end
+    State.trialTowerTaskActive = true
+    State.trialTowerBusy = true
+
+    local ok, err = pcall(function()
+        local towerPrompt = getTowerPrompt()
+        if not towerPrompt then
+            error("Tower prompt not found")
+        end
+
+        acquireMoveLock()
+        local root = getCharacterRoots()
+        if not root then
+            releaseMoveLock()
+            error("Character not found")
+        end
+
+        local flySpeed = getEventCurrencySpeed()
+        flyToPos(Vector3.new(root.Position.X, TOWER_UNDER_Y, root.Position.Z), flySpeed)
+        task.wait(0.01)
+        flyToPos(Vector3.new(TOWER_POS.X, TOWER_UNDER_Y, TOWER_POS.Z), flySpeed)
+        task.wait(0.01)
+        flyToPos(TOWER_POS, flySpeed)
+        releaseMoveLock()
+
+        task.wait(0.2)
+        activatePrompt(towerPrompt)
+        task.wait(0.3)
+        clickYesButton()
+
+        local requirementLabel, depositsLabel
+        local timeoutAt = os.clock() + 20
+        while os.clock() < timeoutAt do
+            local hud = player.PlayerGui:FindFirstChild("TowerTrialHUD")
+            local trialBar = hud and hud:FindFirstChild("TrialBar")
+            requirementLabel = trialBar and trialBar:FindFirstChild("Requirement")
+            depositsLabel = trialBar and trialBar:FindFirstChild("Deposits")
+            if requirementLabel and depositsLabel then
+                break
+            end
+            task.wait(0.5)
+        end
+        if not requirementLabel or not depositsLabel then
+            error("Tower HUD not ready")
+        end
+
+        local cycleTimeout = os.clock() + 180
+        while os.clock() < cycleTimeout do
+            if not (autoTrialTower or State.trialTowerRunOnceRequested) then
+                break
+            end
+
+            local current, max = depositsLabel.Text:match("(%d+)/(%d+)")
+            current = tonumber(current) or 0
+            max = tonumber(max) or 10
+            if current >= max then
+                activatePrompt(towerPrompt)
+                task.wait(0.4)
+                clickYesButton()
+                break
+            end
+
+            local keyword = getRequirementKeyword(requirementLabel)
+            if not keyword then
+                activatePrompt(towerPrompt)
+                task.wait(0.8)
+                clickYesButton()
+                task.wait(0.8)
+            else
+                local targetObj, targetPos = getNearestRenderedBrainrot(keyword)
+                if not targetObj or not targetPos then
+                    task.wait(0.6)
+                else
+                    local targetX, targetZ = targetPos.X, targetPos.Z
+                    local trackedTarget = targetObj
+
+                    acquireMoveLock()
+                    root = getCharacterRoots()
+                    if root then
+                        flySpeed = getEventCurrencySpeed()
+                        flyToPos(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
+                        task.wait(0.01)
+                        flyToPos(Vector3.new(targetX, BRAINROT_UNDER_Y, targetZ), flySpeed)
+                        task.wait(0.01)
+                        flyToPos(Vector3.new(targetX, BRAINROT_FLAT_Y, targetZ), flySpeed)
+                    end
+                    releaseMoveLock()
+
+                    local beforeParent = trackedTarget and trackedTarget.Parent
+                    for _ = 1, 8 do
+                        if not trackedTarget or not trackedTarget.Parent then
+                            break
+                        end
+
+                        local promptInTarget = trackedTarget:FindFirstChildWhichIsA("ProximityPrompt", true)
+                        if promptInTarget then
+                            activatePrompt(promptInTarget)
+                        else
+                            local nearPrompt = getTowerPrompt()
+                            if nearPrompt then activatePrompt(nearPrompt) end
+                        end
+                        task.wait(0.2)
+                        if not trackedTarget.Parent or trackedTarget.Parent ~= beforeParent then
+                            break
+                        end
+                    end
+
+                    acquireMoveLock()
+                    root = getCharacterRoots()
+                    if root then
+                        flyToPos(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), flySpeed)
+                        task.wait(0.01)
+                        flyToPos(Vector3.new(TOWER_POS.X, BRAINROT_UNDER_Y, TOWER_POS.Z), flySpeed)
+                        task.wait(0.01)
+                        flyToPos(TOWER_POS, flySpeed)
+                    end
+                    releaseMoveLock()
+
+                    task.wait(0.4)
+                    activatePrompt(towerPrompt)
+                    task.wait(0.8)
+                    clickYesButton()
+                    task.wait(0.8)
+                end
+            end
+        end
+    end)
+
+    State.trialTowerBusy = false
+    State.trialTowerTaskActive = false
+
+    if not ok then
+        return false, tostring(err)
+    end
+    return true, "Trial task completed"
+end
+
+task.spawn(function()
+    while scriptRunning do
+        if (autoTrialTower or State.trialTowerRunOnceRequested) and not State.trialTowerTaskActive then
+            local success, message = runTrialTowerTask()
+
+            if success then
+                WindUI:Notify({
+                    Title = "Trial Tower",
+                    Content = tostring(message),
+                    Icon = "check",
+                    Duration = 2
+                })
+            else
+                WindUI:Notify({
+                    Title = "Trial Tower",
+                    Content = "Failed: " .. tostring(message),
+                    Icon = "alert-triangle",
+                    Duration = 3
+                })
+            end
+
+            if State.trialTowerRunOnceRequested then
+                State.trialTowerRunOnceRequested = false
+            end
+
+            if autoTrialTower then
+                local cooldown = 315
+                while cooldown > 0 and autoTrialTower and scriptRunning do
+                    task.wait(1)
+                    cooldown = cooldown - 1
+                end
+            end
+        else
+            task.wait(0.4)
+        end
+    end
+end)
 
 -- Auto-Obby: finder that targets the new `RadioactiveMap_SharedInstances` layout
 
@@ -1263,6 +1661,53 @@ task.spawn(function()
             task.wait(0.05)
         else
             task.wait(0.5)
+        end
+    end
+end)
+
+local doomButtonsBusy = false
+
+task.spawn(function()
+    while scriptRunning do
+        task.wait(0.3)
+        if autoPressDoomButton then
+            local doomButtons = workspace:FindFirstChild("DoomEventButtons")
+            if doomButtons then
+                for _, button in ipairs(doomButtons:GetChildren()) do
+                    if button.Name == "Button" and button.Parent then
+                        local union = button:FindFirstChild("Union")
+                        if union then
+                            local prompt = union:FindFirstChild("ProximityPrompt")
+                            if prompt then
+                                local pos = getPosition(button)
+                                if pos then
+                                    doomButtonsBusy = true
+                                    acquireMoveLock()
+                                    pcall(function()
+                                        local root = getCharacterRoots()
+                                        if root then
+                                            local spd = getEventCurrencySpeed()
+                                            flyToPos(Vector3.new(pos.X, -25, pos.Z), spd)
+                                            task.wait(0.01)
+                                            flyToPos(Vector3.new(pos.X, pos.Y + 3, pos.Z), spd)
+                                            task.wait(0.5)
+                                        end
+
+                                        for _ = 1, 3 do
+                                            local ok = pcall(fireproximityprompt, prompt)
+                                            if ok then break end
+                                            task.wait(0.3)
+                                        end
+                                    end)
+                                    releaseMoveLock()
+                                    doomButtonsBusy = false
+                                    task.wait(1)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
         end
     end
 end)
@@ -3145,6 +3590,19 @@ DoomSection:Toggle({
     end
 })
 
+DoomSection:Toggle({
+    Title = "Auto Push Doom Button",
+    Desc = "Automatically moves to and presses Doom event buttons",
+    Icon = "check",
+    Value = savedSettings.autoPressDoomButton or false,
+    Callback = function(state)
+        State.autoPressDoomButton = state
+        autoPressDoomButton = state
+        savedSettings.autoPressDoomButton = state
+        saveSettings(savedSettings)
+    end
+})
+
 local FireAndIceSection = EventTab:Section({ Title = "Fire And Ice Event", Opened = true })
 
 FireAndIceSection:Toggle({
@@ -3169,6 +3627,44 @@ FireAndIceSection:Toggle({
         autoSpinFireAndIceWheel = state
         savedSettings.autoSpinFireAndIceWheel = state
         saveSettings(savedSettings)
+    end
+})
+
+local TrialTowerSection = TrialTowerTab:Section({ Title = "Trial Tower", Opened = true })
+
+TrialTowerSection:Toggle({
+    Title = "Auto Trial Tower",
+    Desc = "Automatically runs Doom Trial Tower with cooldown",
+    Icon = "check",
+    Value = savedSettings.autoTrialTower or false,
+    Callback = function(state)
+        State.autoTrialTower = state
+        autoTrialTower = state
+        savedSettings.autoTrialTower = state
+        saveSettings(savedSettings)
+    end
+})
+
+TrialTowerSection:Button({
+    Title = "Task Trial",
+    Desc = "Run one Trial Tower task now",
+    Callback = function()
+        if State.trialTowerTaskActive then
+            WindUI:Notify({
+                Title = "Trial Tower",
+                Content = "Trial task already running",
+                Icon = "alert-triangle",
+                Duration = 2
+            })
+            return
+        end
+        State.trialTowerRunOnceRequested = true
+        WindUI:Notify({
+            Title = "Trial Tower",
+            Content = "Task Trial queued",
+            Icon = "check",
+            Duration = 2
+        })
     end
 })
 
@@ -3938,6 +4434,11 @@ task.spawn(function()
         autoSpinDoomWheel = true
     end
 
+    -- Apply Auto Push Doom Button
+    if savedSettings.autoPressDoomButton then
+        autoPressDoomButton = true
+    end
+
     -- Apply Auto Collect Doom
     if savedSettings.autoCollectDoom then
         autoCollectDoom = true
@@ -3951,6 +4452,11 @@ task.spawn(function()
     -- Apply Auto Spin Fire And Ice Wheel
     if savedSettings.autoSpinFireAndIceWheel then
         autoSpinFireAndIceWheel = true
+    end
+
+    -- Apply Auto Trial Tower
+    if savedSettings.autoTrialTower then
+        autoTrialTower = true
     end
 
     -- Apply Auto Collect Candy (Valentines Event)
