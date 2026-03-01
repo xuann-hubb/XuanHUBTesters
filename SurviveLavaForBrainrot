@@ -47,6 +47,7 @@ local defaultSettings = {
     immuneToLava = false,
     autoFarmCelestials = false,
     removeVIPWalls = false,
+    autoCollectCheese = false,
 }
 
 local function loadSettings()
@@ -119,25 +120,25 @@ task.spawn(function()
         Content = "Verifying string data...",
         Duration = 2
     })
-    
+
     task.wait(2)
-    
+
     WindUI:Notify({
         Title = "Verifying",
         Content = "Verifying environment...",
         Duration = 2
     })
-    
+
     task.wait(2)
-    
+
     WindUI:Notify({
         Title = "Verifying",
         Content = "Verifying anti-cheat data...",
         Duration = 2
     })
-    
+
     task.wait(2)
-    
+
     WindUI:Notify({
         Title = "Success",
         Content = "Operation completed successfully",
@@ -211,6 +212,7 @@ local infJump = savedSettings.infJump or false
 local immuneToLava = savedSettings.immuneToLava or false
 local autoFarmCelestials = savedSettings.autoFarmCelestials or false
 local removeVIPWalls = savedSettings.removeVIPWalls or false
+local autoCollectCheese = savedSettings.autoCollectCheese or false
 local vipConn  -- Connection for VIP wall removal
 local grabConn -- Connection for auto-grab prompt HoldDuration management
 
@@ -277,7 +279,7 @@ MainSection:Button({
         pcall(function()
             local args = { "SellOne" }
             game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(
-            args))
+                args))
             WindUI:Notify({
                 Title = "Sell",
                 Content = "Sold held tool!",
@@ -296,7 +298,7 @@ MainSection:Button({
         pcall(function()
             local args = { "SellAll" }
             game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("SellDialogue"):InvokeServer(unpack(
-            args))
+                args))
             WindUI:Notify({
                 Title = "Sell",
                 Content = "Sold entire inventory!",
@@ -330,8 +332,13 @@ MainSection:Button({
         local plot = GetMyPlot()
         if not plot then
             pcall(function()
-                WindUI:Notify({ Title = "TP", Content = "No plot found (check your Plot attribute)", Icon =
-                "alert-triangle", Duration = 2 })
+                WindUI:Notify({
+                    Title = "TP",
+                    Content = "No plot found (check your Plot attribute)",
+                    Icon =
+                    "alert-triangle",
+                    Duration = 2
+                })
             end)
             return
         end
@@ -396,7 +403,8 @@ task.spawn(function()
     while task.wait(0.5) do
         if immuneToLava then
             pcall(function()
-                local lavasFolder = workspace:FindFirstChild("GameFolder") and workspace.GameFolder:FindFirstChild("Lavas")
+                local lavasFolder = workspace:FindFirstChild("GameFolder") and
+                workspace.GameFolder:FindFirstChild("Lavas")
                 if lavasFolder then
                     for _, lava in pairs(lavasFolder:GetDescendants()) do
                         if lava:IsA("BasePart") then
@@ -479,8 +487,13 @@ AutoSection:Toggle({
         autoUpgradeBase = state
         savedSettings.autoUpgradeBase = state
         saveSettings(savedSettings)
-        WindUI:Notify({ Title = "Loop Upgrade Base", Content = state and "Enabled" or "Disabled", Icon = state and
-        "check" or "x", Duration = 2 })
+        WindUI:Notify({
+            Title = "Loop Upgrade Base",
+            Content = state and "Enabled" or "Disabled",
+            Icon = state and
+                "check" or "x",
+            Duration = 2
+        })
     end,
 })
 
@@ -493,8 +506,31 @@ AutoSection:Toggle({
         autoUpgradeCarry = state
         savedSettings.autoUpgradeCarry = state
         saveSettings(savedSettings)
-        WindUI:Notify({ Title = "Loop Upgrade Carry", Content = state and "Enabled" or "Disabled", Icon = state and
-        "check" or "x", Duration = 2 })
+        WindUI:Notify({
+            Title = "Loop Upgrade Carry",
+            Content = state and "Enabled" or "Disabled",
+            Icon = state and
+                "check" or "x",
+            Duration = 2
+        })
+    end,
+})
+
+-- Loop Collect Cheese Toggle
+AutoSection:Toggle({
+    Title = "Loop Collect Cheese",
+    Desc = "Automatically collect all cheese across the entire map",
+    Value = savedSettings.autoCollectCheese,
+    Callback = function(state)
+        autoCollectCheese = state
+        savedSettings.autoCollectCheese = state
+        saveSettings(savedSettings)
+        WindUI:Notify({
+            Title = "Loop Collect Cheese",
+            Content = state and "Cheese collection enabled!" or "Cheese collection disabled",
+            Icon = state and "check" or "x",
+            Duration = 2,
+        })
     end,
 })
 
@@ -526,7 +562,7 @@ task.spawn(function()
             pcall(function()
                 local args = { "Speed", speedUpgradeAmount }
                 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Speed"):InvokeServer(unpack(
-                args))
+                    args))
             end)
         end
     end
@@ -550,7 +586,45 @@ task.spawn(function()
             pcall(function()
                 local args = { "Carry" }
                 game:GetService("ReplicatedStorage"):WaitForChild("Events"):WaitForChild("Carry"):InvokeServer(unpack(
-                args))
+                    args))
+            end)
+        end
+    end
+end)
+
+-- Loop Collect Cheese
+task.spawn(function()
+    local CollectCheese = game:GetService("ReplicatedStorage")
+        :WaitForChild("Remotes")
+        :WaitForChild("CheeseEvent")
+        :WaitForChild("CollectCheese")
+
+    while task.wait(0.5) do
+        if autoCollectCheese then
+            pcall(function()
+                local cheeseFolder = workspace:FindFirstChild("GameFolder")
+                    and workspace.GameFolder:FindFirstChild("CheeseFolder")
+
+                if cheeseFolder then
+                    local cheeses = cheeseFolder:GetChildren()
+                    for _, cheese in pairs(cheeses) do
+                        if not autoCollectCheese then break end
+
+                        -- Name of each child IS the UUID (e.g. "79c1aafc43744b9c8e18b9770c17ee5f")
+                        local uuid = cheese:GetAttribute("UUID")
+                            or cheese:GetAttribute("Id")
+                            or cheese:GetAttribute("uuid")
+                            or cheese:GetAttribute("id")
+                            or cheese.Name
+
+                        if uuid then
+                            pcall(function()
+                                CollectCheese:FireServer({uuid})
+                            end)
+                            task.wait(0.05)
+                        end
+                    end
+                end
             end)
         end
     end
@@ -577,7 +651,7 @@ task.spawn(function()
 
                                 -- 3. TP to safezone/Baseplate
                                 local baseplate = workspace:FindFirstChild("GameFolder") and
-                                workspace.GameFolder:FindFirstChild("Baseplate")
+                                    workspace.GameFolder:FindFirstChild("Baseplate")
                                 if baseplate and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                                     player.Character.HumanoidRootPart.CFrame = baseplate.CFrame + Vector3.new(0, 5, 0)
                                 end
