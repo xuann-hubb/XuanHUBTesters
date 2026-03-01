@@ -3645,29 +3645,6 @@ TrialTowerSection:Toggle({
     end
 })
 
-TrialTowerSection:Button({
-    Title = "Task Trial",
-    Desc = "Run one Trial Tower task now",
-    Callback = function()
-        if State.trialTowerTaskActive then
-            WindUI:Notify({
-                Title = "Trial Tower",
-                Content = "Trial task already running",
-                Icon = "alert-triangle",
-                Duration = 2
-            })
-            return
-        end
-        State.trialTowerRunOnceRequested = true
-        WindUI:Notify({
-            Title = "Trial Tower",
-            Content = "Task Trial queued",
-            Icon = "check",
-            Duration = 2
-        })
-    end
-})
-
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
