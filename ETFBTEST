@@ -20,7 +20,7 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 local Window = WindUI:CreateWindow({
     Folder = "XuanHub",
     Title = "XUAN HUB",
-    Author = "by discord.gg/kaydensdens",
+    Author = "by discord.gg/zVkS5xbaqq",
     Icon = "rbxassetid://103326199885496",
     Theme = "Dark",
     Size = UDim2.fromOffset(640, 480),
@@ -184,6 +184,7 @@ local autoOpenSeedPack = false
 local autoShovel = false
 local autoWater = false
 local autoSprinkler = false
+local autoFruitWeightESP = false
 local shopCheckInterval = 0.5 -- check stock/price text every 0.5s
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local fruitSellAmount = 1
@@ -217,6 +218,13 @@ local selectedShovelPlants = {}
 local selectedWaterPlants = {}
 local selectedSprinklerPlants = {}
 local selectedSprinklerGear = {}
+local fruitWeightEspEntries = {}
+
+-- plot auto‑claim state
+local autoClaimPlot = false               -- controlled by toggle
+local autoClaimPlotThread = nil           -- not strictly needed, kept for potential future use
+
+
 local ConfigManager = Window.ConfigManager
 local configElements = {}
 local selectedConfigFile = nil
@@ -233,6 +241,13 @@ local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedSt
 
 local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
 local ShopsFolder = workspace:WaitForChild("MapPhysical"):WaitForChild("Shops")
+
+-- optional teleport helpers – some games expose a Teleports folder, otherwise we fall back to hard‑coded vectors
+local Teleports = workspace:FindFirstChild("Teleports") or {}
+
+-- manual positions used by buttons in UI; gear shop and quests didn't have a Teleports part so we hardcode
+local GearShopTeleportPos = Vector3.new(211, 204, 609)
+local QuestTeleportPos    = Vector3.new(111, 204, 635)
 
 local function hasSelection(tbl)
     if type(tbl) ~= "table" then
@@ -1076,13 +1091,37 @@ local function performShopAutoBuy(shopId, shopUiName, shopWorldName, teleportInd
             return
         end
 
-        local shopPart = getShopTeleportPart(shopWorldName, teleportIndex)
-        if not shopPart then
-            return
+        -- choose a teleport target; prefer explicit vectors/parts when available
+        local targetCFrame
+        if shopWorldName == "Seed Shop" and Teleports.SeedsTeleport then
+            local npc = Workspace.MapPhysical.Shops["Seed Shop"].SeedNPC
+            if npc and npc.HumanoidRootPart then
+                targetCFrame = CFrame.new(Teleports.SeedsTeleport.Position,
+                                           npc.HumanoidRootPart.Position)
+            end
+        elseif shopWorldName == "Gear Shop" then
+            local npc = Workspace.MapPhysical.Shops["Gear Shop"].GearNPC
+            local basePos = Teleports.GearTeleport and Teleports.GearTeleport.Position or GearShopTeleportPos
+            if npc and npc.HumanoidRootPart then
+                targetCFrame = CFrame.new(basePos, npc.HumanoidRootPart.Position)
+            end
+        elseif shopWorldName == "Sell Stand" and Teleports.SellTeleport then
+            local npc = Workspace.MapPhysical.Shops["Sell Stand"].Steve
+            if npc and npc.HumanoidRootPart then
+                targetCFrame = CFrame.new(Teleports.SellTeleport.Position,
+                                           npc.HumanoidRootPart.Position)
+            end
+        end
+        if not targetCFrame then
+            local shopPart = getShopTeleportPart(shopWorldName, teleportIndex)
+            if not shopPart then
+                return
+            end
+            targetCFrame = shopPart.CFrame
         end
 
         local oldCFrame = hrp.CFrame
-        hrp.CFrame = shopPart.CFrame
+        hrp.CFrame = targetCFrame
         task.wait(1.2)
 
         -- One teleport session: keep buying until no selected item is affordable or all are out of stock.
@@ -1423,6 +1462,122 @@ local function normalizeRipenessStageName(stageName)
         return "unripe"
     end
     return s
+end
+
+local function formatFruitWeightText(weightValue)
+    local asNumber = tonumber(weightValue)
+    if asNumber then
+        return string.format("Weight: %.2f", asNumber)
+    end
+    return "Weight: " .. tostring(weightValue)
+end
+
+local function getFruitWeightAdornee(fruitInstance)
+    if not fruitInstance then
+        return nil
+    end
+    if fruitInstance:IsA("BasePart") then
+        return fruitInstance
+    end
+    if fruitInstance:IsA("Model") then
+        return fruitInstance.PrimaryPart or fruitInstance:FindFirstChildWhichIsA("BasePart", true)
+    end
+    return nil
+end
+
+local function removeFruitWeightESPForFruit(fruitInstance)
+    local existingGui = fruitWeightEspEntries[fruitInstance]
+    if existingGui then
+        pcall(function()
+            existingGui:Destroy()
+        end)
+        fruitWeightEspEntries[fruitInstance] = nil
+    end
+end
+
+local function clearFruitWeightESP()
+    for fruitInstance, gui in pairs(fruitWeightEspEntries) do
+        if gui then
+            pcall(function()
+                gui:Destroy()
+            end)
+        end
+        fruitWeightEspEntries[fruitInstance] = nil
+    end
+end
+
+local function ensureFruitWeightESPForFruit(fruitInstance)
+    if not fruitInstance or not fruitInstance.Parent then
+        removeFruitWeightESPForFruit(fruitInstance)
+        return
+    end
+
+    local fruitWeight = fruitInstance:GetAttribute("FruitWeight")
+    if fruitWeight == nil then
+        removeFruitWeightESPForFruit(fruitInstance)
+        return
+    end
+
+    local adorneePart = getFruitWeightAdornee(fruitInstance)
+    if not adorneePart then
+        removeFruitWeightESPForFruit(fruitInstance)
+        return
+    end
+
+    local weightText = formatFruitWeightText(fruitWeight)
+    local billboardGui = fruitWeightEspEntries[fruitInstance]
+    if (not billboardGui) or (billboardGui.Parent ~= adorneePart) then
+        removeFruitWeightESPForFruit(fruitInstance)
+
+        billboardGui = Instance.new("BillboardGui")
+        billboardGui.Name = "XuanFruitWeightESP"
+        billboardGui.AlwaysOnTop = true
+        billboardGui.LightInfluence = 0
+        billboardGui.MaxDistance = 250
+        billboardGui.Size = UDim2.fromOffset(130, 26)
+        billboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
+        billboardGui.Adornee = adorneePart
+        billboardGui.Parent = adorneePart
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Name = "WeightText"
+        textLabel.BackgroundTransparency = 1
+        textLabel.Size = UDim2.fromScale(1, 1)
+        textLabel.Font = Enum.Font.GothamBold
+        textLabel.TextScaled = true
+        textLabel.TextStrokeTransparency = 0.35
+        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        textLabel.Text = weightText
+        textLabel.Parent = billboardGui
+
+        fruitWeightEspEntries[fruitInstance] = billboardGui
+    end
+
+    local displayLabel = billboardGui:FindFirstChild("WeightText")
+    if displayLabel and displayLabel:IsA("TextLabel") then
+        displayLabel.Text = weightText
+    end
+    billboardGui.Enabled = autoFruitWeightESP
+end
+
+local function updateFruitWeightESP()
+    local clientPlants = workspace:FindFirstChild("ClientPlants")
+    local seenFruits = {}
+
+    if clientPlants then
+        for _, obj in ipairs(clientPlants:GetDescendants()) do
+            if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
+                seenFruits[obj] = true
+                ensureFruitWeightESPForFruit(obj)
+            end
+        end
+    end
+
+    for fruitInstance, _ in pairs(fruitWeightEspEntries) do
+        if (not fruitInstance) or (not fruitInstance.Parent) or (not seenFruits[fruitInstance]) then
+            removeFruitWeightESPForFruit(fruitInstance)
+        end
+    end
 end
 
 
@@ -1895,6 +2050,43 @@ local AutoBuySeedToggle = ShopSection:Toggle({
 trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
 
+-- plot section (main tab)
+local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
+
+local AutoClaimPlotToggle = PlotSection:Toggle({
+    Title = "Auto Claim Plot",
+    Desc = "Attempt to claim the first unowned plot once",
+    Value = false,
+    Callback = function(state)
+        autoClaimPlot = state
+        WindUI:Notify({
+            Title = "Automation",
+            Content = (state and "Auto-plot claim enabled" or "Auto-plot claim disabled"),
+            Icon = "info",
+            Duration = 2,
+        })
+
+        if state then
+            task.spawn(function()
+                if not playerHasPlot() then
+                    local ok, didClaim = pcall(claimNextPlot)
+                    if ok and not didClaim then
+                        WindUI:Notify({
+                            Title = "Automation",
+                            Content = "No unowned plot found",
+                            Icon = "alert-triangle",
+                            Duration = 2,
+                        })
+                    end
+                end
+                -- disable after single attempt regardless
+                autoClaimPlot = false
+            end)
+        end
+    end,
+})
+trackConfigElement("AutoClaimPlotToggle", AutoClaimPlotToggle)
+
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
 -- Refresh buttons and delay slider removed per user request
@@ -2185,6 +2377,22 @@ local AutoSprinklerToggle = SprinklerAutomationSection:Toggle({
 trackConfigElement("AutoSprinklerToggle", AutoSprinklerToggle)
 SprinklerAutomationSection:Space()
 
+-- quest automation section
+local QuestAutomationSection = AutomationTab:Section({ Title = "Quest Automation", Opened = true })
+
+local AutoClaimDailyToggle = QuestAutomationSection:Toggle({
+    Title = "Auto Claim Daily Quest",
+    Desc = "Teleports and claims the daily quest when ready",
+    Value = false,
+    Callback = function(state)
+        autoClaimDaily = state
+        WindUI:Notify({ Title = "Automation", Content = (state and "Auto-claim enabled" or "Auto-claim disabled"), Icon = "info", Duration = 2 })
+    end,
+})
+trackConfigElement("AutoClaimDailyToggle", AutoClaimDailyToggle)
+
+QuestAutomationSection:Space()
+
 local HarvestAutomationSection = AutomationTab:Section({ Title = "Harvest Automation", Opened = true })
 local plantValues = {}
 if PlantsModels then
@@ -2338,6 +2546,36 @@ local AutoShovelToggle = HarvestAutomationSection:Toggle({
 trackConfigElement("AutoShovelToggle", AutoShovelToggle)
 HarvestAutomationSection:Space()
 
+local ESPTab = Window:Tab({
+    Title = "ESP",
+    Icon = "eye",
+    Locked = false,
+})
+
+local ESPSection = ESPTab:Section({ Title = "Fruit ESP", Opened = true })
+
+local FruitWeightESPToggle = ESPSection:Toggle({
+    Title = "Show Fruit Weight",
+    Desc = "Display FruitWeight attribute above world fruits",
+    Value = false,
+    Callback = function(state)
+        autoFruitWeightESP = state
+        if state then
+            pcall(updateFruitWeightESP)
+        else
+            clearFruitWeightESP()
+        end
+        WindUI:Notify({
+            Title = "ESP",
+            Content = (state and "Fruit weight ESP enabled" or "Fruit weight ESP disabled"),
+            Icon = "info",
+            Duration = 2,
+        })
+    end,
+})
+trackConfigElement("FruitWeightESPToggle", FruitWeightESPToggle)
+ESPSection:Space()
+
 refreshConfigDropdown()
 if autoLoadConfigFile then
     local autoConfigName = sanitizeConfigName(autoLoadConfigFile)
@@ -2432,6 +2670,115 @@ task.spawn(function()
     end
 end)
 
+-- auto claim daily quest loop
+-- helper to extract the text string from a status object
+local function getStatusText(status)
+    if not status then
+        return nil
+    end
+    if (status:IsA("TextLabel") or status:IsA("TextButton") or status:IsA("TextBox")) and type(status.Text) == "string" then
+        return status.Text
+    end
+    local txt = status:FindFirstChild("Text")
+    if txt and (txt:IsA("TextLabel") or txt:IsA("TextButton") or txt:IsA("TextBox")) and type(txt.Text) == "string" then
+        return txt.Text
+    end
+    return nil
+end
+
+local function tryClaimDaily()
+    local playerGui = player and player:FindFirstChild("PlayerGui")
+    if not playerGui then return end
+    local quests = playerGui:FindFirstChild("Quests")
+    if not quests then return end
+    local bg = quests:FindFirstChild("BG")
+    if not bg then return end
+    local sf = bg:FindFirstChild("ScrollingFrame")
+    if not sf then return end
+
+    for _, frame in ipairs(sf:GetChildren()) do
+        local status = frame:FindFirstChild("QuestStatus")
+        local txt = getStatusText(status)
+        if txt then
+            if txt == "Ready!" then
+                local index = tostring(frame.Name)
+
+                local char = player.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    local oldCFrame = hrp.CFrame
+                    -- teleport to quest board using hard‑coded vector (matches UI button)
+                    local qbPart = workspace:FindFirstChild("MapPhysical")
+                    qbPart = qbPart and qbPart:FindFirstChild("QuestBoard")
+                    qbPart = qbPart and qbPart:FindFirstChild("OpenButton")
+                    if qbPart then
+                        hrp.CFrame = CFrame.new(QuestTeleportPos, qbPart.Position)
+                        task.wait(0.5)
+                        local remote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ClaimQuest")
+                        local ok, err = pcall(function()
+                            remote:FireServer("Daily", index)
+                        end)
+                        -- ignore remote errors
+                        task.wait(1)
+                        -- return to original position
+                        if oldCFrame then
+                            hrp.CFrame = oldCFrame
+                        end
+                    else
+                        -- quest board missing
+                    end
+                else
+                    -- missing humanoid root part
+                end
+                -- continue scanning so all "Ready!" entries are claimed
+            end
+        end
+    end
+end
+
+-- helpers for plot auto-claim
+local function playerHasPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if Plots then
+        for _, plot in ipairs(Plots:GetChildren()) do
+            local owner = plot:FindFirstChild("Owner")
+            if owner and owner.Value == player.Name then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function claimNextPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then
+        return false
+    end
+    for _, plot in ipairs(Plots:GetChildren()) do
+        local owner = plot:FindFirstChild("Owner")
+        if (not owner) or owner.Value == "" then
+            if ClaimSelectedPlotRemote then
+                pcall(function()
+                    ClaimSelectedPlotRemote:FireServer(plot.Name)
+                end)
+            end
+            return true
+        end
+    end
+    return false
+end
+
+task.spawn(function()
+    while scriptRunning do
+        if autoClaimDaily then
+            pcall(tryClaimDaily)
+        end
+        task.wait(1)
+    end
+end)
+
+-- auto claim plot loop removed; toggle now fires once and disables itself.
 -- auto plant/harvest loop
 task.spawn(function()
     while scriptRunning do
@@ -2468,6 +2815,18 @@ task.spawn(function()
     end
 end)
 
+task.spawn(function()
+    while scriptRunning do
+        if autoFruitWeightESP then
+            pcall(updateFruitWeightESP)
+            task.wait(0.35)
+        else
+            task.wait(0.7)
+        end
+    end
+    clearFruitWeightESP()
+end)
+
 
 local AboutTab = Window:Tab({
     Title = "About",
@@ -2498,7 +2857,7 @@ AboutTab:Paragraph({
     TextSize = 17,
 })
 
-local InviteCode = "kaydensdens"
+local InviteCode = "zVkS5xbaqq"
 
 AboutTab:Paragraph({
     Title = "Discord Server",
