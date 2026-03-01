@@ -1652,11 +1652,12 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
                     end
                 end
                 if eligibleCount > 0 then
-                    local growthIndex = tonumber(plant:GetAttribute("GrowthAnchorIndex")) or 5
-                    local count = math.max(1, math.min(growthIndex, 5))
-                    pcall(function()
-                        RemovePlantRemote:FireServer(uuid, count)
-                    end)
+                    local growthIndex = tonumber(plant:GetAttribute("GrowthAnchorIndex"))
+                    if growthIndex and growthIndex > 0 then
+                        pcall(function()
+                            RemovePlantRemote:FireServer(uuid, growthIndex)
+                        end)
+                    end
                 end
             elseif plantTypes[plantType] then
                 pcall(function()
