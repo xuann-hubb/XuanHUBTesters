@@ -629,11 +629,12 @@ task.spawn(function()
     while true do
         if autoCollectCheese and cheeseHRP then
             pcall(function()
-                local cheeseFolder = workspace:FindFirstChild("GameFolder")
+                local cheeseModel = workspace:FindFirstChild("GameFolder")
                     and workspace.GameFolder:FindFirstChild("CheeseFolder")
-                if not cheeseFolder then return end
+                    and workspace.GameFolder.CheeseFolder:FindFirstChild("CheeseModel")
+                if not cheeseModel then return end
 
-                for _, cheese in ipairs(cheeseFolder:GetChildren()) do
+                for _, cheese in ipairs(cheeseModel:GetChildren()) do
                     if not autoCollectCheese then break end
                     if cheese:IsA("Model") then
                         local part = getModelPart(cheese)
@@ -657,14 +658,15 @@ task.spawn(function()
     while task.wait(0.5) do
         if autoCollectCheese and cheeseHRP then
             pcall(function()
-                local cheeseFolder = workspace:FindFirstChild("GameFolder")
+                local cheeseModel = workspace:FindFirstChild("GameFolder")
                     and workspace.GameFolder:FindFirstChild("CheeseFolder")
-                if not cheeseFolder then return end
+                    and workspace.GameFolder.CheeseFolder:FindFirstChild("CheeseModel")
+                if not cheeseModel then return end
 
                 -- Save original position before we start teleporting
                 local returnCFrame = cheeseHRP.CFrame
 
-                for _, cheese in ipairs(cheeseFolder:GetChildren()) do
+                for _, cheese in ipairs(cheeseModel:GetChildren()) do
                     if not autoCollectCheese then break end
 
                     local uuid = cheese:GetAttribute("UUID")
