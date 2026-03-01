@@ -1652,16 +1652,11 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
                     end
                 end
                 if eligibleCount > 0 then
-                    local remaining = eligibleCount
-                    while remaining > 0 do
-                        local batch = math.min(remaining, 5)
+                    for i = 1, 5 do
                         pcall(function()
-                            RemovePlantRemote:FireServer(uuid, batch)
+                            RemovePlantRemote:FireServer(uuid, i)
                         end)
-                        remaining = remaining - batch
-                        if remaining > 0 then
-                            task.wait(0.05)
-                        end
+                        task.wait(0.05)
                     end
                 end
             elseif plantTypes[plantType] then
