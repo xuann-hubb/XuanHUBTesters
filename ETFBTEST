@@ -184,7 +184,6 @@ local autoOpenSeedPack = false
 local autoShovel = false
 local autoWater = false
 local autoSprinkler = false
-local autoFruitWeightESP = false
 local shopCheckInterval = 0.5 -- check stock/price text every 0.5s
 local fruitSellInterval = 1 -- seconds between fruit sell attempts
 local fruitSellAmount = 1
@@ -218,7 +217,6 @@ local selectedShovelPlants = {}
 local selectedWaterPlants = {}
 local selectedSprinklerPlants = {}
 local selectedSprinklerGear = {}
-local fruitWeightEspEntries = {}
 
 -- plot auto‑claim state
 local autoClaimPlot = false               -- controlled by toggle
@@ -1464,122 +1462,6 @@ local function normalizeRipenessStageName(stageName)
     return s
 end
 
-local function formatFruitWeightText(weightValue)
-    local asNumber = tonumber(weightValue)
-    if asNumber then
-        return string.format("Weight: %.2f", asNumber)
-    end
-    return "Weight: " .. tostring(weightValue)
-end
-
-local function getFruitWeightAdornee(fruitInstance)
-    if not fruitInstance then
-        return nil
-    end
-    if fruitInstance:IsA("BasePart") then
-        return fruitInstance
-    end
-    if fruitInstance:IsA("Model") then
-        return fruitInstance.PrimaryPart or fruitInstance:FindFirstChildWhichIsA("BasePart", true)
-    end
-    return nil
-end
-
-local function removeFruitWeightESPForFruit(fruitInstance)
-    local existingGui = fruitWeightEspEntries[fruitInstance]
-    if existingGui then
-        pcall(function()
-            existingGui:Destroy()
-        end)
-        fruitWeightEspEntries[fruitInstance] = nil
-    end
-end
-
-local function clearFruitWeightESP()
-    for fruitInstance, gui in pairs(fruitWeightEspEntries) do
-        if gui then
-            pcall(function()
-                gui:Destroy()
-            end)
-        end
-        fruitWeightEspEntries[fruitInstance] = nil
-    end
-end
-
-local function ensureFruitWeightESPForFruit(fruitInstance)
-    if not fruitInstance or not fruitInstance.Parent then
-        removeFruitWeightESPForFruit(fruitInstance)
-        return
-    end
-
-    local fruitWeight = fruitInstance:GetAttribute("FruitWeight")
-    if fruitWeight == nil then
-        removeFruitWeightESPForFruit(fruitInstance)
-        return
-    end
-
-    local adorneePart = getFruitWeightAdornee(fruitInstance)
-    if not adorneePart then
-        removeFruitWeightESPForFruit(fruitInstance)
-        return
-    end
-
-    local weightText = formatFruitWeightText(fruitWeight)
-    local billboardGui = fruitWeightEspEntries[fruitInstance]
-    if (not billboardGui) or (billboardGui.Parent ~= adorneePart) then
-        removeFruitWeightESPForFruit(fruitInstance)
-
-        billboardGui = Instance.new("BillboardGui")
-        billboardGui.Name = "XuanFruitWeightESP"
-        billboardGui.AlwaysOnTop = true
-        billboardGui.LightInfluence = 0
-        billboardGui.MaxDistance = 250
-        billboardGui.Size = UDim2.fromOffset(130, 26)
-        billboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
-        billboardGui.Adornee = adorneePart
-        billboardGui.Parent = adorneePart
-
-        local textLabel = Instance.new("TextLabel")
-        textLabel.Name = "WeightText"
-        textLabel.BackgroundTransparency = 1
-        textLabel.Size = UDim2.fromScale(1, 1)
-        textLabel.Font = Enum.Font.GothamBold
-        textLabel.TextScaled = true
-        textLabel.TextStrokeTransparency = 0.35
-        textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        textLabel.Text = weightText
-        textLabel.Parent = billboardGui
-
-        fruitWeightEspEntries[fruitInstance] = billboardGui
-    end
-
-    local displayLabel = billboardGui:FindFirstChild("WeightText")
-    if displayLabel and displayLabel:IsA("TextLabel") then
-        displayLabel.Text = weightText
-    end
-    billboardGui.Enabled = autoFruitWeightESP
-end
-
-local function updateFruitWeightESP()
-    local clientPlants = workspace:FindFirstChild("ClientPlants")
-    local seenFruits = {}
-
-    if clientPlants then
-        for _, obj in ipairs(clientPlants:GetDescendants()) do
-            if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
-                seenFruits[obj] = true
-                ensureFruitWeightESPForFruit(obj)
-            end
-        end
-    end
-
-    for fruitInstance, _ in pairs(fruitWeightEspEntries) do
-        if (not fruitInstance) or (not fruitInstance.Parent) or (not seenFruits[fruitInstance]) then
-            removeFruitWeightESPForFruit(fruitInstance)
-        end
-    end
-end
-
 
 
 -- Auto Harvest Function (supports optional ripeness + variant + mutation filters)
@@ -2546,35 +2428,168 @@ local AutoShovelToggle = HarvestAutomationSection:Toggle({
 trackConfigElement("AutoShovelToggle", AutoShovelToggle)
 HarvestAutomationSection:Space()
 
-local ESPTab = Window:Tab({
-    Title = "ESP",
-    Icon = "eye",
-    Locked = false,
-})
+do
+    local espEnabled = false
+    local espEntries = {}
 
-local ESPSection = ESPTab:Section({ Title = "Fruit ESP", Opened = true })
-
-local FruitWeightESPToggle = ESPSection:Toggle({
-    Title = "Show Fruit Weight",
-    Desc = "Display FruitWeight attribute above world fruits",
-    Value = false,
-    Callback = function(state)
-        autoFruitWeightESP = state
-        if state then
-            pcall(updateFruitWeightESP)
-        else
-            clearFruitWeightESP()
+    local function formatFruitWeightText(weightValue)
+        local asNumber = tonumber(weightValue)
+        if asNumber then
+            return string.format("Weight: %.2f", asNumber)
         end
-        WindUI:Notify({
-            Title = "ESP",
-            Content = (state and "Fruit weight ESP enabled" or "Fruit weight ESP disabled"),
-            Icon = "info",
-            Duration = 2,
-        })
-    end,
-})
-trackConfigElement("FruitWeightESPToggle", FruitWeightESPToggle)
-ESPSection:Space()
+        return "Weight: " .. tostring(weightValue)
+    end
+
+    local function getFruitWeightAdornee(fruitInstance)
+        if not fruitInstance then
+            return nil
+        end
+        if fruitInstance:IsA("BasePart") then
+            return fruitInstance
+        end
+        if fruitInstance:IsA("Model") then
+            return fruitInstance.PrimaryPart or fruitInstance:FindFirstChildWhichIsA("BasePart", true)
+        end
+        return nil
+    end
+
+    local function removeFruitESP(fruitInstance)
+        local existingGui = espEntries[fruitInstance]
+        if existingGui then
+            pcall(function()
+                existingGui:Destroy()
+            end)
+            espEntries[fruitInstance] = nil
+        end
+    end
+
+    local function clearFruitESP()
+        for fruitInstance, gui in pairs(espEntries) do
+            if gui then
+                pcall(function()
+                    gui:Destroy()
+                end)
+            end
+            espEntries[fruitInstance] = nil
+        end
+    end
+
+    local function ensureFruitESP(fruitInstance)
+        if not fruitInstance or not fruitInstance.Parent then
+            removeFruitESP(fruitInstance)
+            return
+        end
+
+        local fruitWeight = fruitInstance:GetAttribute("FruitWeight")
+        if fruitWeight == nil then
+            removeFruitESP(fruitInstance)
+            return
+        end
+
+        local adorneePart = getFruitWeightAdornee(fruitInstance)
+        if not adorneePart then
+            removeFruitESP(fruitInstance)
+            return
+        end
+
+        local weightText = formatFruitWeightText(fruitWeight)
+        local billboardGui = espEntries[fruitInstance]
+        if (not billboardGui) or (billboardGui.Parent ~= adorneePart) then
+            removeFruitESP(fruitInstance)
+
+            billboardGui = Instance.new("BillboardGui")
+            billboardGui.Name = "XuanFruitWeightESP"
+            billboardGui.AlwaysOnTop = true
+            billboardGui.LightInfluence = 0
+            billboardGui.MaxDistance = 250
+            billboardGui.Size = UDim2.fromOffset(130, 26)
+            billboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
+            billboardGui.Adornee = adorneePart
+            billboardGui.Parent = adorneePart
+
+            local textLabel = Instance.new("TextLabel")
+            textLabel.Name = "WeightText"
+            textLabel.BackgroundTransparency = 1
+            textLabel.Size = UDim2.fromScale(1, 1)
+            textLabel.Font = Enum.Font.GothamBold
+            textLabel.TextScaled = true
+            textLabel.TextStrokeTransparency = 0.35
+            textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            textLabel.Text = weightText
+            textLabel.Parent = billboardGui
+
+            espEntries[fruitInstance] = billboardGui
+        end
+
+        local displayLabel = billboardGui:FindFirstChild("WeightText")
+        if displayLabel and displayLabel:IsA("TextLabel") then
+            displayLabel.Text = weightText
+        end
+        billboardGui.Enabled = espEnabled
+    end
+
+    local function updateFruitESP()
+        local clientPlants = workspace:FindFirstChild("ClientPlants")
+        local seenFruits = {}
+
+        if clientPlants then
+            for _, obj in ipairs(clientPlants:GetDescendants()) do
+                if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
+                    seenFruits[obj] = true
+                    ensureFruitESP(obj)
+                end
+            end
+        end
+
+        for fruitInstance, _ in pairs(espEntries) do
+            if (not fruitInstance) or (not fruitInstance.Parent) or (not seenFruits[fruitInstance]) then
+                removeFruitESP(fruitInstance)
+            end
+        end
+    end
+
+    local ESPTab = Window:Tab({
+        Title = "ESP",
+        Icon = "eye",
+        Locked = false,
+    })
+
+    local ESPSection = ESPTab:Section({ Title = "Fruit ESP", Opened = true })
+
+    local FruitWeightESPToggle = ESPSection:Toggle({
+        Title = "Show Fruit Weight",
+        Desc = "Display FruitWeight attribute above world fruits",
+        Value = false,
+        Callback = function(state)
+            espEnabled = state
+            if state then
+                pcall(updateFruitESP)
+            else
+                clearFruitESP()
+            end
+            WindUI:Notify({
+                Title = "ESP",
+                Content = (state and "Fruit weight ESP enabled" or "Fruit weight ESP disabled"),
+                Icon = "info",
+                Duration = 2,
+            })
+        end,
+    })
+    trackConfigElement("FruitWeightESPToggle", FruitWeightESPToggle)
+    ESPSection:Space()
+
+    task.spawn(function()
+        while scriptRunning do
+            if espEnabled then
+                pcall(updateFruitESP)
+                task.wait(0.35)
+            else
+                task.wait(0.7)
+            end
+        end
+        clearFruitESP()
+    end)
+end
 
 refreshConfigDropdown()
 if autoLoadConfigFile then
@@ -2814,19 +2829,6 @@ task.spawn(function()
         task.wait(plantInterval)
     end
 end)
-
-task.spawn(function()
-    while scriptRunning do
-        if autoFruitWeightESP then
-            pcall(updateFruitWeightESP)
-            task.wait(0.35)
-        else
-            task.wait(0.7)
-        end
-    end
-    clearFruitWeightESP()
-end)
-
 
 local AboutTab = Window:Tab({
     Title = "About",
