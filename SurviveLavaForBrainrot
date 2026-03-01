@@ -219,8 +219,6 @@ local grabConn -- Connection for auto-grab prompt HoldDuration management
 -- ================= CHARACTER TRACKING =================
 local cheeseCharacter = nil
 local cheeseHRP = nil
-local cheesePullDelay = 0.1
-local cheeseHeightOffset = 3
 
 local function setupCheeseCharacter(char)
     cheeseCharacter = char
@@ -614,45 +612,6 @@ local CollectCheese = game:GetService("ReplicatedStorage")
     :WaitForChild("CheeseEvent")
     :WaitForChild("CollectCheese")
 
-local function getModelPart(model)
-    if model.PrimaryPart then return model.PrimaryPart end
-    for _, v in ipairs(model:GetDescendants()) do
-        if v:IsA("BasePart") then
-            model.PrimaryPart = v
-            return v
-        end
-    end
-end
-
--- Pull loop: moves every cheese model to the player (magnet effect)
-task.spawn(function()
-    while true do
-        if autoCollectCheese and cheeseHRP then
-            pcall(function()
-                local cheeseModel = workspace:FindFirstChild("GameFolder")
-                    and workspace.GameFolder:FindFirstChild("CheeseFolder")
-                    and workspace.GameFolder.CheeseFolder:FindFirstChild("CheeseModel")
-                if not cheeseModel then return end
-
-                for _, cheese in ipairs(cheeseModel:GetChildren()) do
-                    if not autoCollectCheese then break end
-                    if cheese:IsA("Model") then
-                        local part = getModelPart(cheese)
-                        if part then
-                            cheese:SetPrimaryPartCFrame(
-                                CFrame.new(cheeseHRP.Position + Vector3.new(0, cheeseHeightOffset, 0))
-                            )
-                        end
-                    elseif cheese:IsA("BasePart") then
-                        cheese.CFrame = CFrame.new(cheeseHRP.Position + Vector3.new(0, cheeseHeightOffset, 0))
-                    end
-                end
-            end)
-        end
-        task.wait(cheesePullDelay)
-    end
-end)
-
 -- Fire loop: teleport to each cheese then collect it, return home after all done
 task.spawn(function()
     while task.wait(0.5) do
@@ -680,7 +639,7 @@ task.spawn(function()
                         local part = (cheese:IsA("BasePart") and cheese)
                             or cheese:FindFirstChildWhichIsA("BasePart")
                         if part then
-                            cheeseHRP.CFrame = CFrame.new(part.Position + Vector3.new(0, cheeseHeightOffset, 0))
+                            cheeseHRP.CFrame = part.CFrame
                             task.wait(0.05) -- let server register position
                         end
 
