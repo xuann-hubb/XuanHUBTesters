@@ -66,6 +66,8 @@ local defaultSettings = {
     autoPressDoomButton = false,
     autoSpinFireAndIceWheel = false,
     autoTrialTower = false,
+    autoCollectInfinityBrainrot = false,
+    autoCollectDivineBrainrot = false,
     autoSubmitCandy = false,
     -- Auto-open Lucky Block (select which lucky block to auto-open from your Backpack)
     autoOpenLuckyBlock = false,
@@ -512,6 +514,8 @@ local State = {
     autoPressDoomButton = false,
     autoSpinFireAndIceWheel = false,
     autoTrialTower = false,
+    autoCollectInfinityBrainrot = false,
+    autoCollectDivineBrainrot = false,
     autoSpinUFO = false,
     autoSpinMoneyWheel = false,
 
@@ -615,6 +619,8 @@ autoCollectFireAndIce = false
 autoPressDoomButton = false
 autoSpinFireAndIceWheel = false
 autoTrialTower = false
+autoCollectInfinityBrainrot = false
+autoCollectDivineBrainrot = false
 spinning = false
 active = false
 PullDelay = 0.1
@@ -706,7 +712,16 @@ local function flyToPos(targetPos, speed)
     speed = speed or 4000
     local distanceTraveled = 0
     while true do
-        if not autoPressDoomButton and not autoCollectDoom and not autoTrialTower and not State.trialTowerBusy then return false end
+        if not autoPressDoomButton
+            and not autoCollectDoom
+            and not autoTrialTower
+            and not State.trialTowerBusy
+            and not autoCollectInfinityBrainrot
+            and not autoCollectDivineBrainrot
+            and not State.brainrotCollectorBusy
+        then
+            return false
+        end
 
         local currentCharacter = player.Character
         if not currentCharacter then return false end
@@ -755,6 +770,7 @@ local TOWER_KEYWORDS = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Myt
 State.trialTowerTaskActive = false
 State.trialTowerRunOnceRequested = false
 State.trialTowerBusy = false
+State.brainrotCollectorBusy = false
 
 local function getTowerPrompt()
     local prompt
@@ -834,6 +850,93 @@ local function getNearestRenderedBrainrot(keyword)
     end
 
     return nearestObj, nearestPos
+end
+
+local function hasRenderedBrainrotInTier(tier)
+    local activeBrainrots = workspace:FindFirstChild("ActiveBrainrots")
+    local folder = activeBrainrots and activeBrainrots:FindFirstChild(tier)
+    if not folder then return false end
+    for _, child in ipairs(folder:GetChildren()) do
+        if child.Name == "RenderedBrainrot" and child.Parent then
+            return true
+        end
+    end
+    return false
+end
+
+local function getNearestRenderedBrainrotByTier(tier)
+    local root = getCharacterRoots()
+    if not root then return nil, nil end
+
+    local activeBrainrots = workspace:FindFirstChild("ActiveBrainrots")
+    local folder = activeBrainrots and activeBrainrots:FindFirstChild(tier)
+    if not folder then return nil, nil end
+
+    local nearestObj, nearestPos, nearestDist = nil, nil, math.huge
+    for _, child in ipairs(folder:GetChildren()) do
+        if child.Name == "RenderedBrainrot" and child.Parent then
+            local pos = getPosition(child)
+            if pos then
+                local dist = (root.Position - pos).Magnitude
+                if dist < nearestDist then
+                    nearestDist = dist
+                    nearestObj = child
+                    nearestPos = pos
+                end
+            end
+        end
+    end
+    return nearestObj, nearestPos
+end
+
+local function collectBrainrotTierOnce(tier)
+    local target, pos = getNearestRenderedBrainrotByTier(tier)
+    if not target or not pos then return false end
+
+    State.brainrotCollectorBusy = true
+    acquireMoveLock()
+
+    local ok = pcall(function()
+        local speed = getEventCurrencySpeed()
+        local root = getCharacterRoots()
+        if root then
+            flyToPos(Vector3.new(root.Position.X, BRAINROT_UNDER_Y, root.Position.Z), speed)
+            task.wait(0.01)
+        end
+
+        flyToPos(Vector3.new(pos.X, BRAINROT_UNDER_Y, pos.Z), speed)
+        task.wait(0.01)
+        flyToPos(Vector3.new(pos.X, BRAINROT_FLAT_Y, pos.Z), speed)
+
+        local beforeParent = target.Parent
+        for _ = 1, 10 do
+            if not target or not target.Parent then break end
+            local promptInTarget = target:FindFirstChildWhichIsA("ProximityPrompt", true)
+            if promptInTarget then
+                activatePrompt(promptInTarget)
+            else
+                local towerPrompt = getTowerPrompt()
+                if towerPrompt then activatePrompt(towerPrompt) end
+            end
+            task.wait(0.15)
+            if not target.Parent or target.Parent ~= beforeParent then
+                break
+            end
+        end
+
+        local backRoot = getCharacterRoots()
+        if backRoot and (autoTrialTower or State.trialTowerTaskActive) then
+            flyToPos(Vector3.new(backRoot.Position.X, BRAINROT_UNDER_Y, backRoot.Position.Z), speed)
+            task.wait(0.01)
+            flyToPos(Vector3.new(TOWER_POS.X, BRAINROT_UNDER_Y, TOWER_POS.Z), speed)
+            task.wait(0.01)
+            flyToPos(TOWER_POS, speed)
+        end
+    end)
+
+    releaseMoveLock()
+    State.brainrotCollectorBusy = false
+    return ok
 end
 
 local function activatePrompt(prompt)
@@ -1021,6 +1124,28 @@ task.spawn(function()
             end
         else
             task.wait(0.4)
+        end
+    end
+end)
+
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectInfinityBrainrot then
+            collectBrainrotTierOnce("Infinity")
+            task.wait(1)
+        else
+            task.wait(0.5)
+        end
+    end
+end)
+
+task.spawn(function()
+    while scriptRunning do
+        if autoCollectDivineBrainrot and not (autoCollectInfinityBrainrot and hasRenderedBrainrotInTier("Infinity")) then
+            collectBrainrotTierOnce("Divine")
+            task.wait(1)
+        else
+            task.wait(0.5)
         end
     end
 end)
@@ -3645,6 +3770,34 @@ TrialTowerSection:Toggle({
     end
 })
 
+local TrialTowerBrainrotSection = TrialTowerTab:Section({ Title = "Brainrot", Opened = true })
+
+TrialTowerBrainrotSection:Toggle({
+    Title = "Auto Collect Infinity Brainrot",
+    Desc = "Automatically collects Infinity tier brainrots",
+    Icon = "check",
+    Value = savedSettings.autoCollectInfinityBrainrot or false,
+    Callback = function(state)
+        State.autoCollectInfinityBrainrot = state
+        autoCollectInfinityBrainrot = state
+        savedSettings.autoCollectInfinityBrainrot = state
+        saveSettings(savedSettings)
+    end
+})
+
+TrialTowerBrainrotSection:Toggle({
+    Title = "Auto Collect Divine Brainrot",
+    Desc = "Automatically collects Divine tier brainrots",
+    Icon = "check",
+    Value = savedSettings.autoCollectDivineBrainrot or false,
+    Callback = function(state)
+        State.autoCollectDivineBrainrot = state
+        autoCollectDivineBrainrot = state
+        savedSettings.autoCollectDivineBrainrot = state
+        saveSettings(savedSettings)
+    end
+})
+
 -- ================= AUTO TAB =================
 local AutoSection = AutoTab:Section({ Title = "Auto Features", Opened = true, })
 
@@ -4434,6 +4587,16 @@ task.spawn(function()
     -- Apply Auto Trial Tower
     if savedSettings.autoTrialTower then
         autoTrialTower = true
+    end
+
+    -- Apply Auto Collect Infinity Brainrot
+    if savedSettings.autoCollectInfinityBrainrot then
+        autoCollectInfinityBrainrot = true
+    end
+
+    -- Apply Auto Collect Divine Brainrot
+    if savedSettings.autoCollectDivineBrainrot then
+        autoCollectDivineBrainrot = true
     end
 
     -- Apply Auto Collect Candy (Valentines Event)
