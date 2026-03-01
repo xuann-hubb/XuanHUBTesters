@@ -216,6 +216,22 @@ local autoCollectCheese = savedSettings.autoCollectCheese or false
 local vipConn  -- Connection for VIP wall removal
 local grabConn -- Connection for auto-grab prompt HoldDuration management
 
+-- ================= CHARACTER TRACKING =================
+local cheeseCharacter = nil
+local cheeseHRP = nil
+local cheesePullDelay = 0.1
+local cheeseHeightOffset = 3
+
+local function setupCheeseCharacter(char)
+    cheeseCharacter = char
+    cheeseHRP = char:WaitForChild("HumanoidRootPart", 10)
+end
+
+if player.Character then
+    setupCheeseCharacter(player.Character)
+end
+player.CharacterAdded:Connect(setupCheeseCharacter)
+
 -- Upgrade Base Button
 MainSection:Button({
     Title = "Upgrade Base",
@@ -593,37 +609,89 @@ task.spawn(function()
 end)
 
 -- Loop Collect Cheese
-task.spawn(function()
-    local CollectCheese = game:GetService("ReplicatedStorage")
-        :WaitForChild("Remotes")
-        :WaitForChild("CheeseEvent")
-        :WaitForChild("CollectCheese")
+local CollectCheese = game:GetService("ReplicatedStorage")
+    :WaitForChild("Remotes")
+    :WaitForChild("CheeseEvent")
+    :WaitForChild("CollectCheese")
 
-    while task.wait(0.5) do
-        if autoCollectCheese then
+local function getModelPart(model)
+    if model.PrimaryPart then return model.PrimaryPart end
+    for _, v in ipairs(model:GetDescendants()) do
+        if v:IsA("BasePart") then
+            model.PrimaryPart = v
+            return v
+        end
+    end
+end
+
+-- Pull loop: moves every cheese model to the player (magnet effect)
+task.spawn(function()
+    while true do
+        if autoCollectCheese and cheeseHRP then
             pcall(function()
                 local cheeseFolder = workspace:FindFirstChild("GameFolder")
                     and workspace.GameFolder:FindFirstChild("CheeseFolder")
+                if not cheeseFolder then return end
 
-                if cheeseFolder then
-                    local cheeses = cheeseFolder:GetChildren()
-                    for _, cheese in pairs(cheeses) do
-                        if not autoCollectCheese then break end
-
-                        -- Name of each child IS the UUID (e.g. "79c1aafc43744b9c8e18b9770c17ee5f")
-                        local uuid = cheese:GetAttribute("UUID")
-                            or cheese:GetAttribute("Id")
-                            or cheese:GetAttribute("uuid")
-                            or cheese:GetAttribute("id")
-                            or cheese.Name
-
-                        if uuid then
-                            pcall(function()
-                                CollectCheese:FireServer({uuid})
-                            end)
-                            task.wait(0.05)
+                for _, cheese in ipairs(cheeseFolder:GetChildren()) do
+                    if not autoCollectCheese then break end
+                    if cheese:IsA("Model") then
+                        local part = getModelPart(cheese)
+                        if part then
+                            cheese:SetPrimaryPartCFrame(
+                                CFrame.new(cheeseHRP.Position + Vector3.new(0, cheeseHeightOffset, 0))
+                            )
                         end
+                    elseif cheese:IsA("BasePart") then
+                        cheese.CFrame = CFrame.new(cheeseHRP.Position + Vector3.new(0, cheeseHeightOffset, 0))
                     end
+                end
+            end)
+        end
+        task.wait(cheesePullDelay)
+    end
+end)
+
+-- Fire loop: teleport to each cheese then collect it, return home after all done
+task.spawn(function()
+    while task.wait(0.5) do
+        if autoCollectCheese and cheeseHRP then
+            pcall(function()
+                local cheeseFolder = workspace:FindFirstChild("GameFolder")
+                    and workspace.GameFolder:FindFirstChild("CheeseFolder")
+                if not cheeseFolder then return end
+
+                -- Save original position before we start teleporting
+                local returnCFrame = cheeseHRP.CFrame
+
+                for _, cheese in ipairs(cheeseFolder:GetChildren()) do
+                    if not autoCollectCheese then break end
+
+                    local uuid = cheese:GetAttribute("UUID")
+                        or cheese:GetAttribute("Id")
+                        or cheese:GetAttribute("uuid")
+                        or cheese:GetAttribute("id")
+                        or cheese.Name
+
+                    if uuid then
+                        -- Teleport character on top of this cheese
+                        local part = (cheese:IsA("BasePart") and cheese)
+                            or cheese:FindFirstChildWhichIsA("BasePart")
+                        if part then
+                            cheeseHRP.CFrame = CFrame.new(part.Position + Vector3.new(0, cheeseHeightOffset, 0))
+                            task.wait(0.05) -- let server register position
+                        end
+
+                        pcall(function()
+                            CollectCheese:FireServer({uuid})
+                        end)
+                        task.wait(0.05)
+                    end
+                end
+
+                -- Return to original position
+                if cheeseHRP and cheeseHRP.Parent then
+                    cheeseHRP.CFrame = returnCFrame
                 end
             end)
         end
