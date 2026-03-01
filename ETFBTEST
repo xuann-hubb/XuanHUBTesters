@@ -170,53 +170,59 @@ local MainTab = Window:Tab({
 local ShopSection = MainTab:Section({ Title = "Shop Section", Opened = true })
 
 -- State
-local selectedGearItem = {}
-local selectedSeedItem = {}
-local selectedFruitItem = {}
-local selectedFruitRarities = {}
-local selectedSeedPackItem = {}
-local autoBuyGear = false
-local autoBuySeed = false
-local autoSellFruit = false
-local autoSellRarity = false
-local autoSellAll = false
-local autoOpenSeedPack = false
-local autoShovel = false
-local autoWater = false
-local autoSprinkler = false
-local shopCheckInterval = 0.5 -- check stock/price text every 0.5s
-local fruitSellInterval = 1 -- seconds between fruit sell attempts
-local fruitSellAmount = 1
-local raritySellAmount = 1
-local seedPackOpenInterval = 1
-local scriptRunning = true
-local autoSellProcessing = false
-local shopBuyProcessing = false
-local gearBuyLoopRunning = false
-local seedBuyLoopRunning = false
-local harvestStallCount = 0
-local harvestStallThreshold = 3
-local lastAutoSellAllAt = 0
-local autoSellAllCooldown = 2
--- auto-plant/auto-harvest state will come from snippet logic
-local autoPlant = false
-local autoHarvest = false
-local plantInterval = 0.3 -- used by snippet if needed
-local harvestBatchSize = 5 -- number of times to fire each harvest prompt
+local State = {
+    selectedGearItem = {},
+    selectedSeedItem = {},
+    selectedFruitItem = {},
+    selectedFruitRarities = {},
+    selectedSeedPackItem = {},
+    autoBuyGear = false,
+    autoBuySeed = false,
+    autoSellFruit = false,
+    autoSellRarity = false,
+    autoSellAll = false,
+    autoOpenSeedPack = false,
+    autoShovel = false,
+    autoWater = false,
+    autoSprinkler = false,
+    shopCheckInterval = 0.5,
+    fruitSellInterval = 1,
+    fruitSellAmount = 1,
+    raritySellAmount = 1,
+    seedPackOpenInterval = 1,
+    scriptRunning = true,
+    autoSellProcessing = false,
+    shopBuyProcessing = false,
+    gearBuyLoopRunning = false,
+    seedBuyLoopRunning = false,
+    harvestStallCount = 0,
+    harvestStallThreshold = 3,
+    lastAutoSellAllAt = 0,
+    autoSellAllCooldown = 2,
+    autoPlant = false,
+    autoHarvest = false,
+    plantInterval = 0.3,
+    harvestBatchSize = 5,
+    selectedSeeds = {},
+    selectedPlants = {},
+    selectedRipenessStages = {},
+    selectedFruitVariants = {},
+    selectedFruitMutations = {},
+    selectedShovelFruits = {},
+    selectedShovelPlants = {},
+    selectedWaterPlants = {},
+    selectedSprinklerPlants = {},
+    selectedSprinklerGear = {},
+}
+local stateEnv = (getgenv and getgenv()) or _G
+for key, value in pairs(State) do
+    stateEnv[key] = value
+end
+
 local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom"
 }
-local selectedSeeds = {}
-local selectedPlants = {}
-local selectedRipenessStages = {}
-local selectedFruitVariants = {}
-local selectedFruitMutations = {}
-local selectedShovelFruits = {}
-local selectedShovelPlants = {}
-local selectedWaterPlants = {}
-local selectedSprinklerPlants = {}
-local selectedSprinklerGear = {}
 
 -- plot auto‑claim state
 local autoClaimPlot = false               -- controlled by toggle
