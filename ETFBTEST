@@ -210,6 +210,10 @@ local State = {
     selectedFruitMutations = {},
     selectedShovelFruits = {},
     selectedShovelPlants = {},
+    selectedShovelBlockVariants = {},
+    selectedShovelBlockMutations = {},
+    shovelWeightMode = "Above",
+    shovelWeightThreshold = 0,
     selectedWaterPlants = {},
     selectedSprinklerPlants = {},
     selectedSprinklerGear = {},
@@ -1560,7 +1564,7 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
 end
 
 -- Auto Shovel Function (fruit => uuid,1 | plant => uuid)
-function autoShovelTargets(selectedFruitTypes, selectedPlantTypes)
+function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, weightThreshold, blockedVariants, blockedMutations)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then
         return
@@ -1571,6 +1575,55 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes)
 
     local fruitTypes = (type(selectedFruitTypes) == "table") and selectedFruitTypes or {}
     local plantTypes = (type(selectedPlantTypes) == "table") and selectedPlantTypes or {}
+    local variantBlockSet = (type(blockedVariants) == "table") and blockedVariants or {}
+    local mutationBlockSet = (type(blockedMutations) == "table") and blockedMutations or {}
+    local mode = tostring(weightMode or "Above"):lower()
+    local threshold = tonumber(weightThreshold) or 0
+
+    local function isBlockedFruit(fruitObj)
+        if not fruitObj then
+            return false
+        end
+
+        local variant = fruitObj:GetAttribute("Variant")
+        if type(variant) == "string" and variant ~= "" and variantBlockSet[variant] then
+            return true
+        end
+
+        local mutation = fruitObj:GetAttribute("Mutation")
+        if type(mutation) == "string" and mutation ~= "" and mutationBlockSet[mutation] then
+            return true
+        end
+
+        return false
+    end
+
+    local function passesWeightRule(fruitObj)
+        if threshold <= 0 then
+            return true
+        end
+
+        local weight = tonumber(fruitObj and fruitObj:GetAttribute("FruitWeight"))
+        if not weight then
+            return false
+        end
+
+        if mode == "below" then
+            return weight <= threshold
+        end
+        return weight >= threshold
+    end
+
+    local function shouldShovelFruitOnPlant(plant)
+        for _, obj in ipairs(plant:GetDescendants()) do
+            if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
+                if (not isBlockedFruit(obj)) and passesWeightRule(obj) then
+                    return true
+                end
+            end
+        end
+        return false
+    end
 
     for _, plant in ipairs(clientPlants:GetChildren()) do
         local plantType = plant:GetAttribute("PlantType")
@@ -1585,12 +1638,14 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes)
 
         if type(uuid) == "string" and uuid ~= "" then
             if fruitTypes[plantType] then
-                -- Always remove with amount=1; repeat a few times to clear all fruit stacks.
-                for _ = 1, 8 do
-                    pcall(function()
-                        RemovePlantRemote:FireServer(uuid, 1)
-                    end)
-                    task.wait(0.03)
+                if shouldShovelFruitOnPlant(plant) then
+                    -- Always remove with amount=1; repeat a few times to clear all fruit stacks.
+                    for _ = 1, 8 do
+                        pcall(function()
+                            RemovePlantRemote:FireServer(uuid, 1)
+                        end)
+                        task.wait(0.03)
+                    end
                 end
             elseif plantTypes[plantType] then
                 pcall(function()
@@ -2415,6 +2470,65 @@ local ShovelPlantDropdown = HarvestAutomationSection:Dropdown({
 })
 trackConfigElement("ShovelPlantDropdown", ShovelPlantDropdown)
 
+local ShovelWeightModeDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Shovel Weight Mode",
+    Desc = "Shovel fruit Above or Below target weight",
+    Values = {"Above", "Below"},
+    Value = "Above",
+    Multi = false,
+    AllowNone = false,
+    SearchBarEnabled = false,
+    Callback = function(option)
+        local picked = normalizeSingleSelection(option)
+        if picked == "Below" then
+            shovelWeightMode = "Below"
+        else
+            shovelWeightMode = "Above"
+        end
+    end,
+})
+trackConfigElement("ShovelWeightModeDropdown", ShovelWeightModeDropdown)
+
+local ShovelWeightInput = HarvestAutomationSection:Input({
+    Title = "Shovel Weight",
+    Desc = "Target weight for shovel mode",
+    Value = tostring(shovelWeightThreshold),
+    Placeholder = "e.g. 10",
+    Type = "Input",
+    Callback = function(value)
+        shovelWeightThreshold = math.max(0, tonumber(value) or shovelWeightThreshold)
+    end,
+})
+trackConfigElement("ShovelWeightInput", ShovelWeightInput)
+
+local ShovelBlockVariantDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Blocklist Variant",
+    Desc = "Auto shovel skips fruits with selected variants",
+    Values = fruitVariantList,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedShovelBlockVariants = toSelectionSet(option, fruitVariantList)
+    end,
+})
+trackConfigElement("ShovelBlockVariantDropdown", ShovelBlockVariantDropdown)
+
+local ShovelBlockMutationDropdown = HarvestAutomationSection:Dropdown({
+    Title = "Blocklist Mutation",
+    Desc = "Auto shovel skips fruits with selected mutations",
+    Values = fruitMutationList,
+    Value = {},
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(option)
+        selectedShovelBlockMutations = toSelectionSet(option, fruitMutationList)
+    end,
+})
+trackConfigElement("ShovelBlockMutationDropdown", ShovelBlockMutationDropdown)
+
 local AutoShovelToggle = HarvestAutomationSection:Toggle({
     Title = "Auto Shovel",
     Desc = "Auto shovel selected fruit or plant types",
@@ -2824,7 +2938,14 @@ task.spawn(function()
             end
         end
         if autoShovel then
-            autoShovelTargets(selectedShovelFruits, selectedShovelPlants)
+            autoShovelTargets(
+                selectedShovelFruits,
+                selectedShovelPlants,
+                shovelWeightMode,
+                shovelWeightThreshold,
+                selectedShovelBlockVariants,
+                selectedShovelBlockMutations
+            )
         end
         if autoWater then
             autoWaterPlants(selectedWaterPlants)
