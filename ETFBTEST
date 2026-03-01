@@ -201,6 +201,8 @@ local State = {
     autoSellAllCooldown = 2,
     autoPlant = false,
     autoHarvest = false,
+    autoRejoinWhenHarvestAll = false,
+    harvestDetectedSinceRejoin = false,
     plantInterval = 0.3,
     harvestBatchSize = 5,
     selectedSeeds = {},
@@ -2440,6 +2442,25 @@ local AutoHarvestToggle = HarvestAutomationSection:Toggle({
     end,
 })
 trackConfigElement("AutoHarvestToggle", AutoHarvestToggle)
+
+local AutoRejoinWhenHarvestAllToggle = HarvestAutomationSection:Toggle({
+    Title = "Auto Rejoin when Harvest all",
+    Desc = "Rejoin after all currently harvestable fruits are cleared",
+    Value = false,
+    Callback = function(state)
+        autoRejoinWhenHarvestAll = state
+        if not state then
+            harvestDetectedSinceRejoin = false
+        end
+        WindUI:Notify({
+            Title = "Automation",
+            Content = (state and "Auto rejoin on harvest-all enabled" or "Auto rejoin on harvest-all disabled"),
+            Icon = "info",
+            Duration = 2,
+        })
+    end,
+})
+trackConfigElement("AutoRejoinWhenHarvestAllToggle", AutoRejoinWhenHarvestAllToggle)
 HarvestAutomationSection:Space()
 
 local ShovelingSection = AutomationTab:Section({ Title = "Shoveling Section", Opened = true })
@@ -2927,6 +2948,17 @@ task.spawn(function()
             local harvestAttempts = autoHarvestPlants(selectedPlants, selectedRipenessStages, selectedFruitVariants, selectedFruitMutations)
             task.wait(0.1)
             local afterCount = countHarvestedFruitTools()
+
+            if autoRejoinWhenHarvestAll then
+                if harvestAttempts and harvestAttempts > 0 then
+                    harvestDetectedSinceRejoin = true
+                elseif harvestDetectedSinceRejoin then
+                    harvestDetectedSinceRejoin = false
+                    pcall(function()
+                        game:GetService("TeleportService"):Teleport(game.PlaceId, player)
+                    end)
+                end
+            end
 
             if autoSellAll and harvestAttempts > 0 and afterCount <= beforeCount then
                 harvestStallCount = harvestStallCount + 1
