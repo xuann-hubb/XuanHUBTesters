@@ -2012,34 +2012,76 @@ ShopSection:Space()
 -- plot section (main tab)
 local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
 
+PlotSection:Button({
+    Title = "Claim Plot Now",
+    Desc = "Teleport to Plot1 and claim once immediately",
+    Icon = "map-pin",
+    Callback = function()
+        task.spawn(function()
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(197, 189, 312)
+                end
+            end)
+            task.wait(0.5)
+            local ok, didClaim = pcall(claimNextPlot)
+            WindUI:Notify({
+                Title = "Claim Plot",
+                Content = (ok and didClaim) and "Plot claimed!" or "No unowned plot found",
+                Icon = (ok and didClaim) and "check" or "alert-triangle",
+                Duration = 3,
+            })
+        end)
+    end,
+})
+
 local AutoClaimPlotToggle = PlotSection:Toggle({
     Title = "Auto Claim Plot",
-    Desc = "Attempt to claim the first unowned plot once",
+    Desc = "Continuously teleport to Plot1 and claim an unowned plot",
     Value = false,
     Callback = function(state)
         autoClaimPlot = state
         WindUI:Notify({
-            Title = "Automation",
-            Content = (state and "Auto-plot claim enabled" or "Auto-plot claim disabled"),
+            Title = "Claim Plot",
+            Content = (state and "Auto Claim active!" or "Auto-plot claim disabled"),
             Icon = "info",
-            Duration = 2,
+            Duration = 3,
         })
 
         if state then
             task.spawn(function()
-                if not playerHasPlot() then
-                    local ok, didClaim = pcall(claimNextPlot)
-                    if ok and not didClaim then
-                        WindUI:Notify({
-                            Title = "Automation",
-                            Content = "No unowned plot found",
-                            Icon = "alert-triangle",
-                            Duration = 2,
-                        })
+                while autoClaimPlot and scriptRunning do
+                    pcall(function()
+                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.CFrame = CFrame.new(197, 189, 312)
+                        end
+                    end)
+                    task.wait(0.5)
+
+                    if not playerHasPlot() then
+                        local ok, didClaim = pcall(claimNextPlot)
+                        if ok and didClaim then
+                            WindUI:Notify({
+                                Title = "Claim Plot",
+                                Content = "Plot claimed successfully!",
+                                Icon = "check",
+                                Duration = 3,
+                            })
+                            autoClaimPlot = false
+                            AutoClaimPlotToggle:SetValue(false)
+                            break
+                        end
+                    else
+                        -- already own a plot, stop the loop
+                        autoClaimPlot = false
+                        AutoClaimPlotToggle:SetValue(false)
+                        break
                     end
+
+                    task.wait(0.5)
                 end
-                -- disable after single attempt regardless
-                autoClaimPlot = false
             end)
         end
     end,
@@ -2927,16 +2969,18 @@ local function claimNextPlot()
     if not Plots then
         return false
     end
-    for _, plot in ipairs(Plots:GetChildren()) do
-        local owner = plot:FindFirstChild("Owner")
-        if (not owner) or owner.Value == "" then
-            if ClaimSelectedPlotRemote then
-                pcall(function()
-                    ClaimSelectedPlotRemote:FireServer(plot.Name)
-                end)
-            end
-            return true
+    local plot = Plots:FindFirstChild("Plot1")
+    if not plot then
+        return false
+    end
+    local owner = plot:FindFirstChild("Owner")
+    if (not owner) or owner.Value == "" then
+        if ClaimSelectedPlotRemote then
+            pcall(function()
+                ClaimSelectedPlotRemote:FireServer("Plot1")
+            end)
         end
+        return true
     end
     return false
 end
