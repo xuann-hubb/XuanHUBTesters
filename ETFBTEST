@@ -1567,7 +1567,7 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
     return harvestAttempts
 end
 
--- Auto Shovel Function (fruit => uuid,1 | plant => uuid)
+-- Auto Shovel Function (fruit => fruitUuid | plant => plantUuid)
 function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, weightThreshold, blockedVariants, blockedMutations)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then
@@ -1618,17 +1618,7 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
         return weight >= threshold
     end
 
-    local function shouldShovelFruitOnPlant(plant)
-        for _, obj in ipairs(plant:GetDescendants()) do
-            if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
-                if (not isBlockedFruit(obj)) and passesWeightRule(obj) then
-                    return true
-                end
-            end
-        end
-        return false
-    end
-
+    -- 1st loop: plant models from ClientPlants
     for _, plant in ipairs(clientPlants:GetChildren()) do
         local plantType = plant:GetAttribute("PlantType")
         if type(plantType) ~= "string" or plantType == "" then
@@ -1642,17 +1632,25 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
 
         if type(uuid) == "string" and uuid ~= "" then
             if fruitTypes[plantType] then
-                local fruit1 = plant:FindFirstChild("Fruit1", true)
-                if fruit1 then
-                    local fruit1Uuid = fruit1:GetAttribute("Uuid")
-                    if type(fruit1Uuid) ~= "string" or fruit1Uuid == "" then
-                        fruit1Uuid = fruit1:GetAttribute("UUID")
-                    end
-                    local growthIndex = tonumber(plant:GetAttribute("GrowthAnchorIndex"))
-                    if growthIndex and growthIndex > 0 then
-                        pcall(function()
-                            RemovePlantRemote:FireServer(uuid, growthIndex)
-                        end)
+                -- 2nd loop: fruit models inside this plant
+                for _, fruitObj in ipairs(plant:GetChildren()) do
+                    if type(fruitObj.Name) == "string" and fruitObj.Name:match("^Fruit%d+$") then
+                        if (not isBlockedFruit(fruitObj)) and passesWeightRule(fruitObj) then
+                            local fruitUuid = fruitObj:GetAttribute("Uuid")
+                            if type(fruitUuid) ~= "string" or fruitUuid == "" then
+                                fruitUuid = fruitObj:GetAttribute("UUID")
+                            end
+                            local growthIndex = tonumber(fruitObj:GetAttribute("GrowthAnchorIndex"))
+                            if type(fruitUuid) == "string" and fruitUuid ~= "" then
+                                pcall(function()
+                                    if growthIndex and growthIndex > 0 then
+                                        RemovePlantRemote:FireServer(fruitUuid, growthIndex)
+                                    else
+                                        RemovePlantRemote:FireServer(fruitUuid)
+                                    end
+                                end)
+                            end
+                        end
                     end
                 end
             elseif plantTypes[plantType] then
