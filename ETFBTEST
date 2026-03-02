@@ -1567,7 +1567,7 @@ function autoHarvestPlants(selectedPlants, selectedStages, selectedVariants, sel
     return harvestAttempts
 end
 
--- Auto Shovel Function (fruit => fruitUuid | plant => plantUuid)
+-- Auto Shovel Function (fruit => fruitUuid and GrowthAnchorIndex | plant => plantUuid)
 function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, weightThreshold, blockedVariants, blockedMutations)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then
@@ -1609,7 +1609,7 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
 
         local weight = tonumber(fruitObj and fruitObj:GetAttribute("FruitWeight"))
         if not weight then
-            return false
+            return true -- no weight attribute = ignore weight rule, shovel anyway
         end
 
         if mode == "below" then
