@@ -1628,15 +1628,14 @@ function autoShovelTargets(selectedFruitTypes, selectedPlantTypes, weightMode, w
         local uuid = plant:GetAttribute("Uuid") or plant:GetAttribute("UUID")
 
         if fruitTypes[plantType] then
-            -- 2nd loop: fruit models inside this plant, identified by Uuid + GrowthAnchorIndex attributes
+            -- 2nd loop: fruit models inside this plant, use plant uuid + fruit GrowthAnchorIndex
             for _, fruitObj in ipairs(plant:GetChildren()) do
-                local fruitUuid = fruitObj:GetAttribute("Uuid") or fruitObj:GetAttribute("UUID")
                 local growthIndex = tonumber(fruitObj:GetAttribute("GrowthAnchorIndex"))
 
-                if type(fruitUuid) == "string" and fruitUuid ~= "" and growthIndex then
+                if type(uuid) == "string" and uuid ~= "" and growthIndex then
                     if (not isBlockedFruit(fruitObj)) and passesWeightRule(fruitObj) then
                         pcall(function()
-                            RemovePlantRemote:FireServer(fruitUuid, growthIndex)
+                            RemovePlantRemote:FireServer(uuid, growthIndex)
                         end)
                         task.wait(0.3)
                     end
