@@ -16,6 +16,8 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
+
+
 -- ================= CREATE WINDUI WINDOW =================
 local Window = WindUI:CreateWindow({
     Folder = "XuanHub",
@@ -230,11 +232,6 @@ local Seeds = {
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom","Bamboo","Mango"
 }
 
--- plot auto‑claim state
-local autoClaimPlot = false               -- controlled by toggle
-local autoClaimPlotThread = nil           -- not strictly needed, kept for potential future use
-
-
 local ConfigManager = Window.ConfigManager
 local configElements = {}
 local selectedConfigFile = nil
@@ -247,7 +244,6 @@ local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("
 local RemovePlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RemovePlant")
 local UseGearRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("UseGear")
 local PurchaseShopItemRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem")
-local ClaimSelectedPlotRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):FindFirstChild("ClaimSelectedPlot")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
 
 local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
@@ -1990,64 +1986,6 @@ local AutoBuySeedToggle = ShopSection:Toggle({
 })
 trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
-
--- helpers for plot auto-claim
-local function playerHasPlot()
-    local Plots = workspace:FindFirstChild("Plots")
-    if Plots then
-        for _, plot in ipairs(Plots:GetChildren()) do
-            local owner = plot:FindFirstChild("Owner")
-            if owner and owner.Value == player.Name then
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local PLOT_POSITIONS = {
-    Plot1 = Vector3.new(197, 189, 312),
-    Plot2 = Vector3.new(429, 212, 410),
-    Plot3 = Vector3.new(418, 218, 777),
-    Plot4 = Vector3.new(193, 190, 1003),
-    Plot5 = Vector3.new(-133, 200, 833),
-    Plot6 = Vector3.new(-103, 205, 346),
-}
-local PLOT_ORDER = { "Plot1", "Plot2", "Plot3", "Plot4", "Plot5", "Plot6" }
-
-local function claimNextPlot()
-    local Plots = workspace:FindFirstChild("Plots")
-    if not Plots then return false end
-    for _, plotName in ipairs(PLOT_ORDER) do
-        local plot = Plots:FindFirstChild(plotName)
-        if plot then
-            local owner = plot:FindFirstChild("Owner")
-            if (not owner) or owner.Value == "" then
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp and PLOT_POSITIONS[plotName] then
-                    hrp.CFrame = CFrame.new(PLOT_POSITIONS[plotName])
-                    task.wait(0.5)
-                end
-                if ClaimSelectedPlotRemote then
-                    pcall(function()
-                        ClaimSelectedPlotRemote:FireServer(plotName)
-                    end)
-                end
-                return true
-            end
-        end
-    end
-    return false
-end
-
--- plot section (main tab)
-local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
-
-
-
--- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
-
--- Refresh buttons and delay slider removed per user request
 
 -- Automation tab: move automation-related toggles here
 local AutomationTab = Window:Tab({
