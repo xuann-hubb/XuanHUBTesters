@@ -18,7 +18,7 @@ WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
 -- ================= key system =================
 local BaseURL = "https://new.pandadevelopment.net/api/v1"
-local Client_ServiceID = "YOUR_SERVICE_ID" -- <- Change this to your service ID
+local Client_ServiceID = "xuanketsyste" -- <- Change this to your service ID
 
 WindUI.Services.newpandadevelopment = {
     Name = "New Panda Development",
@@ -108,7 +108,7 @@ WindUI.Services.newpandadevelopment = {
             GetLink = getKeyURL
         }
     end
-})
+}
 
 
 -- ================= CREATE WINDUI WINDOW =================
@@ -141,7 +141,7 @@ KeySystem = {
             },
         },
     },
-}
+})
 
 Window:EditOpenButton({
     OnlyMobile = false,
@@ -335,11 +335,6 @@ local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom","Bamboo","Mango"
 }
-
--- plot auto‑claim state
-local autoClaimPlot = false               -- controlled by toggle
-local autoClaimPlotThread = nil           -- not strictly needed, kept for potential future use
-
 
 local ConfigManager = Window.ConfigManager
 local configElements = {}
@@ -2936,41 +2931,6 @@ local function tryClaimDaily()
             end
         end
     end
-end
-
--- helpers for plot auto-claim
-local function playerHasPlot()
-    local Plots = workspace:FindFirstChild("Plots")
-    if Plots then
-        for _, plot in ipairs(Plots:GetChildren()) do
-            local owner = plot:FindFirstChild("Owner")
-            if owner and owner.Value == player.Name then
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local function claimNextPlot()
-    local Plots = workspace:FindFirstChild("Plots")
-    if not Plots then
-        return false
-    end
-    local plot = Plots:FindFirstChild("Plot1")
-    if not plot then
-        return false
-    end
-    local owner = plot:FindFirstChild("Owner")
-    if (not owner) or owner.Value == "" then
-        if ClaimSelectedPlotRemote then
-            pcall(function()
-                ClaimSelectedPlotRemote:FireServer("Plot1")
-            end)
-        end
-        return true
-    end
-    return false
 end
 
 task.spawn(function()
