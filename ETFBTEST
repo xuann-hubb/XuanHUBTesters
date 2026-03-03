@@ -2043,44 +2043,7 @@ end
 -- plot section (main tab)
 local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
 
-local AutoClaimPlotToggle = PlotSection:Toggle({
-    Title = "Auto Claim Plot",
-    Desc = "Teleport to each plot and claim the first unowned one",
-    Value = false,
-    Callback = function(state)
-        autoClaimPlot = state
-        WindUI:Notify({
-            Title = "Claim Plot",
-            Content = (state and "Auto Claim active!" or "Auto-plot claim disabled"),
-            Icon = "info",
-            Duration = 3,
-        })
 
-        if state then
-            task.spawn(function()
-                if playerHasPlot() then
-                    WindUI:Notify({
-                        Title = "Claim Plot",
-                        Content = "You already own a plot!",
-                        Icon = "alert-triangle",
-                        Duration = 3,
-                    })
-                else
-                    local ok, didClaim = pcall(claimNextPlot)
-                    WindUI:Notify({
-                        Title = "Claim Plot",
-                        Content = (ok and didClaim) and "Plot claimed successfully!" or "No unowned plot found",
-                        Icon = (ok and didClaim) and "check" or "alert-triangle",
-                        Duration = 3,
-                    })
-                end
-                autoClaimPlot = false
-                AutoClaimPlotToggle:SetValue(false)
-            end)
-        end
-    end,
-})
-trackConfigElement("AutoClaimPlotToggle", AutoClaimPlotToggle)
 
 -- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
 
