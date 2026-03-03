@@ -16,8 +16,6 @@ local WindUI = loadstring(game:HttpGet(
 -- WindUI text font
 WindUI:SetFont("rbxasset://fonts/families/GothamSSm.json")
 
-
-
 -- ================= CREATE WINDUI WINDOW =================
 local Window = WindUI:CreateWindow({
     Folder = "XuanHub",
@@ -231,6 +229,11 @@ local Seeds = {
     "Carrot","Tomato","Potato","Wheat","Pumpkin","Corn","Strawberry","Blueberry","Onion","Garlic","Cabbage","Banana","Apple","Plum","Cherry","Mushroom","Rose",
     "Dandelion","Bellpepper","Birch","Orange","Olive","Sunpetal","Goldenberry","Amberpine","Emberwood","Dawnblossom","Bamboo","Mango"
 }
+
+-- plot auto‑claim state
+local autoClaimPlot = false               -- controlled by toggle
+local autoClaimPlotThread = nil           -- not strictly needed, kept for potential future use
+
 
 local ConfigManager = Window.ConfigManager
 local configElements = {}
@@ -1987,6 +1990,89 @@ local AutoBuySeedToggle = ShopSection:Toggle({
 trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
 
+-- plot section (main tab)
+local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
+
+PlotSection:Button({
+    Title = "Claim Plot Now",
+    Desc = "Teleport to Plot1 and claim once immediately",
+    Icon = "map-pin",
+    Callback = function()
+        task.spawn(function()
+            pcall(function()
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = CFrame.new(197, 189, 312)
+                end
+            end)
+            task.wait(0.5)
+            local ok, didClaim = pcall(claimNextPlot)
+            WindUI:Notify({
+                Title = "Claim Plot",
+                Content = (ok and didClaim) and "Plot claimed!" or "No unowned plot found",
+                Icon = (ok and didClaim) and "check" or "alert-triangle",
+                Duration = 3,
+            })
+        end)
+    end,
+})
+
+local AutoClaimPlotToggle = PlotSection:Toggle({
+    Title = "Auto Claim Plot",
+    Desc = "Continuously teleport to Plot1 and claim an unowned plot",
+    Value = false,
+    Callback = function(state)
+        autoClaimPlot = state
+        WindUI:Notify({
+            Title = "Claim Plot",
+            Content = (state and "Auto Claim active!" or "Auto-plot claim disabled"),
+            Icon = "info",
+            Duration = 3,
+        })
+
+        if state then
+            task.spawn(function()
+                while autoClaimPlot and scriptRunning do
+                    pcall(function()
+                        local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp then
+                            hrp.CFrame = CFrame.new(197, 189, 312)
+                        end
+                    end)
+                    task.wait(0.5)
+
+                    if not playerHasPlot() then
+                        local ok, didClaim = pcall(claimNextPlot)
+                        if ok and didClaim then
+                            WindUI:Notify({
+                                Title = "Claim Plot",
+                                Content = "Plot claimed successfully!",
+                                Icon = "check",
+                                Duration = 3,
+                            })
+                            autoClaimPlot = false
+                            AutoClaimPlotToggle:SetValue(false)
+                            break
+                        end
+                    else
+                        -- already own a plot, stop the loop
+                        autoClaimPlot = false
+                        AutoClaimPlotToggle:SetValue(false)
+                        break
+                    end
+
+                    task.wait(0.5)
+                end
+            end)
+        end
+    end,
+})
+trackConfigElement("AutoClaimPlotToggle", AutoClaimPlotToggle)
+
+-- Fruit dropdown moved to Automation tab (so selection sits with Auto Sell toggle)
+
+-- Refresh buttons and delay slider removed per user request
+
 -- Automation tab: move automation-related toggles here
 local AutomationTab = Window:Tab({
     Title = "Automation",
@@ -2823,6 +2909,41 @@ local function tryClaimDaily()
             end
         end
     end
+end
+
+-- helpers for plot auto-claim
+local function playerHasPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if Plots then
+        for _, plot in ipairs(Plots:GetChildren()) do
+            local owner = plot:FindFirstChild("Owner")
+            if owner and owner.Value == player.Name then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function claimNextPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then
+        return false
+    end
+    local plot = Plots:FindFirstChild("Plot1")
+    if not plot then
+        return false
+    end
+    local owner = plot:FindFirstChild("Owner")
+    if (not owner) or owner.Value == "" then
+        if ClaimSelectedPlotRemote then
+            pcall(function()
+                ClaimSelectedPlotRemote:FireServer("Plot1")
+            end)
+        end
+        return true
+    end
+    return false
 end
 
 task.spawn(function()
