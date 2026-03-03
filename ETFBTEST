@@ -2058,29 +2058,24 @@ local AutoClaimPlotToggle = PlotSection:Toggle({
 
         if state then
             task.spawn(function()
-                while autoClaimPlot and scriptRunning do
-                    if not playerHasPlot() then
-                        local ok, didClaim = pcall(claimNextPlot)
-                        if ok and didClaim then
-                            WindUI:Notify({
-                                Title = "Claim Plot",
-                                Content = "Plot claimed successfully!",
-                                Icon = "check",
-                                Duration = 3,
-                            })
-                            autoClaimPlot = false
-                            AutoClaimPlotToggle:SetValue(false)
-                            break
-                        end
-                    else
-                        -- already own a plot, stop the loop
-                        autoClaimPlot = false
-                        AutoClaimPlotToggle:SetValue(false)
-                        break
-                    end
-
-                    task.wait(0.5)
+                if playerHasPlot() then
+                    WindUI:Notify({
+                        Title = "Claim Plot",
+                        Content = "You already own a plot!",
+                        Icon = "alert-triangle",
+                        Duration = 3,
+                    })
+                else
+                    local ok, didClaim = pcall(claimNextPlot)
+                    WindUI:Notify({
+                        Title = "Claim Plot",
+                        Content = (ok and didClaim) and "Plot claimed successfully!" or "No unowned plot found",
+                        Icon = (ok and didClaim) and "check" or "alert-triangle",
+                        Duration = 3,
+                    })
                 end
+                autoClaimPlot = false
+                AutoClaimPlotToggle:SetValue(false)
             end)
         end
     end,
