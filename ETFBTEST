@@ -1991,6 +1991,55 @@ local AutoBuySeedToggle = ShopSection:Toggle({
 trackConfigElement("AutoBuySeedToggle", AutoBuySeedToggle)
 ShopSection:Space()
 
+-- helpers for plot auto-claim
+local function playerHasPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if Plots then
+        for _, plot in ipairs(Plots:GetChildren()) do
+            local owner = plot:FindFirstChild("Owner")
+            if owner and owner.Value == player.Name then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local PLOT_POSITIONS = {
+    Plot1 = Vector3.new(197, 189, 312),
+    Plot2 = Vector3.new(429, 212, 410),
+    Plot3 = Vector3.new(418, 218, 777),
+    Plot4 = Vector3.new(193, 190, 1003),
+    Plot5 = Vector3.new(-133, 200, 833),
+    Plot6 = Vector3.new(-103, 205, 346),
+}
+local PLOT_ORDER = { "Plot1", "Plot2", "Plot3", "Plot4", "Plot5", "Plot6" }
+
+local function claimNextPlot()
+    local Plots = workspace:FindFirstChild("Plots")
+    if not Plots then return false end
+    for _, plotName in ipairs(PLOT_ORDER) do
+        local plot = Plots:FindFirstChild(plotName)
+        if plot then
+            local owner = plot:FindFirstChild("Owner")
+            if (not owner) or owner.Value == "" then
+                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                if hrp and PLOT_POSITIONS[plotName] then
+                    hrp.CFrame = CFrame.new(PLOT_POSITIONS[plotName])
+                    task.wait(0.5)
+                end
+                if ClaimSelectedPlotRemote then
+                    pcall(function()
+                        ClaimSelectedPlotRemote:FireServer(plotName)
+                    end)
+                end
+                return true
+            end
+        end
+    end
+    return false
+end
+
 -- plot section (main tab)
 local PlotSection = MainTab:Section({ Title = "Plot Section", Opened = true })
 
@@ -2878,56 +2927,6 @@ local function tryClaimDaily()
             end
         end
     end
-end
-
--- helpers for plot auto-claim
-local function playerHasPlot()
-    local Plots = workspace:FindFirstChild("Plots")
-    if Plots then
-        for _, plot in ipairs(Plots:GetChildren()) do
-            local owner = plot:FindFirstChild("Owner")
-            if owner and owner.Value == player.Name then
-                return true
-            end
-        end
-    end
-    return false
-end
-
-local PLOT_POSITIONS = {
-    Plot1 = Vector3.new(197, 189, 312),
-    Plot2 = Vector3.new(429, 212, 410),
-    Plot3 = Vector3.new(418, 218, 777),
-    Plot4 = Vector3.new(193, 190, 1003),
-    Plot5 = Vector3.new(-133, 200, 833),
-    Plot6 = Vector3.new(-103, 205, 346),
-}
-local PLOT_ORDER = { "Plot1", "Plot2", "Plot3", "Plot4", "Plot5", "Plot6" }
-
-local function claimNextPlot()
-    local Plots = workspace:FindFirstChild("Plots")
-    if not Plots then return false end
-    for _, plotName in ipairs(PLOT_ORDER) do
-        local plot = Plots:FindFirstChild(plotName)
-        if plot then
-            local owner = plot:FindFirstChild("Owner")
-            if (not owner) or owner.Value == "" then
-                -- teleport to that plot first
-                local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                if hrp and PLOT_POSITIONS[plotName] then
-                    hrp.CFrame = CFrame.new(PLOT_POSITIONS[plotName])
-                    task.wait(0.5)
-                end
-                if ClaimSelectedPlotRemote then
-                    pcall(function()
-                        ClaimSelectedPlotRemote:FireServer(plotName)
-                    end)
-                end
-                return true
-            end
-        end
-    end
-    return false
 end
 
 task.spawn(function()
