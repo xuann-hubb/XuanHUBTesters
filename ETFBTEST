@@ -306,6 +306,7 @@ local State = {
     lastAutoSellAllAt = 0,
     autoSellAllCooldown = 2,
     autoPlant = false,
+    plantMode = "Around Player",
     autoHarvest = false,
     autoRejoinWhenHarvestAll = false,
     harvestDetectedSinceRejoin = false,
@@ -352,6 +353,14 @@ local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedSt
 
 local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
 local ShopsFolder = workspace:WaitForChild("MapPhysical"):WaitForChild("Shops")
+
+-- Sprinkler durations (seconds) keyed by gear name
+local SPRINKLER_DURATIONS = {
+    ["Basic Sprinkler"]  = 300,
+    ["Turbo Sprinkler"]  = 600,
+    ["Super Sprinkler"]  = 900,
+}
+local sprinklerExpireAt = 0  -- os.clock() timestamp when the active sprinkler expires
 
 -- optional teleport helpers – some games expose a Teleports folder, otherwise we fall back to hard‑coded vectors
 local Teleports = workspace:FindFirstChild("Teleports") or {}
@@ -1412,7 +1421,7 @@ local function performAutoSellSingleBatch(sellAmountByFruit)
             pcall(function()
                 SellRemote:InvokeServer("SellSingle")
             end)
-            task.wait(0.1)
+            task.wait(0.5)
         end
     end
 
@@ -1961,11 +1970,18 @@ function autoPlantSeeds(selectedSeeds)
             if enabled then
                 local equipped, plantType = findAndEquipSeedTool(seedName)
                 if equipped and type(plantType) == "string" and plantType ~= "" then
-                    for x=-4,4,2 do
-                        for z=-4,4,2 do
-                            pcall(function()
-                                PlantRemote:InvokeServer(plantType, pos + Vector3.new(x, -3, z))
-                            end)
+                    if plantMode == "Player Position" then
+                        pcall(function()
+                            PlantRemote:InvokeServer(plantType, pos + Vector3.new(0, -3, 0))
+                        end)
+                    else
+                        -- "Around Player" grid
+                        for x=-4,4,2 do
+                            for z=-4,4,2 do
+                                pcall(function()
+                                    PlantRemote:InvokeServer(plantType, pos + Vector3.new(x, -3, z))
+                                end)
+                            end
                         end
                     end
                 end
@@ -2221,6 +2237,19 @@ local SeedAutoDropdown = PlantAutomationSection:Dropdown({
     end,
 })
 trackConfigElement("SeedAutoDropdown", SeedAutoDropdown)
+
+local PlantModeDropdown = PlantAutomationSection:Dropdown({
+    Title = "Plant Mode",
+    Desc = "Where seeds are planted relative to your character",
+    Values = { "Around Player", "Player Position" },
+    Value = "Around Player",
+    Multi = false,
+    AllowNone = false,
+    Callback = function(option)
+        plantMode = tostring(option or "Around Player")
+    end,
+})
+trackConfigElement("PlantModeDropdown", PlantModeDropdown)
 
 local AutoPlantToggle = PlantAutomationSection:Toggle({
     Title = "Auto Plant",
@@ -2980,10 +3009,23 @@ task.spawn(function()
             autoWaterPlants(selectedWaterPlants)
         end
         if autoSprinkler then
-            autoSprinklerPlants(selectedSprinklerPlants, selectedSprinklerGear)
-            -- Disable after one full run so it doesn't spam
-            autoSprinkler = false
-            pcall(function() AutoSprinklerToggle:SetValue(false) end)
+            if os.clock() >= sprinklerExpireAt then
+                autoSprinklerPlants(selectedSprinklerPlants, selectedSprinklerGear)
+                -- Determine duration from the first selected sprinkler gear
+                local sprinklerDur = 300 -- fallback: Basic Sprinkler
+                if type(selectedSprinklerGear) == "table" then
+                    for _, gName in ipairs(selectedSprinklerGear) do
+                        local d = SPRINKLER_DURATIONS[tostring(gName)]
+                        if d then
+                            sprinklerDur = d
+                            break
+                        end
+                    end
+                end
+                sprinklerExpireAt = os.clock() + sprinklerDur
+            end
+        else
+            sprinklerExpireAt = 0  -- reset timer when toggled off
         end
         task.wait(plantInterval)
     end
