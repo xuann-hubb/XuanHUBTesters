@@ -3094,6 +3094,17 @@ do
                 return
             end
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
+            -- random click to dismiss/skip loading screen
+            task.wait(0.1)
+            pcall(function()
+                local vim = game:GetService("VirtualInputManager")
+                local vp = workspace.CurrentCamera.ViewportSize
+                local rx = math.random(math.floor(vp.X * 0.3), math.floor(vp.X * 0.7))
+                local ry = math.random(math.floor(vp.Y * 0.3), math.floor(vp.Y * 0.7))
+                vim:SendMouseButtonEvent(rx, ry, 0, true, game, 0)
+                task.wait(0.05)
+                vim:SendMouseButtonEvent(rx, ry, 0, false, game, 0)
+            end)
             -- re-check available plots after claiming
             pcall(function()
                 GetAvailablePlotsRemote:InvokeServer()
