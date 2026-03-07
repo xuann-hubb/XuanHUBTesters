@@ -2651,6 +2651,58 @@ do
         return "Weight: " .. tostring(weightValue)
     end
 
+    -- Cached plant definition modules for value calculation
+    local _plantDefs, _mutDefs, _varDefs
+    local function getDefinitions()
+        if not _plantDefs then
+            local ok1, d1 = pcall(require, ReplicatedStorage.Plants.Definitions.PlantDefinitions)
+            local ok2, d2 = pcall(require, ReplicatedStorage.Plants.Definitions.MutationDataDefinitions)
+            local ok3, d3 = pcall(require, ReplicatedStorage.Plants.Definitions.VariantDataDefinitions)
+            _plantDefs = (ok1 and type(d1) == "table") and d1 or {}
+            _mutDefs   = (ok2 and type(d2) == "table") and d2 or {}
+            _varDefs   = (ok3 and type(d3) == "table") and d3 or {}
+        end
+        return _plantDefs, _mutDefs, _varDefs
+    end
+
+    local function getFruitValue(p)
+        local directVal = p:GetAttribute("FruitValue")
+        if directVal and typeof(directVal) == "number" and directVal > 0 then
+            return directVal
+        end
+        local harvestedFrom = p:GetAttribute("HarvestedFrom")
+        if not harvestedFrom or typeof(harvestedFrom) ~= "string" then return 0 end
+        local plantDefs, mutDefs, varDefs = getDefinitions()
+        local plantDef = plantDefs[harvestedFrom]
+        if not plantDef then return 0 end
+        local baseVal = plantDef.FruitBaseValue or (plantDef.PlantBaseValue or 0)
+        if baseVal <= 0 then return 0 end
+        local hiddenNum = p:GetAttribute("HiddenNumber") or 1
+        local hn = typeof(hiddenNum) ~= "number" and 1 or hiddenNum
+        local mutMult = 1
+        local mutation = p:GetAttribute("Mutation")
+        if mutation and typeof(mutation) == "string" and mutation ~= "" then
+            local totalMult, count = 0, 0
+            for entry in string.gmatch(mutation, "([^,]+)") do
+                local mutData = mutDefs[entry:match("^%s*(.-)%s*$")]
+                if mutData and mutData.priceMultiplier then
+                    count = count + 1
+                    totalMult = totalMult + mutData.priceMultiplier
+                end
+            end
+            if count > 0 then mutMult = totalMult + 1 - count end
+        end
+        local varMult = 1
+        local variant = p:GetAttribute("Variant")
+        if variant and typeof(variant) == "string" then
+            local varData = varDefs[variant]
+            if varData and varData.priceMultiplier then varMult = varData.priceMultiplier end
+        end
+        local ripenessRaw = p:GetAttribute("RipenessMultiplier") or 1
+        local ripenessMult = typeof(ripenessRaw) ~= "number" and 1 or ripenessRaw
+        return math.floor(baseVal * hn * hn * mutMult * varMult * ripenessMult)
+    end
+
     local function getFruitWeightAdornee(fruitInstance)
         if not fruitInstance then
             return nil
@@ -2704,6 +2756,9 @@ do
         end
 
         local weightText = formatFruitWeightText(fruitWeight)
+        local valueAmt = 0
+        pcall(function() valueAmt = getFruitValue(fruitInstance) end)
+        local valueText = string.format("Value: %d", valueAmt)
         local billboardGui = espEntries[fruitInstance]
         if (not billboardGui) or (billboardGui.Parent ~= adorneePart) then
             removeFruitESP(fruitInstance)
@@ -2713,7 +2768,7 @@ do
             billboardGui.AlwaysOnTop = true
             billboardGui.LightInfluence = 0
             billboardGui.MaxDistance = 250
-            billboardGui.Size = UDim2.fromOffset(130, 26)
+            billboardGui.Size = UDim2.fromOffset(160, 44)
             billboardGui.StudsOffset = Vector3.new(0, 1.5, 0)
             billboardGui.Adornee = adorneePart
             billboardGui.Parent = adorneePart
@@ -2721,7 +2776,8 @@ do
             local textLabel = Instance.new("TextLabel")
             textLabel.Name = "WeightText"
             textLabel.BackgroundTransparency = 1
-            textLabel.Size = UDim2.fromScale(1, 1)
+            textLabel.Position = UDim2.new(0, 0, 0, 0)
+            textLabel.Size = UDim2.fromScale(1, 0.5)
             textLabel.Font = Enum.Font.GothamBold
             textLabel.TextScaled = true
             textLabel.TextStrokeTransparency = 0.35
@@ -2729,12 +2785,28 @@ do
             textLabel.Text = weightText
             textLabel.Parent = billboardGui
 
+            local valueLabel = Instance.new("TextLabel")
+            valueLabel.Name = "ValueText"
+            valueLabel.BackgroundTransparency = 1
+            valueLabel.Position = UDim2.new(0, 0, 0.5, 0)
+            valueLabel.Size = UDim2.fromScale(1, 0.5)
+            valueLabel.Font = Enum.Font.GothamBold
+            valueLabel.TextScaled = true
+            valueLabel.TextStrokeTransparency = 0.35
+            valueLabel.TextColor3 = Color3.fromRGB(255, 215, 0)
+            valueLabel.Text = valueText
+            valueLabel.Parent = billboardGui
+
             espEntries[fruitInstance] = billboardGui
         end
 
         local displayLabel = billboardGui:FindFirstChild("WeightText")
         if displayLabel and displayLabel:IsA("TextLabel") then
             displayLabel.Text = weightText
+        end
+        local displayValue = billboardGui:FindFirstChild("ValueText")
+        if displayValue and displayValue:IsA("TextLabel") then
+            displayValue.Text = valueText
         end
         billboardGui.Enabled = espEnabled
     end
