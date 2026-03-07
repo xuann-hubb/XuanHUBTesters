@@ -3091,7 +3091,7 @@ do
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
             -- forcefully dismiss loading screen after claiming
             task.spawn(function()
-                task.wait(0.1)
+                task.wait(0.5)
                 local playerGui = player:FindFirstChild("PlayerGui")
                 if not playerGui then return end
                 -- wait for LoadingScreenGui to exist (it may appear after claiming)
