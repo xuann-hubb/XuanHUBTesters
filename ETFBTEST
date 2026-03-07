@@ -3089,37 +3089,25 @@ do
         if first and first.PlotName then
             _plotClaimPending = true
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
-            -- forcefully dismiss loading screen after claiming
+            -- dismiss loading screen via random click + random key press
             task.spawn(function()
-                task.wait(0.5)
-                local playerGui = player:FindFirstChild("PlayerGui")
-                if not playerGui then return end
-                -- wait for LoadingScreenGui to exist (it may appear after claiming)
-                local loadingGui = playerGui:FindFirstChild("LoadingScreenGui")
-                if not loadingGui then
-                    loadingGui = playerGui:WaitForChild("LoadingScreenGui", 15)
-                end
-                if not loadingGui then return end
-                -- set Skipped to bypass the asset-loading wait phase
-                loadingGui:SetAttribute("Skipped", true)
-                -- poll until LoadingComplete or 30s, then forcefully destroy
-                local waited = 0
-                while waited < 30 and loadingGui and loadingGui.Parent do
-                    if loadingGui:GetAttribute("LoadingComplete") == true then
-                        break
-                    end
-                    task.wait(0.2)
-                    waited = waited + 0.2
-                end
-                if not (loadingGui and loadingGui.Parent) then return end
-                -- re-enable any ScreenGuis that were hidden by the loading screen
-                for _, gui in ipairs(playerGui:GetChildren()) do
-                    if gui:IsA("ScreenGui") and gui ~= loadingGui then
-                        gui.Enabled = true
-                    end
-                end
-                -- destroy the loading screen entirely
-                loadingGui:Destroy()
+                task.wait(0.1)
+                pcall(function()
+                    local UIS = game:GetService("UserInputService")
+                    local VIM = game:GetService("VirtualInputManager")
+                    local vp = workspace.CurrentCamera.ViewportSize
+                    local rx = math.random(math.floor(vp.X * 0.3), math.floor(vp.X * 0.7))
+                    local ry = math.random(math.floor(vp.Y * 0.3), math.floor(vp.Y * 0.7))
+                    -- random mouse click
+                    VIM:SendMouseButtonEvent(rx, ry, 0, true, game, 0)
+                    task.wait(0.05)
+                    VIM:SendMouseButtonEvent(rx, ry, 0, false, game, 0)
+                    task.wait(0.05)
+                    -- random key press (Space)
+                    VIM:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+                    task.wait(0.05)
+                    VIM:SendKeyEvent(false, Enum.KeyCode.Space, false, game)
+                end)
             end)
             -- fire SetStreamingFocus stop after claiming
             pcall(function()
