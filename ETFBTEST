@@ -3079,19 +3079,18 @@ end)
 -- auto claim plot background loop
 do
     local _plotClaimPending = false
+    local _plotClaimDone = false   -- once claimed successfully, never claim again
     local _plotClaimConn = nil
 
     -- Wait for LoadingScreenGui to finish (LoadingComplete = true) then destroy it
     local function waitForLoadingComplete()
         local playerGui = player:WaitForChild("PlayerGui")
-        -- Wait until LoadingScreenGui exists
         local loadingGui = playerGui:FindFirstChild("LoadingScreenGui")
         if not loadingGui then
             loadingGui = playerGui:WaitForChild("LoadingScreenGui", 30)
         end
-        if not loadingGui then return end -- not present, skip
+        if not loadingGui then return end
 
-        -- Wait until LoadingComplete attribute is set to true
         while loadingGui and loadingGui.Parent do
             if loadingGui:GetAttribute("LoadingComplete") then
                 break
@@ -3099,7 +3098,6 @@ do
             task.wait(0.2)
         end
 
-        -- Small grace period then remove the loading screen
         task.wait(0.5)
         if loadingGui and loadingGui.Parent then
             loadingGui:Destroy()
@@ -3108,16 +3106,21 @@ do
 
     local function tryClaimFirstPlot(plots)
         if not plots or #plots == 0 then return end
+        if _plotClaimDone then return end
         local first = plots[1]
         if first and first.PlotName then
             _plotClaimPending = true
+            task.wait(1) -- 1 second delay before firing
+            if _plotClaimDone then
+                _plotClaimPending = false
+                return
+            end
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
         end
     end
 
     local function doAutoClaimPlot()
-        if _plotClaimPending then return end
-        -- Fetch available plots with up to 3 retries
+        if _plotClaimPending or _plotClaimDone then return end
         local plots = nil
         for attempt = 1, 3 do
             local ok, result = pcall(function()
@@ -3134,37 +3137,33 @@ do
         end
     end
 
-    -- Listen for PlotAvailabilityUpdate to auto-confirm when selector opens
     if _plotClaimConn then _plotClaimConn:Disconnect() end
     _plotClaimConn = PlotAvailabilityUpdateRemote.OnClientEvent:Connect(function(plots, eventType)
-        if not autoClaimPlot then return end
+        if not autoClaimPlot or _plotClaimDone then return end
         if eventType == "open" or eventType == "update" then
             if plots and #plots > 0 and not _plotClaimPending then
-                tryClaimFirstPlot(plots)
+                task.spawn(tryClaimFirstPlot, plots)
             end
         elseif eventType == "claim_failed" then
             _plotClaimPending = false
             if plots and #plots > 0 then
-                tryClaimFirstPlot(plots)
+                task.spawn(tryClaimFirstPlot, plots)
             end
         elseif eventType == "teleported" then
             _plotClaimPending = false
-            -- Successfully claimed and teleported
+            _plotClaimDone = true  -- claimed successfully — stop forever
             WindUI:Notify({ Title = "Plot", Content = "Plot claimed!", Icon = "check", Duration = 3 })
         end
     end)
 
     task.spawn(function()
-        -- Always wait for loading to finish before doing anything
         waitForLoadingComplete()
 
         while scriptRunning do
-            if autoClaimPlot and not _plotClaimPending then
-                -- Check if plot selector is currently open in PlayerGui (not yet claimed)
+            if autoClaimPlot and not _plotClaimPending and not _plotClaimDone then
                 local plotSelectorGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("PlotSelector")
                 local selectorOpen = plotSelectorGui and plotSelectorGui.Enabled
                 if not selectorOpen then
-                    -- No selector open yet and we have no plot — try fetching
                     pcall(doAutoClaimPlot)
                 end
             end
