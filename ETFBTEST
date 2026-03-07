@@ -3082,28 +3082,6 @@ do
     local _plotClaimDone = false   -- once claimed successfully, never claim again
     local _plotClaimConn = nil
 
-    -- Wait for LoadingScreenGui to finish (LoadingComplete = true) then destroy it
-    local function waitForLoadingComplete()
-        local playerGui = player:WaitForChild("PlayerGui")
-        local loadingGui = playerGui:FindFirstChild("LoadingScreenGui")
-        if not loadingGui then
-            loadingGui = playerGui:WaitForChild("LoadingScreenGui", 30)
-        end
-        if not loadingGui then return end
-
-        while loadingGui and loadingGui.Parent do
-            if loadingGui:GetAttribute("LoadingComplete") then
-                break
-            end
-            task.wait(0.2)
-        end
-
-        task.wait(0.5)
-        if loadingGui and loadingGui.Parent then
-            loadingGui:Destroy()
-        end
-    end
-
     local function tryClaimFirstPlot(plots)
         if not plots or #plots == 0 then return end
         if _plotClaimDone then return end
@@ -3157,8 +3135,6 @@ do
     end)
 
     task.spawn(function()
-        waitForLoadingComplete()
-
         while scriptRunning do
             if autoClaimPlot and not _plotClaimPending and not _plotClaimDone then
                 local plotSelectorGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("PlotSelector")
