@@ -3114,6 +3114,200 @@ task.spawn(function()
     end
 end)
 
+-- ================= EVENTS TAB =================
+local EventsTab = Window:Tab({
+    Title = "Events",
+    Icon = "solar:star-bold",
+    Locked = false,
+})
+
+-- ========== BOTANIST (MAYA) SECTION ==========
+local BotanistSection = EventsTab:Section({ Title = "Botanist (Maya)", Opened = true })
+
+local BotanistQuestRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("BotanistQuestRequest")
+
+local _botanistDefs
+local function getBotanistDefinitions()
+    if not _botanistDefs then
+        local ok, d = pcall(require, ReplicatedStorage
+            :WaitForChild("Plants")
+            :WaitForChild("Definitions")
+            :WaitForChild("BotanistDefinitions"))
+        _botanistDefs = (ok and type(d) == "table") and d or {}
+    end
+    return _botanistDefs
+end
+
+-- Returns a set of all mutation strings accepted for a given quest mutation key
+local function getBotanistAcceptedMutations(questMutation)
+    local defs = getBotanistDefinitions()
+    local questData = defs.MutationQuests and defs.MutationQuests[questMutation]
+    local accepted = (questData and questData.AcceptedMutations) or { questMutation }
+    local set = {}
+    for _, m in ipairs(accepted) do
+        set[m] = true
+    end
+    return set
+end
+
+-- Rounds weight the same way the game does (1 decimal place)
+local function formatKgBotanist(weight)
+    local v = math.floor((weight or 0) * 10 + 0.5) / 10
+    if v == math.floor(v) then
+        return tostring(math.floor(v))
+    end
+    return string.format("%.1f", v)
+end
+
+-- Returns ( mutationKey | nil , displayText )
+local function fetchBotanistQuestText()
+    local ok, result = pcall(function()
+        return BotanistQuestRemote:InvokeServer("GetQuest")
+    end)
+    if not ok or not result or result.Status == "error" then
+        return nil, "Failed to fetch quest"
+    end
+    local mutation = tostring(result.Mutation or "Unknown")
+    if result.Status == "new_quest" then
+        local target = tonumber(result.TargetWeight) or 0
+        return mutation, string.format("%s - any fruit: 0kg out of %skg", mutation, formatKgBotanist(target))
+    elseif result.Status == "quest_reminder" then
+        local current = tonumber(result.TotalWeight) or 0
+        local target  = tonumber(result.TargetWeight) or 0
+        return mutation, string.format("%s - any fruit: %skg out of %skg", mutation, formatKgBotanist(current), formatKgBotanist(target))
+    end
+    return nil, "Status: " .. tostring(result.Status)
+end
+
+local botanistQuestParagraph = BotanistSection:Paragraph({
+    Title = "Current Quest",
+    Desc  = "Click Refresh Quest to load",
+})
+
+BotanistSection:Button({
+    Title = "Refresh Quest",
+    Desc  = "Fetch current Botanist quest from the server",
+    Icon  = "solar:refresh-bold",
+    Callback = function()
+        local _, text = fetchBotanistQuestText()
+        pcall(function() botanistQuestParagraph:SetDesc(text) end)
+        WindUI:Notify({ Title = "Botanist Quest", Content = text, Icon = "info", Duration = 5 })
+    end,
+})
+
+BotanistSection:Space()
+
+local autoBotanist = false
+
+-- Checks whether a fruit's Mutation attribute (comma-separated) contains any accepted mutation
+local function botanistFruitMutationMatches(mutationAttr, acceptedSet)
+    if not mutationAttr or type(mutationAttr) ~= "string" or mutationAttr == "" then return false end
+    for entry in mutationAttr:gmatch("([^,]+)") do
+        local m = entry:match("^%s*(.-)%s*$")
+        if acceptedSet[m] then return true end
+    end
+    return false
+end
+
+-- Harvest every plant in ClientPlants that has at least one fruit matching the accepted mutation set
+local function harvestBotanistMutationFruits(acceptedSet)
+    local clientPlants = workspace:FindFirstChild("ClientPlants")
+    if not clientPlants then return end
+    for _, plant in pairs(clientPlants:GetChildren()) do
+        local hasMatch = false
+        for _, obj in ipairs(plant:GetDescendants()) do
+            if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
+                if botanistFruitMutationMatches(obj:GetAttribute("Mutation"), acceptedSet) then
+                    hasMatch = true
+                    break
+                end
+            end
+        end
+        if hasMatch then
+            for _, v in ipairs(plant:GetDescendants()) do
+                if v:IsA("ProximityPrompt") and v.Name == "HarvestPrompt" then
+                    v.HoldDuration = 0
+                    if typeof(fireproximityprompt) == "function" then
+                        pcall(fireproximityprompt, v)
+                    else
+                        pcall(function() v:InputHoldBegin() end)
+                        task.wait(0.005)
+                        pcall(function() v:InputHoldEnd() end)
+                    end
+                    task.wait(0.3)
+                    break
+                end
+            end
+        end
+    end
+end
+
+local AutoBotanistToggle = BotanistSection:Toggle({
+    Title = "Auto Complete Botanist",
+    Desc  = "Harvest mutation fruits needed → teleport to Maya → submit",
+    Value = false,
+    Callback = function(state)
+        autoBotanist = state
+        WindUI:Notify({
+            Title   = "Botanist",
+            Content = (state and "Auto-botanist enabled" or "Auto-botanist disabled"),
+            Icon    = "info",
+            Duration = 2,
+        })
+    end,
+})
+trackConfigElement("AutoBotanistToggle", AutoBotanistToggle)
+
+-- Auto-botanist background loop
+task.spawn(function()
+    while scriptRunning do
+        if autoBotanist then
+            local questMutation, questText = fetchBotanistQuestText()
+
+            if questMutation then
+                pcall(function() botanistQuestParagraph:SetDesc(questText) end)
+                local accepted = getBotanistAcceptedMutations(questMutation)
+
+                -- Step 1: harvest any matching mutation fruits from the garden
+                harvestBotanistMutationFruits(accepted)
+                task.wait(0.5)
+
+                -- Step 2: teleport to the Botanist table (save point / submit spot)
+                local char = player.Character
+                local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+                local submitPart
+                pcall(function()
+                    submitPart = workspace.MapPhysical.Botanist.BotanistTable.StarryShine
+                end)
+                if hrp and submitPart then
+                    hrp.CFrame = CFrame.new(submitPart.Position + Vector3.new(0, 3, 0))
+                    task.wait(0.5)
+                end
+
+                -- Step 3: submit all matching fruits in inventory
+                local ok2, result = pcall(function()
+                    return BotanistQuestRemote:InvokeServer("TurnInAll")
+                end)
+                if ok2 and result then
+                    if result.Status == "complete" then
+                        pcall(function() botanistQuestParagraph:SetDesc("Quest complete! Next quest loading...") end)
+                        WindUI:Notify({ Title = "Botanist", Content = "Quest complete! Reward received!", Icon = "check", Duration = 3 })
+                    elseif result.Status == "progress" then
+                        local cur = formatKgBotanist(tonumber(result.TotalWeight) or 0)
+                        local tgt = formatKgBotanist(tonumber(result.TargetWeight) or 0)
+                        local txt = string.format("%s: %skg / %skg", questMutation, cur, tgt)
+                        pcall(function() botanistQuestParagraph:SetDesc(txt) end)
+                    end
+                    -- "none_found" / "no_active_quest" → just wait for next cycle
+                end
+            end
+            task.wait(2)
+        else
+            task.wait(1)
+        end
+    end
+end)
+
 local AboutTab = Window:Tab({
     Title = "About",
     Icon = "lucide:notebook-text",
