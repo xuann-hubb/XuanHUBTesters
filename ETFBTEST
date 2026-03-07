@@ -326,6 +326,7 @@ local State = {
     selectedWaterPlants = {},
     selectedSprinklerPlants = {},
     selectedSprinklerGear = {},
+    autoClaimPlot = false,
 }
 local stateEnv = (getgenv and getgenv()) or _G
 for key, value in pairs(State) do
@@ -349,6 +350,9 @@ local SpinRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("
 local RemovePlantRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("RemovePlant")
 local UseGearRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("UseGear")
 local PurchaseShopItemRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PurchaseShopItem")
+local ClaimSelectedPlotRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ClaimSelectedPlot")
+local GetAvailablePlotsRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("GetAvailablePlots")
+local PlotAvailabilityUpdateRemote = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("PlotAvailabilityUpdate")
 local PlantsModels = ReplicatedStorage:FindFirstChild("Plants") and ReplicatedStorage.Plants:FindFirstChild("Models")
 
 local SELL_POINT = workspace:WaitForChild("MapPhysical"):WaitForChild("CashRegister"):WaitForChild("Part")
@@ -2111,6 +2115,22 @@ ShopSection:Space()
 
 -- Refresh buttons and delay slider removed per user request
 
+-- Plot section in Main Tab
+local PlotSection = MainTab:Section({ Title = "Plot", Opened = true })
+
+local AutoClaimPlotToggle = PlotSection:Toggle({
+    Title = "Auto Claim Plot",
+    Desc = "Automatically claims the first available plot when the selector opens",
+    Value = false,
+    Callback = function(state)
+        autoClaimPlot = state
+        WindUI:Notify({ Title = "Plot", Content = state and "Auto-claim plot enabled" or "Auto-claim plot disabled", Icon = "info", Duration = 2 })
+    end,
+})
+trackConfigElement("AutoClaimPlotToggle", AutoClaimPlotToggle)
+
+ShopSection:Space()
+
 -- Automation tab: move automation-related toggles here
 local AutomationTab = Window:Tab({
     Title = "Automation",
@@ -3055,6 +3075,76 @@ task.spawn(function()
 end)
 
 -- auto claim plot loop removed; toggle now fires once and disables itself.
+
+-- auto claim plot background loop
+do
+    local _plotClaimPending = false
+    local _plotClaimConn = nil
+
+    local function tryClaimFirstPlot(plots)
+        if not plots or #plots == 0 then return end
+        local first = plots[1]
+        if first and first.PlotName then
+            _plotClaimPending = true
+            ClaimSelectedPlotRemote:FireServer(first.PlotName)
+        end
+    end
+
+    local function doAutoClaimPlot()
+        if _plotClaimPending then return end
+        -- Fetch available plots with up to 3 retries
+        local plots = nil
+        for attempt = 1, 3 do
+            local ok, result = pcall(function()
+                return GetAvailablePlotsRemote:InvokeServer()
+            end)
+            if ok and result and #result > 0 then
+                plots = result
+                break
+            end
+            task.wait(1)
+        end
+        if plots and #plots > 0 then
+            tryClaimFirstPlot(plots)
+        end
+    end
+
+    -- Listen for PlotAvailabilityUpdate to auto-confirm when selector opens
+    if _plotClaimConn then _plotClaimConn:Disconnect() end
+    _plotClaimConn = PlotAvailabilityUpdateRemote.OnClientEvent:Connect(function(plots, eventType)
+        if not autoClaimPlot then return end
+        if eventType == "open" or eventType == "update" then
+            if plots and #plots > 0 and not _plotClaimPending then
+                tryClaimFirstPlot(plots)
+            end
+        elseif eventType == "claim_failed" then
+            _plotClaimPending = false
+            if plots and #plots > 0 then
+                tryClaimFirstPlot(plots)
+            end
+        elseif eventType == "teleported" then
+            _plotClaimPending = false
+            -- Successfully claimed and teleported
+            WindUI:Notify({ Title = "Plot", Content = "Plot claimed!", Icon = "check", Duration = 3 })
+        end
+    end)
+
+    task.spawn(function()
+        while scriptRunning do
+            if autoClaimPlot and not _plotClaimPending then
+                -- Check if plot selector is currently open in PlayerGui (not yet claimed)
+                local plotSelectorGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("PlotSelector")
+                local selectorOpen = plotSelectorGui and plotSelectorGui.Enabled
+                if not selectorOpen then
+                    -- No selector open yet and we have no plot — try fetching
+                    pcall(doAutoClaimPlot)
+                end
+            end
+            task.wait(2)
+        end
+    end)
+end
+
 -- auto plant/harvest loop
 task.spawn(function()
     while scriptRunning do
