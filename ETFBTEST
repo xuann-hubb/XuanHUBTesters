@@ -2671,6 +2671,17 @@ do
             return directVal
         end
         local harvestedFrom = p:GetAttribute("HarvestedFrom")
+        -- For in-world (unharvested) fruits, HarvestedFrom is nil; derive the plant
+        -- type from the parent model name (e.g. "Carrot1" → "Carrot")
+        if not harvestedFrom or typeof(harvestedFrom) ~= "string" then
+            local parent = p.Parent
+            if parent and parent:IsA("Model") then
+                local derived = parent.Name:gsub("%d+$", ""):gsub("%s+$", "")
+                if derived ~= "" then
+                    harvestedFrom = derived
+                end
+            end
+        end
         if not harvestedFrom or typeof(harvestedFrom) ~= "string" then return 0 end
         local plantDefs, mutDefs, varDefs = getDefinitions()
         local plantDef = plantDefs[harvestedFrom]
