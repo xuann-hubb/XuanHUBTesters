@@ -3088,31 +3088,37 @@ do
         local first = plots[1]
         if first and first.PlotName then
             _plotClaimPending = true
-            task.wait(2) -- 2 second delay before firing
-            if _plotClaimDone then
-                _plotClaimPending = false
-                return
-            end
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
-            -- skip loading screen: set Skipped attribute + virtual click for "Press Any Key"
+            -- forcefully dismiss loading screen after claiming
             task.spawn(function()
                 local playerGui = player:FindFirstChild("PlayerGui")
-                if playerGui then
-                    local loadingGui = playerGui:FindFirstChild("LoadingScreenGui")
-                    if loadingGui then
-                        loadingGui:SetAttribute("Skipped", true)
+                if not playerGui then return end
+                -- wait for LoadingScreenGui to exist (it may appear after claiming)
+                local loadingGui = playerGui:FindFirstChild("LoadingScreenGui")
+                if not loadingGui then
+                    loadingGui = playerGui:WaitForChild("LoadingScreenGui", 15)
+                end
+                if not loadingGui then return end
+                -- set Skipped to bypass the asset-loading wait phase
+                loadingGui:SetAttribute("Skipped", true)
+                -- poll until LoadingComplete or 30s, then forcefully destroy
+                local waited = 0
+                while waited < 30 and loadingGui and loadingGui.Parent do
+                    if loadingGui:GetAttribute("LoadingComplete") == true then
+                        break
+                    end
+                    task.wait(0.2)
+                    waited = waited + 0.2
+                end
+                if not (loadingGui and loadingGui.Parent) then return end
+                -- re-enable any ScreenGuis that were hidden by the loading screen
+                for _, gui in ipairs(playerGui:GetChildren()) do
+                    if gui:IsA("ScreenGui") and gui ~= loadingGui then
+                        gui.Enabled = true
                     end
                 end
-                task.wait(0.3)
-                pcall(function()
-                    local vim = game:GetService("VirtualInputManager")
-                    local vp = workspace.CurrentCamera.ViewportSize
-                    local rx = math.random(math.floor(vp.X * 0.3), math.floor(vp.X * 0.7))
-                    local ry = math.random(math.floor(vp.Y * 0.3), math.floor(vp.Y * 0.7))
-                    vim:SendMouseButtonEvent(rx, ry, 0, true, game, 0)
-                    task.wait(0.05)
-                    vim:SendMouseButtonEvent(rx, ry, 0, false, game, 0)
-                end)
+                -- destroy the loading screen entirely
+                loadingGui:Destroy()
             end)
             -- fire SetStreamingFocus stop after claiming
             pcall(function()
