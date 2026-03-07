@@ -3094,16 +3094,25 @@ do
                 return
             end
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
-            -- random click to dismiss/skip loading screen
-            task.wait(0.1)
-            pcall(function()
-                local vim = game:GetService("VirtualInputManager")
-                local vp = workspace.CurrentCamera.ViewportSize
-                local rx = math.random(math.floor(vp.X * 0.3), math.floor(vp.X * 0.7))
-                local ry = math.random(math.floor(vp.Y * 0.3), math.floor(vp.Y * 0.7))
-                vim:SendMouseButtonEvent(rx, ry, 0, true, game, 0)
-                task.wait(0.05)
-                vim:SendMouseButtonEvent(rx, ry, 0, false, game, 0)
+            -- skip loading screen: set Skipped attribute + virtual click for "Press Any Key"
+            task.spawn(function()
+                local playerGui = player:FindFirstChild("PlayerGui")
+                if playerGui then
+                    local loadingGui = playerGui:FindFirstChild("LoadingScreenGui")
+                    if loadingGui then
+                        loadingGui:SetAttribute("Skipped", true)
+                    end
+                end
+                task.wait(0.3)
+                pcall(function()
+                    local vim = game:GetService("VirtualInputManager")
+                    local vp = workspace.CurrentCamera.ViewportSize
+                    local rx = math.random(math.floor(vp.X * 0.3), math.floor(vp.X * 0.7))
+                    local ry = math.random(math.floor(vp.Y * 0.3), math.floor(vp.Y * 0.7))
+                    vim:SendMouseButtonEvent(rx, ry, 0, true, game, 0)
+                    task.wait(0.05)
+                    vim:SendMouseButtonEvent(rx, ry, 0, false, game, 0)
+                end)
             end)
             -- fire SetStreamingFocus stop after claiming
             pcall(function()
