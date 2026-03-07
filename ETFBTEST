@@ -3105,9 +3105,9 @@ do
                 task.wait(0.05)
                 vim:SendMouseButtonEvent(rx, ry, 0, false, game, 0)
             end)
-            -- re-check available plots after claiming
+            -- fire SetStreamingFocus stop after claiming
             pcall(function()
-                GetAvailablePlotsRemote:InvokeServer()
+                ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("SetStreamingFocus"):FireServer("stop")
             end)
         end
     end
