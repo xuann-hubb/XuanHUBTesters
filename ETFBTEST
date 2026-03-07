@@ -3094,6 +3094,10 @@ do
                 return
             end
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
+            -- re-check available plots after claiming
+            pcall(function()
+                GetAvailablePlotsRemote:InvokeServer()
+            end)
         end
     end
 
