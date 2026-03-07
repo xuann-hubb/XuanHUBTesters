@@ -3091,7 +3091,7 @@ do
             ClaimSelectedPlotRemote:FireServer(first.PlotName)
             -- dismiss loading screen via random click + random key press
             task.spawn(function()
-                task.wait(0.1)
+                task.wait(0.7)
                 pcall(function()
                     local UIS = game:GetService("UserInputService")
                     local VIM = game:GetService("VirtualInputManager")
@@ -3151,10 +3151,17 @@ do
                 local plotSelectorGui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("PlotSelector")
                 local selectorOpen = plotSelectorGui and plotSelectorGui.Enabled
                 if not selectorOpen then
-                    pcall(doAutoClaimPlot)
+                    -- check if loading screen is at 100% before claiming
+                    local playerGui = player:FindFirstChild("PlayerGui")
+                    local loadingGui = playerGui and playerGui:FindFirstChild("LoadingScreenGui")
+                    local loadAmount = loadingGui and loadingGui:FindFirstChild("Frame") and loadingGui.Frame:FindFirstChild("LoadAmount")
+                    local loadText = loadAmount and loadAmount.Text
+                    if loadText == "100%" then
+                        pcall(doAutoClaimPlot)
+                    end
                 end
             end
-            task.wait(2)
+            task.wait(0.5)
         end
     end)
 end
