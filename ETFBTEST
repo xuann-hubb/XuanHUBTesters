@@ -3138,19 +3138,15 @@ local function getBotanistDefinitions()
     return _botanistDefs
 end
 
--- Returns a set of all mutation strings accepted for a given quest mutation key
 local function getBotanistAcceptedMutations(questMutation)
     local defs = getBotanistDefinitions()
     local questData = defs.MutationQuests and defs.MutationQuests[questMutation]
     local accepted = (questData and questData.AcceptedMutations) or { questMutation }
     local set = {}
-    for _, m in ipairs(accepted) do
-        set[m] = true
-    end
+    for _, m in ipairs(accepted) do set[m] = true end
     return set
 end
 
--- Returns "Sandy Or Muddy" style display name using AcceptedMutations
 local function getBotanistMutationDisplayName(questMutation)
     local defs = getBotanistDefinitions()
     local questData = defs.MutationQuests and defs.MutationQuests[questMutation]
@@ -3159,16 +3155,25 @@ local function getBotanistMutationDisplayName(questMutation)
     return table.concat(accepted, " Or ")
 end
 
--- Rounds weight the same way the game does (1 decimal place)
+-- Read required ripeness from local BotanistDefinitions (nil = any ripeness)
+local function getBotanistRequiredRipeness(questMutation)
+    local defs = getBotanistDefinitions()
+    local questData = defs.MutationQuests and defs.MutationQuests[questMutation]
+    if questData then
+        local r = questData.RequiredRipeness or questData.Ripeness or questData.RipenessStage
+        if type(r) == "string" and r ~= "" then
+            return normalizeRipenessStageName(r)
+        end
+    end
+    return nil
+end
+
 local function formatKgBotanist(weight)
     local v = math.floor((weight or 0) * 10 + 0.5) / 10
-    if v == math.floor(v) then
-        return tostring(math.floor(v))
-    end
+    if v == math.floor(v) then return tostring(math.floor(v)) end
     return string.format("%.1f", v)
 end
 
--- Checks whether a fruit's Mutation attribute (comma-separated) contains any accepted mutation
 local function botanistFruitMutationMatches(mutationAttr, acceptedSet)
     if not mutationAttr or type(mutationAttr) ~= "string" or mutationAttr == "" then return false end
     for entry in mutationAttr:gmatch("([^,]+)") do
@@ -3178,15 +3183,32 @@ local function botanistFruitMutationMatches(mutationAttr, acceptedSet)
     return false
 end
 
--- Count matching harvested fruits in backpack / equipped
-local function countBotanistFruitsInInventory(acceptedSet)
+-- True if a Fruit object satisfies both mutation AND ripeness requirements
+local function botanistFruitMatches(fruitObj, acceptedSet, requiredRipeness)
+    if not botanistFruitMutationMatches(fruitObj:GetAttribute("Mutation"), acceptedSet) then
+        return false
+    end
+    if requiredRipeness then
+        local stage = normalizeRipenessStageName(tostring(fruitObj:GetAttribute("RipenessStage") or ""))
+        if stage == "" or stage ~= requiredRipeness then return false end
+    end
+    return true
+end
+
+-- Count matching harvested tools in backpack + character
+local function countBotanistFruitsInInventory(acceptedSet, requiredRipeness)
     local count = 0
     local function scanContainer(container)
         if not container then return end
         for _, tool in ipairs(container:GetChildren()) do
             if tool:IsA("Tool") and tool:GetAttribute("IsHarvested") then
                 if botanistFruitMutationMatches(tool:GetAttribute("Mutation"), acceptedSet) then
-                    count = count + 1
+                    if not requiredRipeness then
+                        count = count + 1
+                    else
+                        local stage = normalizeRipenessStageName(tostring(tool:GetAttribute("RipenessStage") or ""))
+                        if stage == requiredRipeness then count = count + 1 end
+                    end
                 end
             end
         end
@@ -3196,31 +3218,29 @@ local function countBotanistFruitsInInventory(acceptedSet)
     return count
 end
 
--- Returns true if ClientPlants contains any unharvested fruit with a matching mutation
-local function gardenHasBotanistFruits(acceptedSet)
+-- True if any unharvested fruit in ClientPlants passes mutation + ripeness
+local function gardenHasBotanistFruits(acceptedSet, requiredRipeness)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then return false end
     for _, plant in pairs(clientPlants:GetChildren()) do
         for _, obj in ipairs(plant:GetDescendants()) do
             if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
-                if botanistFruitMutationMatches(obj:GetAttribute("Mutation"), acceptedSet) then
-                    return true
-                end
+                if botanistFruitMatches(obj, acceptedSet, requiredRipeness) then return true end
             end
         end
     end
     return false
 end
 
--- Harvest every plant that has at least one matching mutation fruit
-local function harvestBotanistMutationFruits(acceptedSet)
+-- Harvest plants containing at least one qualifying fruit
+local function harvestBotanistMutationFruits(acceptedSet, requiredRipeness)
     local clientPlants = workspace:FindFirstChild("ClientPlants")
     if not clientPlants then return end
     for _, plant in pairs(clientPlants:GetChildren()) do
         local hasMatch = false
         for _, obj in ipairs(plant:GetDescendants()) do
             if type(obj.Name) == "string" and obj.Name:match("^Fruit%d+$") then
-                if botanistFruitMutationMatches(obj:GetAttribute("Mutation"), acceptedSet) then
+                if botanistFruitMatches(obj, acceptedSet, requiredRipeness) then
                     hasMatch = true
                     break
                 end
@@ -3245,31 +3265,41 @@ local function harvestBotanistMutationFruits(acceptedSet)
     end
 end
 
--- Fetch quest and return (mutationKey, displayName, displayText, rawResult)
+-- Returns (mutationKey, displayName, displayText, rawResult, requiredRipeness)
 local function fetchBotanistQuest()
     local ok, result = pcall(function()
         return BotanistQuestRemote:InvokeServer("GetQuest")
     end)
     if not ok or not result or result.Status == "error" then
-        return nil, nil, "Failed to fetch quest", nil
+        return nil, nil, "Failed to fetch quest", nil, nil
     end
     local mutation = tostring(result.Mutation or "")
     if mutation == "" then
-        return nil, nil, "No active quest", nil
+        return nil, nil, "No active quest", nil, nil
     end
     local displayName = getBotanistMutationDisplayName(mutation)
+
+    -- Ripeness: prefer server result, fall back to local defs
+    local requiredRipeness = nil
+    if type(result.RequiredRipeness) == "string" and result.RequiredRipeness ~= "" then
+        requiredRipeness = normalizeRipenessStageName(result.RequiredRipeness)
+    else
+        requiredRipeness = getBotanistRequiredRipeness(mutation)
+    end
+    local ripenessLabel = requiredRipeness and (" [" .. requiredRipeness .. "]") or ""
+
     local displayText
     if result.Status == "new_quest" then
         local tgt = formatKgBotanist(tonumber(result.TargetWeight) or 0)
-        displayText = string.format("%s - any fruit: 0kg / %skg", displayName, tgt)
+        displayText = string.format("%s%s — 0kg / %skg", displayName, ripenessLabel, tgt)
     elseif result.Status == "quest_reminder" then
         local cur = formatKgBotanist(tonumber(result.TotalWeight) or 0)
         local tgt = formatKgBotanist(tonumber(result.TargetWeight) or 0)
-        displayText = string.format("%s - any fruit: %skg / %skg", displayName, cur, tgt)
+        displayText = string.format("%s%s — %skg / %skg", displayName, ripenessLabel, cur, tgt)
     else
-        displayText = displayName .. " (status: " .. tostring(result.Status) .. ")"
+        displayText = displayName .. ripenessLabel .. " (status: " .. tostring(result.Status) .. ")"
     end
-    return mutation, displayName, displayText, result
+    return mutation, displayName, displayText, result, requiredRipeness
 end
 
 local botanistQuestParagraph = BotanistSection:Paragraph({
@@ -3294,13 +3324,13 @@ local autoBotanist = false
 
 local AutoBotanistToggle = BotanistSection:Toggle({
     Title = "Auto Complete Botanist",
-    Desc  = "Harvest mutation fruits needed → teleport to Maya → submit → return",
+    Desc  = "Harvest → teleport → submit → return until target kg reached",
     Value = false,
     Callback = function(state)
         autoBotanist = state
         WindUI:Notify({
             Title   = "Botanist",
-            Content = (state and "Auto-botanist enabled" or "Auto-botanist disabled"),
+            Content = state and "Auto-botanist enabled" or "Auto-botanist disabled",
             Icon    = "info",
             Duration = 2,
         })
@@ -3308,77 +3338,87 @@ local AutoBotanistToggle = BotanistSection:Toggle({
 })
 trackConfigElement("AutoBotanistToggle", AutoBotanistToggle)
 
--- Auto-botanist background loop
+-- Auto-botanist loop: keeps cycling harvest→submit until target kg is hit
 task.spawn(function()
     local lastQuestMutation = nil
     while scriptRunning do
-        if autoBotanist then
-            -- Always re-fetch quest to detect changes
-            local questMutation, displayName, displayText = fetchBotanistQuest()
+        if not autoBotanist then
+            task.wait(1)
+        else
+            local questMutation, displayName, displayText, questResult, requiredRipeness = fetchBotanistQuest()
 
-            if questMutation then
-                -- Notify if quest changed
+            if not questMutation then
+                task.wait(2)
+            else
+                -- Announce quest if it changed (new or rolled over)
                 if questMutation ~= lastQuestMutation then
                     lastQuestMutation = questMutation
-                    WindUI:Notify({ Title = "Botanist Quest", Content = "New quest: " .. displayName, Icon = "info", Duration = 4 })
+                    WindUI:Notify({ Title = "Botanist Quest", Content = displayText, Icon = "info", Duration = 5 })
                 end
                 pcall(function() botanistQuestParagraph:SetDesc(displayText) end)
 
-                local accepted = getBotanistAcceptedMutations(questMutation)
+                local currentKg = tonumber(questResult and questResult.TotalWeight) or 0
+                local targetKg  = tonumber(questResult and questResult.TargetWeight) or 0
 
-                -- Step 1: If there are matching fruits in the garden, harvest them first
-                if gardenHasBotanistFruits(accepted) then
-                    harvestBotanistMutationFruits(accepted)
-                    task.wait(0.8) -- give time for fruits to land in inventory
-                end
+                if targetKg > 0 and currentKg >= targetKg then
+                    -- Nothing left to do for this quest
+                    task.wait(2)
+                else
+                    local accepted = getBotanistAcceptedMutations(questMutation)
 
-                -- Step 2: Only teleport if we actually have matching fruits in inventory
-                local invCount = countBotanistFruitsInInventory(accepted)
-                if invCount > 0 then
-                    local char = player.Character
-                    local hrp  = char and char:FindFirstChild("HumanoidRootPart")
-                    local savedCFrame = hrp and hrp.CFrame
-
-                    -- Teleport to Botanist submit point
-                    local submitPart
-                    pcall(function()
-                        submitPart = workspace.MapPhysical.Botanist.BotanistTable.StarryShine
-                    end)
-                    if hrp and submitPart then
-                        hrp.CFrame = CFrame.new(submitPart.Position + Vector3.new(0, 3, 0))
-                        task.wait(0.5)
+                    -- Step 1: harvest qualifying fruits from the garden
+                    if gardenHasBotanistFruits(accepted, requiredRipeness) then
+                        harvestBotanistMutationFruits(accepted, requiredRipeness)
+                        task.wait(0.8) -- let fruits settle into inventory
                     end
 
-                    -- Step 3: Submit all matching fruits
-                    local ok2, res = pcall(function()
-                        return BotanistQuestRemote:InvokeServer("TurnInAll")
-                    end)
-                    if ok2 and res then
-                        if res.Status == "complete" then
-                            lastQuestMutation = nil -- force re-fetch since quest rolled over
-                            pcall(function() botanistQuestParagraph:SetDesc("Quest complete! Getting new quest...") end)
-                            WindUI:Notify({ Title = "Botanist", Content = "Quest complete! Reward received!", Icon = "check", Duration = 3 })
-                        elseif res.Status == "progress" then
-                            local cur = formatKgBotanist(tonumber(res.TotalWeight) or 0)
-                            local tgt = formatKgBotanist(tonumber(res.TargetWeight) or 0)
-                            local txt = string.format("%s: %skg / %skg", displayName, cur, tgt)
-                            pcall(function() botanistQuestParagraph:SetDesc(txt) end)
+                    -- Step 2: only proceed if there are matching fruits in inventory
+                    local invCount = countBotanistFruitsInInventory(accepted, requiredRipeness)
+                    if invCount == 0 then
+                        -- Nothing to submit and nothing in garden — wait and re-scan
+                        task.wait(2)
+                    else
+                        -- Step 3: save position → teleport to Maya's table
+                        local char = player.Character
+                        local hrp  = char and char:FindFirstChild("HumanoidRootPart")
+                        local savedCFrame = hrp and hrp.CFrame
+
+                        local submitPart
+                        pcall(function()
+                            submitPart = workspace.MapPhysical.Botanist.BotanistTable.StarryShine
+                        end)
+                        if hrp and submitPart then
+                            hrp.CFrame = CFrame.new(submitPart.Position + Vector3.new(0, 3, 0))
+                            task.wait(0.5)
                         end
-                        -- "none_found" → nothing to submit, continue scanning
-                    end
 
-                    -- Step 4: Return to saved position (save point)
-                    task.wait(0.3)
-                    if hrp and savedCFrame then
-                        hrp.CFrame = savedCFrame
+                        -- Step 4: submit
+                        local ok2, res = pcall(function()
+                            return BotanistQuestRemote:InvokeServer("TurnInAll")
+                        end)
+                        if ok2 and res then
+                            if res.Status == "complete" then
+                                lastQuestMutation = nil -- quest rolled over; re-announce next loop
+                                pcall(function() botanistQuestParagraph:SetDesc("Quest complete! Fetching next quest...") end)
+                                WindUI:Notify({ Title = "Botanist", Content = "Quest complete! Reward received!", Icon = "check", Duration = 3 })
+                            elseif res.Status == "progress" then
+                                local ripenessLabel = requiredRipeness and (" [" .. requiredRipeness .. "]") or ""
+                                local cur = formatKgBotanist(tonumber(res.TotalWeight) or 0)
+                                local tgt = formatKgBotanist(tonumber(res.TargetWeight) or 0)
+                                local txt = string.format("%s%s — %skg / %skg", displayName, ripenessLabel, cur, tgt)
+                                pcall(function() botanistQuestParagraph:SetDesc(txt) end)
+                            end
+                            -- "none_found" / "no_active_quest" → fall through to return and re-scan
+                        end
+
+                        -- Step 5: return to saved position
+                        task.wait(0.3)
+                        if hrp and savedCFrame then hrp.CFrame = savedCFrame end
+                        task.wait(0.3)
+                        -- No long wait — immediately loop back to keep filling the kg target
                     end
-                    task.wait(0.5)
                 end
-                -- No matching fruits anywhere → just wait and re-scan next cycle
             end
-            task.wait(2)
-        else
-            task.wait(1)
         end
     end
 end)
