@@ -2851,8 +2851,8 @@ do
     local ESPSection = ESPTab:Section({ Title = "Fruit ESP", Opened = true })
 
     local FruitWeightESPToggle = ESPSection:Toggle({
-        Title = "Show Fruit Weight",
-        Desc = "Display Fruit Weight",
+        Title = "Show Fruit Weight And Value",
+        Desc = "Display Fruit Weight And Value",
         Value = false,
         Callback = function(state)
             espEnabled = state
@@ -3309,7 +3309,7 @@ local botanistQuestParagraph = BotanistSection:Paragraph({
 
 BotanistSection:Button({
     Title = "Refresh Quest",
-    Desc  = "Fetch current Botanist quest from the server",
+    Desc  = "Fetch current Botanist quest",
     Icon  = "solar:refresh-bold",
     Callback = function()
         local _, _, text = fetchBotanistQuest()
@@ -3324,7 +3324,7 @@ local autoBotanist = false
 
 local AutoBotanistToggle = BotanistSection:Toggle({
     Title = "Auto Complete Botanist",
-    Desc  = "Harvest → teleport → submit → return until target kg reached",
+    Desc  = "Harvest and Submit Fruit Requirments Then Submit",
     Value = false,
     Callback = function(state)
         autoBotanist = state
