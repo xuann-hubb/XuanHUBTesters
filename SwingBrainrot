@@ -414,24 +414,32 @@ BrainrotSection:Toggle({
                             if hitbox then
                                 local rarityAttr = hitbox:GetAttribute("Rarity")
                                 local mutationAttr = hitbox:GetAttribute("Mutation")
+                                local spawnCF = hitbox:GetAttribute("SpawnCFrame")
 
                                 local rarityMatch = next(selectedRarity) == nil or isSelected(rarityAttr, selectedRarity)
                                 local mutationMatch = next(selectedMutation) == nil or isSelected(mutationAttr, selectedMutation)
 
                                 if rarityMatch and mutationMatch then
-                                    local attachment = hitbox:FindFirstChild("Attachment")
-                                    if attachment then
-                                        local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                                        if prompt then
-                                            local cf = getCFrame(hitbox)
-                                            teleportTo(cf + Vector3.new(0, 5, 0))
-                                            task.wait(0.3)
-                                            teleportTo(cf + Vector3.new(0, 3, 0))
-                                            task.wait(0.4)
-                                            fireproximityprompt(prompt)
-                                            task.wait(1)
+                                    -- Use SpawnCFrame attribute if available, else fall back to hitbox CFrame
+                                    local targetCF = spawnCF or getCFrame(hitbox)
+                                    teleportTo(targetCF + Vector3.new(0, 5, 0))
+                                    task.wait(0.3)
+                                    teleportTo(targetCF + Vector3.new(0, 3, 0))
+                                    task.wait(0.4)
+
+                                    -- Search recursively for ProximityPrompt anywhere under hitbox
+                                    local prompt = hitbox:FindFirstChildOfClass("ProximityPrompt", true)
+                                    if not prompt then
+                                        local attachment = hitbox:FindFirstChild("Attachment")
+                                        if attachment then
+                                            prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
                                         end
                                     end
+
+                                    if prompt then
+                                        fireproximityprompt(prompt)
+                                    end
+                                    task.wait(1)
                                 end
                             end
                         end
@@ -472,25 +480,7 @@ BrainrotSection:Button({
     end,
 })
 
-BrainrotSection:Button({
-    Title = "Debug: Print Plot Attributes",
-    Icon = "info",
-    Desc = "Prints all plot attributes to console for debugging",
-    Callback = function()
-        local ok, plots = pcall(function() return workspace.Plots:GetChildren() end)
-        if not ok then
-            print("[Debug] workspace.Plots not found!")
-            return
-        end
-        print("[Debug] Player UserId:", player.UserId, "| Name:", player.Name)
-        for _, plot in ipairs(plots) do
-            print("[Debug] Plot:", plot.Name)
-            for attrName, attrVal in pairs(plot:GetAttributes()) do
-                print("   Attr:", attrName, "=", tostring(attrVal))
-            end
-        end
-    end,
-})
+
 
 -- ================= AUTOMATION TAB =================
 local AutoTab = Window:Tab({
