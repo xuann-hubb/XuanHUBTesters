@@ -390,10 +390,9 @@ BrainrotSection:Toggle({
                 while autoGetBrainrot do
                     pcall(function()
                         local activeBrainrots = workspace.ActiveBrainrots:GetChildren()
-                        for _, brainrot in ipairs(activeBrainrots) do
+                        for _, hitbox in ipairs(activeBrainrots) do
                             if not autoGetBrainrot then break end
 
-                            local hitbox = brainrot:FindFirstChild("ServerHitbox")
                             if hitbox then
                                 local rarityAttr = hitbox:GetAttribute("Rarity")
                                 local spawnCF = hitbox:GetAttribute("SpawnCFrame")
