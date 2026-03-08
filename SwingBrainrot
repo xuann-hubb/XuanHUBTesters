@@ -358,8 +358,12 @@ BrainrotSection:Toggle({
                                             local rootPart = player.Character
                                                 and player.Character:FindFirstChild("HumanoidRootPart")
                                             if rootPart then
+                                                -- Teleport close to the hitbox
                                                 rootPart.CFrame = hitbox.CFrame + Vector3.new(0, 5, 0)
-                                                task.wait(0.5)
+                                                task.wait(0.3)
+                                                -- Teleport again to make sure we're in range
+                                                rootPart.CFrame = hitbox.CFrame + Vector3.new(0, 3, 0)
+                                                task.wait(0.4)
                                                 fireproximityprompt(prompt)
                                                 task.wait(1)
                                             end
@@ -388,7 +392,8 @@ BrainrotSection:Button({
         local found = false
         pcall(function()
             for _, plot in ipairs(workspace.Plots:GetChildren()) do
-                if plot:GetAttribute("OwnerName") == playerUsername then
+                local ownerUserId = plot:GetAttribute("OwnerUserID") or plot:GetAttribute("OwnerUserId") or plot:GetAttribute("OwnerId")
+                if tostring(ownerUserId) == tostring(player.UserId) then
                     local rootPart = player.Character
                         and player.Character:FindFirstChild("HumanoidRootPart")
                     if rootPart then
@@ -408,7 +413,7 @@ BrainrotSection:Button({
         if not found then
             WindUI:Notify({
                 Title = "Base Not Found",
-                Content = "No plot with your name was found (Plot1-Plot5).",
+                Content = "No plot owned by you was found (Plot1-Plot5).",
                 Icon = "info",
                 Duration = 3,
             })
@@ -548,7 +553,8 @@ PlotSection:Toggle({
                     pcall(function()
                         local ownerPlot = nil
                         for _, plot in ipairs(workspace.Plots:GetChildren()) do
-                            if plot:GetAttribute("OwnerName") == playerUsername then
+                            local ownerUserId = plot:GetAttribute("OwnerUserID") or plot:GetAttribute("OwnerUserId") or plot:GetAttribute("OwnerId")
+                            if tostring(ownerUserId) == tostring(player.UserId) then
                                 ownerPlot = plot
                                 break
                             end
