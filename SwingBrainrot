@@ -12,7 +12,6 @@ local upgradeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Up
 local rebirthRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Rebirth")
 
 -- Multi=true dropdowns return tables, so store as tables
-local selectedMutation = {}
 local selectedRarity = {}
 local autoGetBrainrot = false
 
@@ -364,22 +363,6 @@ local BrainrotSection = MainTab:Section({
 })
 
 BrainrotSection:Dropdown({
-    Title = "Mutation",
-    Icon = "solar:magic-stick-bold",
-    Desc = "Select the mutation to target",
-    Values = { "Normal", "Golden", "Diamond", "Emerald", "Ruby", "Void", "Ethereal", "Celestial" },
-    Value = "Normal",
-    Multi = true,
-    AllowNone = true,
-    SearchBarEnabled = true,
-    Callback = function(value)
-        selectedMutation = value
-    end,
-})
-
-BrainrotSection:Space()
-
-BrainrotSection:Dropdown({
     Title = "Rarity",
     Icon = "solar:star-bold",
     Desc = "Select the rarity to target",
@@ -413,13 +396,11 @@ BrainrotSection:Toggle({
                             local hitbox = brainrot:FindFirstChild("ServerHitbox")
                             if hitbox then
                                 local rarityAttr = hitbox:GetAttribute("Rarity")
-                                local mutationAttr = hitbox:GetAttribute("Mutation")
                                 local spawnCF = hitbox:GetAttribute("SpawnCFrame")
 
                                 local rarityMatch = next(selectedRarity) == nil or isSelected(rarityAttr, selectedRarity)
-                                local mutationMatch = next(selectedMutation) == nil or isSelected(mutationAttr, selectedMutation)
 
-                                if rarityMatch and mutationMatch then
+                                if rarityMatch then
                                     -- Use SpawnCFrame attribute if available, else fall back to hitbox CFrame
                                     local targetCF = spawnCF or getCFrame(hitbox)
                                     teleportTo(targetCF + Vector3.new(0, 5, 0))
