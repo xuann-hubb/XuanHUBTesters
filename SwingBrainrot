@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local camera = workspace.CurrentCamera
+local ProximityPromptService = game:GetService("ProximityPromptService")
 
 -- ================= STATE & REMOTES =================
 local upgradeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpgradeStats")
