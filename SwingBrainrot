@@ -39,20 +39,40 @@ local function teleportTo(targetCFrame)
     root.AssemblyAngularVelocity = Vector3.zero
 end
 
+-- Get CFrame from any instance (BasePart or Model)
+local function getCFrame(obj)
+    if not obj then return CFrame.new() end
+    if obj:IsA("BasePart") then
+        return obj.CFrame
+    elseif obj:IsA("Model") then
+        if obj.PrimaryPart then
+            return obj.PrimaryPart.CFrame
+        end
+        local part = obj:FindFirstChildWhichIsA("BasePart", true)
+        if part then return part.CFrame end
+        return obj:GetPivot()
+    end
+    return CFrame.new()
+end
+
 -- Find this player's owned plot by scanning all known attribute names + name fallback
 local function findOwnerPlot()
+    local ok, plots = pcall(function() return workspace.Plots:GetChildren() end)
+    if not ok or not plots then return nil end
     local idStr = tostring(player.UserId)
     local attrVariants = { "OwnerUserID", "OwnerUserId", "OwnerId", "OwnerID", "UserId", "UserID" }
-    for _, plot in ipairs(workspace.Plots:GetChildren()) do
+    for _, plot in ipairs(plots) do
         for _, attrName in ipairs(attrVariants) do
-            local val = plot:GetAttribute(attrName)
-            if val and tostring(val) == idStr then
+            local ok2, val = pcall(function() return plot:GetAttribute(attrName) end)
+            if ok2 and val and tostring(val) == idStr then
                 return plot
             end
         end
         -- Fallback: match by name attribute
-        local nameAttr = plot:GetAttribute("OwnerName") or plot:GetAttribute("Owner")
-        if nameAttr and tostring(nameAttr) == playerUsername then
+        local ok3, nameAttr = pcall(function()
+            return plot:GetAttribute("OwnerName") or plot:GetAttribute("Owner")
+        end)
+        if ok3 and nameAttr and tostring(nameAttr) == playerUsername then
             return plot
         end
     end
@@ -403,10 +423,10 @@ BrainrotSection:Toggle({
                                     if attachment then
                                         local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
                                         if prompt then
-                                            -- Teleport twice for reliability
-                                            teleportTo(hitbox.CFrame + Vector3.new(0, 5, 0))
+                                            local cf = getCFrame(hitbox)
+                                            teleportTo(cf + Vector3.new(0, 5, 0))
                                             task.wait(0.3)
-                                            teleportTo(hitbox.CFrame + Vector3.new(0, 3, 0))
+                                            teleportTo(cf + Vector3.new(0, 3, 0))
                                             task.wait(0.4)
                                             fireproximityprompt(prompt)
                                             task.wait(1)
@@ -434,7 +454,7 @@ BrainrotSection:Button({
     Callback = function()
         local plot = findOwnerPlot()
         if plot then
-            teleportTo(plot.CFrame + Vector3.new(0, 5, 0))
+            teleportTo(getCFrame(plot) + Vector3.new(0, 5, 0))
             WindUI:Notify({
                 Title = "Teleported",
                 Content = "Teleported to your base: " .. plot.Name,
@@ -444,10 +464,30 @@ BrainrotSection:Button({
         else
             WindUI:Notify({
                 Title = "Base Not Found",
-                Content = "No plot owned by you was found.",
+                Content = "No plot owned by you was found. Use Debug button.",
                 Icon = "info",
                 Duration = 3,
             })
+        end
+    end,
+})
+
+BrainrotSection:Button({
+    Title = "Debug: Print Plot Attributes",
+    Icon = "info",
+    Desc = "Prints all plot attributes to console for debugging",
+    Callback = function()
+        local ok, plots = pcall(function() return workspace.Plots:GetChildren() end)
+        if not ok then
+            print("[Debug] workspace.Plots not found!")
+            return
+        end
+        print("[Debug] Player UserId:", player.UserId, "| Name:", player.Name)
+        for _, plot in ipairs(plots) do
+            print("[Debug] Plot:", plot.Name)
+            for attrName, attrVal in pairs(plot:GetAttributes()) do
+                print("   Attr:", attrName, "=", tostring(attrVal))
+            end
         end
     end,
 })
