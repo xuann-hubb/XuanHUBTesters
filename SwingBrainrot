@@ -501,8 +501,8 @@ UpgradeSection:Dropdown({
     Desc = "Amount to upgrade Power per tick",
     Values = { "1", "5", "10" },
     Value = "10",
-    Multi = true,
-    AllowNone = true,
+    Multi = false,
+    AllowNone = false,
     SearchBarEnabled = false,
     Callback = function(value)
         selectedPowerAmt = tonumber(value)
@@ -540,8 +540,8 @@ UpgradeSection:Dropdown({
     Desc = "Amount to upgrade Reach Distance per tick",
     Values = { "1", "5", "10" },
     Value = "10",
-    Multi = true,
-    AllowNone = true,
+    Multi = false,
+    AllowNone = false,
     SearchBarEnabled = false,
     Callback = function(value)
         selectedDistanceAmt = tonumber(value)
