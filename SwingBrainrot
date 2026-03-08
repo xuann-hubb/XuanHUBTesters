@@ -590,12 +590,13 @@ PlotSection:Toggle({
                                     if not autoUpgradePlot then break end
                                     local touchPart = btn:FindFirstChild("TouchPart")
                                     if touchPart then
-                                        teleportTo(touchPart.CFrame + Vector3.new(0, 3, 0))
-                                        task.wait(0.05)
-                                        firetouchinterest(touchPart, player.Character:FindFirstChild("HumanoidRootPart"), 0)
-                                        task.wait(0.05)
-                                        firetouchinterest(touchPart, player.Character:FindFirstChild("HumanoidRootPart"), 1)
-                                        task.wait(0.05)
+                                        local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+                                        if rootPart then
+                                            firetouchinterest(touchPart, rootPart, 0)
+                                            task.wait(0.05)
+                                            firetouchinterest(touchPart, rootPart, 1)
+                                            task.wait(0.05)
+                                        end
                                     end
                                 end
                             end
