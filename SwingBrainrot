@@ -266,264 +266,132 @@ ServerGroup:Button({
     end
 })
 
--- ================= MAIN TAB (Shop) =================
+-- ================= MAIN TAB =================
 local MainTab = Window:Tab({
-    Title = "Main Tab",
-    Icon = "shopping-cart",
+    Title = "Swing Obby",
+    Icon = "star",
     Locked = false,
 })
 
--- ================= SWING OBBY BRAINROT FEATURES =================
+-- ================= SWING OBBY BRAINROT =================
 
-local AutoSecret = false
-local AutoMythic = false
-local CollectCash = false
-local UpgradeAll = false
-local BuyDistance = false
-local AutoRebirth = false
+local selectedMutation = "Normal"
+local selectedRarity = "Common"
+local autoGetBrainrot = false
 
-local MainSection = MainTab:Section({
-    Title = "Brainrot Automation",
+local BrainrotSection = MainTab:Section({
+    Title = "Auto Get Brainrot",
     Opened = true,
 })
 
--- Find Best Income
-MainSection:Button({
-    Title = "Find Best Income",
-    Icon = "solar:chart-bold",
-    Desc = "Finds the brainrot with the best income on the map",
-    Callback = function()
-        local brainrots = game:GetService("Workspace").ActiveBrainrots:GetChildren()
-        local best = nil
-        local bestIncome = 0
-        for _, br in ipairs(brainrots) do
-            local income = br:FindFirstChild("Income") or br:FindFirstChild("Cash") or br:FindFirstChild("Money")
-            local val = income and income.Value or 0
-            if val > bestIncome then
-                bestIncome = val
-                best = br
-            end
+BrainrotSection:Dropdown({
+    Title = "Mutation",
+    Icon = "solar:magic-stick-bold",
+    Desc = "Select the mutation to target",
+    Options = { "Normal", "Golden", "Diamond", "Emerald", "Ruby", "Void", "Ethereal", "Celestial" },
+    Default = "Normal",
+    Callback = function(value)
+        selectedMutation = value
+    end,
+})
+
+BrainrotSection:Space()
+
+BrainrotSection:Dropdown({
+    Title = "Rarity",
+    Icon = "solar:star-bold",
+    Desc = "Select the rarity to target",
+    Options = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+    Default = "Common",
+    Callback = function(value)
+        selectedRarity = value
+    end,
+})
+
+BrainrotSection:Space()
+
+BrainrotSection:Toggle({
+    Title = "Auto Get Brainrot",
+    Icon = "solar:play-bold",
+    Desc = "Teleports to and collects matching brainrots",
+    Default = false,
+    Callback = function(state)
+        autoGetBrainrot = state
+        if state then
+            task.spawn(function()
+                while autoGetBrainrot do
+                    pcall(function()
+                        local activeBrainrots = workspace.ActiveBrainrots:GetChildren()
+                        for _, brainrot in ipairs(activeBrainrots) do
+                            if not autoGetBrainrot then break end
+
+                            local hitbox = brainrot:FindFirstChild("ServerHitBox")
+                            if hitbox then
+                                local rarityAttr = hitbox:GetAttribute("Rarity")
+                                local mutationAttr = hitbox:GetAttribute("Mutation")
+
+                                if rarityAttr == selectedRarity and mutationAttr == selectedMutation then
+                                    local attachment = hitbox:FindFirstChild("Attachment")
+                                    if attachment then
+                                        local prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
+                                        if prompt then
+                                            local rootPart = player.Character
+                                                and player.Character:FindFirstChild("HumanoidRootPart")
+                                            if rootPart then
+                                                rootPart.CFrame = hitbox.CFrame + Vector3.new(0, 5, 0)
+                                                task.wait(0.5)
+                                                fireproximityprompt(prompt)
+                                                task.wait(1)
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        end
+                    end)
+                    task.wait(0.5)
+                end
+            end)
         end
-        if best then
+    end,
+})
+
+BrainrotSection:Space()
+
+-- ================= GO TO BASE =================
+
+BrainrotSection:Button({
+    Title = "Go to Your Base",
+    Icon = "solar:home-bold",
+    Desc = "Teleports you to your own plot",
+    Callback = function()
+        local found = false
+        pcall(function()
+            for _, plot in ipairs(workspace.Plots:GetChildren()) do
+                if plot:GetAttribute("OwnerName") == player.Name then
+                    local rootPart = player.Character
+                        and player.Character:FindFirstChild("HumanoidRootPart")
+                    if rootPart then
+                        rootPart.CFrame = plot.CFrame + Vector3.new(0, 5, 0)
+                        found = true
+                        WindUI:Notify({
+                            Title = "Teleported",
+                            Content = "Teleported to your base: " .. plot.Name,
+                            Icon = "solar:home-bold",
+                            Duration = 3,
+                        })
+                    end
+                    break
+                end
+            end
+        end)
+        if not found then
             WindUI:Notify({
-                Title = "Best Income Found",
-                Content = "Name: " .. best.Name .. " | Income: " .. tostring(bestIncome),
-                Icon = "solar:chart-bold",
-                Duration = 5,
-            })
-        else
-            WindUI:Notify({
-                Title = "Find Best Income",
-                Content = "No brainrots with income data found.",
+                Title = "Base Not Found",
+                Content = "No plot with your name was found (Plot1-Plot5).",
                 Icon = "info",
                 Duration = 3,
             })
-        end
-    end,
-})
-
-MainSection:Space()
-
--- Auto Secret
-MainSection:Toggle({
-    Title = "Auto Secret",
-    Icon = "solar:star-bold",
-    Desc = "Automatically collects secret brainrots",
-    Default = false,
-    Callback = function(state)
-        AutoSecret = state
-        if state then
-            task.spawn(function()
-                while AutoSecret do
-                    pcall(function()
-                        local brainrots = game:GetService("Workspace").ActiveBrainrots:GetChildren()
-                        for _, br in ipairs(brainrots) do
-                            if not AutoSecret then break end
-                            local rarity = br:FindFirstChild("Rarity") or br:FindFirstChild("Type")
-                            if rarity and string.lower(rarity.Value) == "secret" then
-                                local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                                if rootPart then
-                                    rootPart.CFrame = br.CFrame + Vector3.new(0, 5, 0)
-                                end
-                            end
-                        end
-                    end)
-                    task.wait(1)
-                end
-            end)
-        end
-    end,
-})
-
-MainSection:Space()
-
--- Auto Mythic
-MainSection:Toggle({
-    Title = "Auto Mythic",
-    Icon = "solar:star-shine-bold",
-    Desc = "Automatically collects mythic brainrots",
-    Default = false,
-    Callback = function(state)
-        AutoMythic = state
-        if state then
-            task.spawn(function()
-                while AutoMythic do
-                    pcall(function()
-                        local brainrots = game:GetService("Workspace").ActiveBrainrots:GetChildren()
-                        for _, br in ipairs(brainrots) do
-                            if not AutoMythic then break end
-                            local rarity = br:FindFirstChild("Rarity") or br:FindFirstChild("Type")
-                            if rarity and string.lower(rarity.Value) == "mythic" then
-                                local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                                if rootPart then
-                                    rootPart.CFrame = br.CFrame + Vector3.new(0, 5, 0)
-                                end
-                            end
-                        end
-                    end)
-                    task.wait(1)
-                end
-            end)
-        end
-    end,
-})
-
-MainSection:Space()
-
--- Collect Cash
-MainSection:Toggle({
-    Title = "Collect Cash",
-    Icon = "solar:dollar-minimalistic-bold",
-    Desc = "Automatically collects cash from brainrots",
-    Default = false,
-    Callback = function(state)
-        CollectCash = state
-        if state then
-            task.spawn(function()
-                while CollectCash do
-                    pcall(function()
-                        local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:FindFirstChild("Events")
-                        if remotes then
-                            local collectRemote = remotes:FindFirstChild("CollectCash") or remotes:FindFirstChild("Collect")
-                            if collectRemote then
-                                collectRemote:FireServer()
-                            end
-                        end
-                        local plots = game:GetService("Workspace").Plots:GetChildren()
-                        for _, plot in ipairs(plots) do
-                            if not CollectCash then break end
-                            local cashPart = plot:FindFirstChild("Cash") or plot:FindFirstChild("CashCollect")
-                            if cashPart then
-                                local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-                                if rootPart then
-                                    rootPart.CFrame = cashPart.CFrame + Vector3.new(0, 3, 0)
-                                    task.wait(0.3)
-                                end
-                            end
-                        end
-                    end)
-                    task.wait(2)
-                end
-            end)
-        end
-    end,
-})
-
-MainSection:Space()
-
--- Upgrade All
-MainSection:Toggle({
-    Title = "Upgrade All",
-    Icon = "solar:arrow-up-bold",
-    Desc = "Automatically upgrades all brainrots",
-    Default = false,
-    Callback = function(state)
-        UpgradeAll = state
-        if state then
-            task.spawn(function()
-                while UpgradeAll do
-                    pcall(function()
-                        local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:FindFirstChild("Events")
-                        if remotes then
-                            local upgradeRemote = remotes:FindFirstChild("Upgrade") or remotes:FindFirstChild("UpgradeAll")
-                            if upgradeRemote then
-                                local brainrots = game:GetService("Workspace").ActiveBrainrots:GetChildren()
-                                for _, br in ipairs(brainrots) do
-                                    if not UpgradeAll then break end
-                                    upgradeRemote:FireServer(br)
-                                    task.wait(0.1)
-                                end
-                            end
-                        end
-                    end)
-                    task.wait(3)
-                end
-            end)
-        end
-    end,
-})
-
-MainSection:Space()
-
--- Buy +50 Distance
-MainSection:Toggle({
-    Title = "Buy +50 Distance",
-    Icon = "solar:map-arrow-right-bold",
-    Desc = "Automatically buys +50 distance upgrades",
-    Default = false,
-    Callback = function(state)
-        BuyDistance = state
-        if state then
-            task.spawn(function()
-                while BuyDistance do
-                    pcall(function()
-                        local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:FindFirstChild("Events")
-                        if remotes then
-                            local distRemote = remotes:FindFirstChild("BuyDistance") or remotes:FindFirstChild("Distance")
-                            if distRemote then
-                                distRemote:FireServer(50)
-                            end
-                        end
-                    end)
-                    task.wait(2)
-                end
-            end)
-        end
-    end,
-})
-
-MainSection:Space()
-
--- Auto Rebirth
-MainSection:Toggle({
-    Title = "Auto Rebirth",
-    Icon = "solar:refresh-circle-bold",
-    Desc = "Automatically rebirths when conditions are met",
-    Default = false,
-    Callback = function(state)
-        AutoRebirth = state
-        if state then
-            task.spawn(function()
-                while AutoRebirth do
-                    pcall(function()
-                        local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage:FindFirstChild("Events")
-                        if remotes then
-                            local rebirthRemote = remotes:FindFirstChild("Rebirth") or remotes:FindFirstChild("AutoRebirth")
-                            if rebirthRemote then
-                                rebirthRemote:FireServer()
-                            end
-                        end
-                        local rebirthGui = player.PlayerGui:FindFirstChild("RebirthGui") or player.PlayerGui:FindFirstChild("Rebirth")
-                        if rebirthGui then
-                            local btn = rebirthGui:FindFirstChildWhichIsA("TextButton", true)
-                            if btn then
-                                btn.MouseButton1Click:Fire()
-                            end
-                        end
-                    end)
-                    task.wait(5)
-                end
-            end)
         end
     end,
 })
