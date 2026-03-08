@@ -7,6 +7,24 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local camera = workspace.CurrentCamera
 
+-- ================= STATE & REMOTES =================
+local upgradeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpgradeStats")
+local rebirthRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Rebirth")
+
+local selectedMutation = "Normal"
+local selectedRarity = "Common"
+local autoGetBrainrot = false
+
+local playerUsername = player.Name
+
+local autoPower = false
+local autoDistance = false
+local autoGrab = false
+local autoUpgradePlot = false
+local autoRebirth = false
+local selectedPowerAmt = 10
+local selectedDistanceAmt = 10
+
 -- ================= LOAD WINDUI =================
 local WindUI = loadstring(game:HttpGet(
     "https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"
@@ -275,10 +293,6 @@ local MainTab = Window:Tab({
 
 -- ================= SWING OBBY BRAINROT =================
 
-local selectedMutation = "Normal"
-local selectedRarity = "Common"
-local autoGetBrainrot = false
-
 local BrainrotSection = MainTab:Section({
     Title = "Auto Get Brainrot",
     Opened = true,
@@ -288,8 +302,11 @@ BrainrotSection:Dropdown({
     Title = "Mutation",
     Icon = "solar:magic-stick-bold",
     Desc = "Select the mutation to target",
-    Options = { "Normal", "Golden", "Diamond", "Emerald", "Ruby", "Void", "Ethereal", "Celestial" },
-    Default = "Normal",
+    Values = { "Normal", "Golden", "Diamond", "Emerald", "Ruby", "Void", "Ethereal", "Celestial" },
+    Value = "Normal",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
     Callback = function(value)
         selectedMutation = value
     end,
@@ -301,8 +318,11 @@ BrainrotSection:Dropdown({
     Title = "Rarity",
     Icon = "solar:star-bold",
     Desc = "Select the rarity to target",
-    Options = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
-    Default = "Common",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+    Value = "Common",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
     Callback = function(value)
         selectedRarity = value
     end,
@@ -314,7 +334,7 @@ BrainrotSection:Toggle({
     Title = "Auto Get Brainrot",
     Icon = "solar:play-bold",
     Desc = "Teleports to and collects matching brainrots",
-    Default = false,
+    Value = false,
     Callback = function(state)
         autoGetBrainrot = state
         if state then
@@ -368,7 +388,7 @@ BrainrotSection:Button({
         local found = false
         pcall(function()
             for _, plot in ipairs(workspace.Plots:GetChildren()) do
-                if plot:GetAttribute("OwnerName") == player.Name then
+                if plot:GetAttribute("OwnerName") == playerUsername then
                     local rootPart = player.Character
                         and player.Character:FindFirstChild("HumanoidRootPart")
                     if rootPart then
@@ -403,15 +423,6 @@ local AutoTab = Window:Tab({
     Locked = false,
 })
 
-local upgradeRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UpgradeStats")
-
-local autoPower = false
-local autoDistance = false
-local autoGrab = false
-local autoUpgradePlot = false
-local selectedPowerAmt = 10
-local selectedDistanceAmt = 10
-
 local UpgradeSection = AutoTab:Section({
     Title = "Stat Upgrades",
     Opened = true,
@@ -422,8 +433,11 @@ UpgradeSection:Dropdown({
     Title = "Power Amount",
     Icon = "solar:bolt-bold",
     Desc = "Amount to upgrade Power per tick",
-    Options = { "1", "5", "10" },
-    Default = "10",
+    Values = { "1", "5", "10" },
+    Value = "10",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = false,
     Callback = function(value)
         selectedPowerAmt = tonumber(value)
     end,
@@ -435,7 +449,7 @@ UpgradeSection:Toggle({
     Title = "Auto Upgrade Power",
     Icon = "solar:bolt-bold",
     Desc = "Automatically upgrades Power stat",
-    Default = false,
+    Value = false,
     Callback = function(state)
         autoPower = state
         if state then
@@ -458,8 +472,11 @@ UpgradeSection:Dropdown({
     Title = "Distance Amount",
     Icon = "solar:map-arrow-right-bold",
     Desc = "Amount to upgrade Reach Distance per tick",
-    Options = { "1", "5", "10" },
-    Default = "10",
+    Values = { "1", "5", "10" },
+    Value = "10",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = false,
     Callback = function(value)
         selectedDistanceAmt = tonumber(value)
     end,
@@ -471,7 +488,7 @@ UpgradeSection:Toggle({
     Title = "Auto Upgrade Distance",
     Icon = "solar:map-arrow-right-bold",
     Desc = "Automatically upgrades Reach Distance stat",
-    Default = false,
+    Value = false,
     Callback = function(state)
         autoDistance = state
         if state then
@@ -494,7 +511,7 @@ UpgradeSection:Toggle({
     Title = "Auto Upgrade Grab Amount",
     Icon = "solar:hand-shake-bold",
     Desc = "Automatically upgrades Grab Amount stat",
-    Default = false,
+    Value = false,
     Callback = function(state)
         autoGrab = state
         if state then
@@ -522,7 +539,7 @@ PlotSection:Toggle({
     Title = "Auto Upgrade Plot",
     Icon = "solar:shop-bold",
     Desc = "Automatically upgrade your plot",
-    Default = false,
+    Value = false,
     Callback = function(state)
         autoUpgradePlot = state
         if state then
@@ -531,7 +548,7 @@ PlotSection:Toggle({
                     pcall(function()
                         local ownerPlot = nil
                         for _, plot in ipairs(workspace.Plots:GetChildren()) do
-                            if plot:GetAttribute("OwnerName") == player.Name then
+                            if plot:GetAttribute("OwnerName") == playerUsername then
                                 ownerPlot = plot
                                 break
                             end
@@ -567,14 +584,11 @@ PlotSection:Toggle({
 PlotSection:Space()
 
 -- Auto Rebirth
-local autoRebirth = false
-local rebirthRemote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("Rebirth")
-
 PlotSection:Toggle({
     Title = "Auto Rebirth",
     Icon = "solar:refresh-circle-bold",
     Desc = "Automatically rebirths when possible",
-    Default = false,
+    Value = false,
     Callback = function(state)
         autoRebirth = state
         if state then
