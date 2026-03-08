@@ -410,7 +410,7 @@ BrainrotSection:Toggle({
                         for _, brainrot in ipairs(activeBrainrots) do
                             if not autoGetBrainrot then break end
 
-                            local hitbox = brainrot:FindFirstChild("ServerHitBox")
+                            local hitbox = brainrot:FindFirstChild("ServerHitbox")
                             if hitbox then
                                 local rarityAttr = hitbox:GetAttribute("Rarity")
                                 local mutationAttr = hitbox:GetAttribute("Mutation")
