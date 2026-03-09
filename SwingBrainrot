@@ -10,7 +10,6 @@ local camera = workspace.CurrentCamera
 -- ================= STATE & REMOTES =================
 local upgradeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpgradeStats")
 local rebirthRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Rebirth")
-local swingEventRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SwingEvent")
 
 -- Multi=true dropdowns return tables, so store as tables
 local selectedRarity = {}
@@ -485,7 +484,7 @@ DupeSection:Input({
 DupeSection:Toggle({
     Title = "Auto Dupe",
     Icon = "solar:copy-bold",
-    Desc = "Swing once, wait for selected rarity, grab, then return to base",
+    Desc = "Automation Duping",
     Value = false,
     Callback = function(state)
         autoDupe = state
@@ -493,11 +492,8 @@ DupeSection:Toggle({
             task.spawn(function()
                 while autoDupe do
                     pcall(function()
-                        local args = {
-                            true,
-                            workspace:WaitForChild("GameplaySwings"):WaitForChild("FirstSwing"):WaitForChild("SwingPart")
-                        }
-                        swingEventRemote:FireServer(unpack(args))
+                        local outZone = workspace:WaitForChild("OutZone")
+                        teleportTo(getCFrame(outZone) + Vector3.new(0, 3, 0))
                     end)
 
                     local grabbed = false
