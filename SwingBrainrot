@@ -10,10 +10,14 @@ local camera = workspace.CurrentCamera
 -- ================= STATE & REMOTES =================
 local upgradeRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UpgradeStats")
 local rebirthRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Rebirth")
+local swingEventRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("SwingEvent")
 
 -- Multi=true dropdowns return tables, so store as tables
 local selectedRarity = {}
 local autoGetBrainrot = false
+local selectedDupeRarity = {}
+local autoDupe = false
+local dupeReturnDelay = 1
 
 local playerUsername = player.Name
 
@@ -87,6 +91,48 @@ local function isSelected(value, selection)
         return false
     end
     return tostring(selection) == tostring(value)
+end
+
+local function selectionIsEmpty(selection)
+    if type(selection) == "table" then
+        return next(selection) == nil
+    end
+    return selection == nil or tostring(selection) == ""
+end
+
+-- Shared logic used by Auto Get Brainrot and Auto Dupe.
+local function tryCollectBrainrotByRarity(raritySelection)
+    local activeFolder = workspace:FindFirstChild("ActiveBrainrots")
+    if not activeFolder then return false end
+
+    for _, hitbox in ipairs(activeFolder:GetChildren()) do
+        local rarityAttr = hitbox:GetAttribute("Rarity")
+        local spawnCF = hitbox:GetAttribute("SpawnCFrame")
+        local rarityMatch = selectionIsEmpty(raritySelection) or isSelected(rarityAttr, raritySelection)
+
+        if rarityMatch then
+            local targetCF = spawnCF or getCFrame(hitbox)
+            teleportTo(targetCF + Vector3.new(0, 5, 0))
+            task.wait(0.3)
+            teleportTo(targetCF + Vector3.new(0, 3, 0))
+            task.wait(0.4)
+
+            local prompt = hitbox:FindFirstChildOfClass("ProximityPrompt", true)
+            if not prompt then
+                local attachment = hitbox:FindFirstChild("Attachment")
+                if attachment then
+                    prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
+                end
+            end
+
+            if prompt then
+                fireproximityprompt(prompt)
+                return true
+            end
+        end
+    end
+
+    return false
 end
 
 -- ================= LOAD WINDUI =================
@@ -389,42 +435,87 @@ BrainrotSection:Toggle({
             task.spawn(function()
                 while autoGetBrainrot do
                     pcall(function()
-                        local activeBrainrots = workspace.ActiveBrainrots:GetChildren()
-                        for _, hitbox in ipairs(activeBrainrots) do
-                            if not autoGetBrainrot then break end
-
-                            if hitbox then
-                                local rarityAttr = hitbox:GetAttribute("Rarity")
-                                local spawnCF = hitbox:GetAttribute("SpawnCFrame")
-
-                                local rarityMatch = next(selectedRarity) == nil or isSelected(rarityAttr, selectedRarity)
-
-                                if rarityMatch then
-                                    -- Use SpawnCFrame attribute if available, else fall back to hitbox CFrame
-                                    local targetCF = spawnCF or getCFrame(hitbox)
-                                    teleportTo(targetCF + Vector3.new(0, 5, 0))
-                                    task.wait(0.3)
-                                    teleportTo(targetCF + Vector3.new(0, 3, 0))
-                                    task.wait(0.4)
-
-                                    -- Search recursively for ProximityPrompt anywhere under hitbox
-                                    local prompt = hitbox:FindFirstChildOfClass("ProximityPrompt", true)
-                                    if not prompt then
-                                        local attachment = hitbox:FindFirstChild("Attachment")
-                                        if attachment then
-                                            prompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                                        end
-                                    end
-
-                                    if prompt then
-                                        fireproximityprompt(prompt)
-                                    end
-                                    task.wait(1)
-                                end
-                            end
+                        if tryCollectBrainrotByRarity(selectedRarity) then
+                            task.wait(1)
                         end
                     end)
                     task.wait(0.5)
+                end
+            end)
+        end
+    end,
+})
+
+BrainrotSection:Space()
+
+-- ================= DUPE =================
+local DupeSection = MainTab:Section({
+    Title = "Dupe",
+    Opened = true,
+})
+
+DupeSection:Dropdown({
+    Title = "Rarity",
+    Icon = "solar:star-bold",
+    Desc = "Select rarity for Auto Dupe target",
+    Values = { "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic", "Secret" },
+    Value = "Common",
+    Multi = true,
+    AllowNone = true,
+    SearchBarEnabled = true,
+    Callback = function(value)
+        selectedDupeRarity = value
+    end,
+})
+
+DupeSection:Input({
+    Title = "Return Delay (sec)",
+    Desc = "Delay before teleporting back to base after grab",
+    Value = "1",
+    Placeholder = "e.g. 1.5",
+    Type = "Input",
+    Callback = function(value)
+        local n = tonumber(value)
+        if n then
+            dupeReturnDelay = math.max(0, n)
+        end
+    end,
+})
+
+DupeSection:Toggle({
+    Title = "Auto Dupe",
+    Icon = "solar:copy-bold",
+    Desc = "Swing once, wait for selected rarity, grab, then return to base",
+    Value = false,
+    Callback = function(state)
+        autoDupe = state
+        if state then
+            task.spawn(function()
+                while autoDupe do
+                    pcall(function()
+                        local args = {
+                            true,
+                            workspace:WaitForChild("GameplaySwings"):WaitForChild("FirstSwing"):WaitForChild("SwingPart")
+                        }
+                        swingEventRemote:FireServer(unpack(args))
+                    end)
+
+                    local grabbed = false
+                    while autoDupe and not grabbed do
+                        grabbed = tryCollectBrainrotByRarity(selectedDupeRarity)
+                        if not grabbed then
+                            task.wait(0.2)
+                        end
+                    end
+
+                    if not autoDupe then break end
+
+                    task.wait(dupeReturnDelay)
+                    local plot = findOwnerPlot()
+                    if plot then
+                        teleportTo(getCFrame(plot) + Vector3.new(0, 5, 0))
+                    end
+                    task.wait(0.2)
                 end
             end)
         end
