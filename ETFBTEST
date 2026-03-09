@@ -3597,7 +3597,7 @@ end
 local autoCollectManny = false
 local AutoCollectMannyToggle = MannySection:Toggle({
     Title = "Auto Collect Manny Fruit",
-    Desc  = "Search workspace.MannyMishapCollectibles and collect all anchors",
+    Desc  = "Automatically collect Manny Mishap fruits when the event is active",
     Value = false,
     Callback = function(state)
         autoCollectManny = state
