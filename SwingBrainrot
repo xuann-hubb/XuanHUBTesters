@@ -102,7 +102,7 @@ end
 -- Shared logic used by Auto Get Brainrot and Auto Dupe.
 local function tryCollectBrainrotByRarity(raritySelection)
     local activeFolder = workspace:FindFirstChild("ActiveBrainrots")
-    if not activeFolder then return false end
+    if not activeFolder then return false, nil, nil, nil end
 
     for _, hitbox in ipairs(activeFolder:GetChildren()) do
         local rarityAttr = hitbox:GetAttribute("Rarity")
@@ -126,12 +126,12 @@ local function tryCollectBrainrotByRarity(raritySelection)
 
             if prompt then
                 fireproximityprompt(prompt)
-                return true
+                return true, hitbox, targetCF, prompt
             end
         end
     end
 
-    return false
+    return false, nil, nil, nil
 end
 
 -- ================= LOAD WINDUI =================
@@ -495,11 +495,18 @@ DupeSection:Toggle({
                         local outZone = workspace:WaitForChild("OutZone")
                         teleportTo(getCFrame(outZone) + Vector3.new(0, 3, 0))
                     end)
-                     task.wait(3)
+                    task.wait(3)
 
                     local grabbed = false
+                    local grabbedHitbox, grabbedCF, grabbedPrompt
                     while autoDupe and not grabbed do
-                        grabbed = tryCollectBrainrotByRarity(selectedDupeRarity)
+                        local ok, hitbox, targetCF, prompt = tryCollectBrainrotByRarity(selectedDupeRarity)
+                        grabbed = ok
+                        if ok then
+                            grabbedHitbox = hitbox
+                            grabbedCF = targetCF
+                            grabbedPrompt = prompt
+                        end
                         if not grabbed then
                             task.wait(0.2)
                         end
@@ -507,7 +514,30 @@ DupeSection:Toggle({
 
                     if not autoDupe then break end
 
-                    task.wait(dupeReturnDelay)
+                    local holdUntil = os.clock() + dupeReturnDelay
+                    while autoDupe and os.clock() < holdUntil do
+                        if grabbedCF then
+                            teleportTo(grabbedCF + Vector3.new(0, 3, 0))
+                        end
+
+                        if not grabbedPrompt or not grabbedPrompt.Parent then
+                            if grabbedHitbox and grabbedHitbox.Parent then
+                                grabbedPrompt = grabbedHitbox:FindFirstChildOfClass("ProximityPrompt", true)
+                                if not grabbedPrompt then
+                                    local attachment = grabbedHitbox:FindFirstChild("Attachment")
+                                    if attachment then
+                                        grabbedPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
+                                    end
+                                end
+                            end
+                        end
+
+                        if grabbedPrompt then
+                            pcall(fireproximityprompt, grabbedPrompt)
+                        end
+                        task.wait(0.1)
+                    end
+
                     local plot = findOwnerPlot()
                     if plot then
                         teleportTo(getCFrame(plot) + Vector3.new(0, 5, 0))
