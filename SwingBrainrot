@@ -497,45 +497,14 @@ DupeSection:Toggle({
                     end)
                     task.wait(3)
 
-                    local grabbed = false
-                    local grabbedHitbox, grabbedCF, grabbedPrompt
-                    while autoDupe and not grabbed do
-                        local ok, hitbox, targetCF, prompt = tryCollectBrainrotByRarity(selectedDupeRarity)
-                        grabbed = ok
-                        if ok then
-                            grabbedHitbox = hitbox
-                            grabbedCF = targetCF
-                            grabbedPrompt = prompt
-                        end
-                        if not grabbed then
-                            task.wait(0.2)
-                        end
-                    end
-
                     if not autoDupe then break end
 
-                    local holdUntil = os.clock() + dupeReturnDelay
-                    while autoDupe and os.clock() < holdUntil do
-                        if grabbedCF then
-                            teleportTo(grabbedCF + Vector3.new(0, 3, 0))
-                        end
-
-                        if not grabbedPrompt or not grabbedPrompt.Parent then
-                            if grabbedHitbox and grabbedHitbox.Parent then
-                                grabbedPrompt = grabbedHitbox:FindFirstChildOfClass("ProximityPrompt", true)
-                                if not grabbedPrompt then
-                                    local attachment = grabbedHitbox:FindFirstChild("Attachment")
-                                    if attachment then
-                                        grabbedPrompt = attachment:FindFirstChildOfClass("ProximityPrompt")
-                                    end
-                                end
-                            end
-                        end
-
-                        if grabbedPrompt then
-                            pcall(fireproximityprompt, grabbedPrompt)
-                        end
-                        task.wait(0.1)
+                    local untilTime = os.clock() + dupeReturnDelay
+                    while autoDupe and os.clock() < untilTime do
+                        pcall(function()
+                            tryCollectBrainrotByRarity(selectedDupeRarity)
+                        end)
+                        task.wait(0.2)
                     end
 
                     local plot = findOwnerPlot()
